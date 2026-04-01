@@ -633,7 +633,6 @@ class TestReport:
         with (
             patch("scanner.run_scan", side_effect=mock_run_scan),
             patch("scanner.validate_domain", side_effect=mock_validate_domain),
-            patch("recon.start_recon"),
         ):
             r = client.post("/scan", data={"domain": "example.com"}, follow_redirects=False, headers=CSRF_HEADERS)
             self.scan_id = r.headers.get("location", "").split("/result/")[-1]

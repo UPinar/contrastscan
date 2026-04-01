@@ -44,6 +44,8 @@ from recon import (
     whois_lookup,
 )
 
+import pytest
+
 init_db()
 
 
@@ -854,6 +856,7 @@ class TestRunRecon:
 # ============================================================
 
 
+@pytest.mark.allow_recon
 class TestStartRecon:
     @patch("recon.run_recon")
     def test_starts_daemon_thread(self, mock_run):

@@ -27,6 +27,19 @@ init_db()
 
 
 @pytest.fixture(autouse=True)
+def disable_background_recon(request):
+    """Prevent background recon threads from running during tests.
+    Tests that need real start_recon should use @pytest.mark.allow_recon."""
+    if "allow_recon" in [m.name for m in request.node.iter_markers()]:
+        yield
+        return
+    from unittest.mock import patch
+
+    with patch("recon.start_recon"):
+        yield
+
+
+@pytest.fixture(autouse=True)
 def reset_rate_limits():
     """Reset all rate limit stores and clean up DB connections after each test."""
     from ratelimit import reset_all

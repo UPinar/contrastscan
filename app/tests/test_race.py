@@ -250,6 +250,7 @@ class TestScanIdUniqueness:
 # === Security Test 6 — Unbounded Recon Thread Spawning ===
 
 
+@pytest.mark.allow_recon
 class TestReconThreadBounding:
     """MEDIUM: Recon uses ThreadPoolExecutor(max_workers=5) per scan.
     Verify the pool is bounded and doesn't leak threads."""
