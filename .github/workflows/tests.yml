@@ -103,7 +103,11 @@ jobs:
           cd app && python -c "from db import init_db; init_db()"
           cd app && uvicorn main:app --host 127.0.0.1 --port 8001 --workers 2 &
           echo $! > /tmp/app.pid
-          sleep 3
+          # Wait for app to be ready (up to 15s)
+          for i in $(seq 1 15); do
+            curl -sf http://127.0.0.1:8001/ > /dev/null 2>&1 && break
+            sleep 1
+          done
 
       - name: Verify scanner binary works
         run: |
