@@ -5,10 +5,11 @@ conftest.py — shared fixtures and helpers for ContrastScan tests
 import os
 import sys
 import tempfile
+import uuid
 from pathlib import Path
 
-# Force tests to use a temporary DB — never touch production
-_test_db = os.path.join(tempfile.gettempdir(), "contrastscan_test.db")
+# Force tests to use a unique temporary DB per session — never touch production
+_test_db = os.path.join(tempfile.gettempdir(), f"contrastscan_test_{uuid.uuid4().hex[:8]}.db")
 os.environ["CONTRASTSCAN_DB"] = _test_db
 
 # add parent dir to path so we can import app modules
@@ -16,12 +17,13 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 
 import pytest
 
+
 # === Shared fixtures ===
 
 
 @pytest.fixture(autouse=True)
 def reset_rate_limits():
-    """Reset all rate limit stores before each test."""
+    """Reset all rate limit stores and clean up DB connections after each test."""
     from ratelimit import reset_all
 
     reset_all()
@@ -40,6 +42,10 @@ def reset_rate_limits():
             con.execute("DELETE FROM ip_limits")
     except Exception:
         pass
+    # Close thread-local DB connection to prevent lock contention
+    from db import close_thread_db
+
+    close_thread_db()
 
 
 @pytest.fixture
@@ -51,9 +57,21 @@ def init_test_db():
 
 
 def pytest_sessionfinish(session, exitstatus):
-    """Clean up test DB after all tests complete."""
-    if os.path.exists(_test_db):
-        os.remove(_test_db)
+    """Clean up test DB and WAL files after all tests complete."""
+    # Checkpoint WAL and close connections before deleting
+    try:
+        from db import close_thread_db, get_db
+
+        with get_db() as con:
+            con.execute("PRAGMA wal_checkpoint(TRUNCATE)")
+        close_thread_db()
+    except Exception:
+        pass
+
+    for suffix in ("", "-wal", "-shm"):
+        f = _test_db + suffix
+        if os.path.exists(f):
+            os.remove(f)
 
 
 # === Shared helpers ===
