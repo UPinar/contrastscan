@@ -44,8 +44,6 @@ from recon import (
     whois_lookup,
 )
 
-import pytest
-
 init_db()
 
 
