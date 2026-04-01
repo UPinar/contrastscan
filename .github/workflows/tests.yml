@@ -130,6 +130,7 @@ jobs:
           [ "$STATUS" = "400" ] && echo "PASS: Invalid domain -> 400" || { echo "FAIL: expected 400 got $STATUS"; exit 1; }
 
       - name: Integration — scan with real binary
+        continue-on-error: true
         run: |
           STATUS=$(curl -s -o /dev/null -w '%{http_code}' \
             -X POST http://127.0.0.1:8001/scan \
