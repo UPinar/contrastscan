@@ -100,8 +100,9 @@ jobs:
           CONTRASTSCAN_DB: /tmp/ci_integration.db
           CONTRASTSCAN_HASH_SECRET: ci-test-secret
         run: |
-          cd app && python -c "from db import init_db; init_db()"
-          cd app && uvicorn main:app --host 127.0.0.1 --port 8001 --workers 2 &
+          cd app
+          python -c "from db import init_db; init_db()"
+          uvicorn main:app --host 127.0.0.1 --port 8001 --workers 2 &
           echo $! > /tmp/app.pid
           # Wait for app to be ready (up to 15s)
           for i in $(seq 1 15); do
