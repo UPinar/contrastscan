@@ -9,19 +9,18 @@ Tests:
 Run: cd app && python -m pytest tests/test_race.py -v
 """
 
-import time
-import threading
 import secrets
+import threading
+import time
 
 import pytest
-
-from ratelimit import reset_all, check_domain_limit
 from config import DOMAIN_LIMIT
-from db import init_db, save_scan, get_scan
-from validation import clean_domain, SCAN_ID_PATTERN
-
+from db import get_scan, init_db, save_scan
+from ratelimit import check_domain_limit
+from validation import SCAN_ID_PATTERN, clean_domain
 
 # === 1. Concurrent domain rate limit — no bypass ===
+
 
 class TestDomainRateLimitRace:
     def test_domain_limit_allows_exact_count(self):
@@ -66,6 +65,7 @@ class TestDomainRateLimitRace:
 
 
 # === 2. Concurrent DB writes — no corruption ===
+
 
 class TestDbWriteRace:
     @pytest.fixture(autouse=True)
@@ -128,6 +128,7 @@ class TestDbWriteRace:
 
 # === 3. Concurrent domain validation — thread safe ===
 
+
 class TestValidationRace:
     def test_concurrent_clean_domain_no_crashes(self):
         clean_results = []
@@ -187,6 +188,7 @@ class TestValidationRace:
 
 # === 4. ReDoS check — SCAN_ID_PATTERN ===
 
+
 class TestRedos:
     def test_100k_regex_matches_fast(self):
         start = time.time()
@@ -205,6 +207,7 @@ class TestRedos:
 
 # === SECURITY: Rate Limit Boundary Precision ===
 
+
 class TestRateLimitBoundary:
     """Verify exact boundary behavior — N allowed, N+1 blocked, no off-by-one."""
 
@@ -217,11 +220,13 @@ class TestRateLimitBoundary:
 
 # === SECURITY: Concurrent Scan ID Generation Uniqueness ===
 
+
 class TestScanIdUniqueness:
     """Verify scan IDs generated concurrently are all unique."""
 
     def test_100_concurrent_scan_ids_unique(self):
         from scanner import make_scan_id
+
         ids = []
 
         def gen_ids(count):
@@ -244,6 +249,7 @@ class TestScanIdUniqueness:
 
 # === Security Test 6 — Unbounded Recon Thread Spawning ===
 
+
 class TestReconThreadBounding:
     """MEDIUM: Recon uses ThreadPoolExecutor(max_workers=5) per scan.
     Verify the pool is bounded and doesn't leak threads."""
@@ -251,21 +257,27 @@ class TestReconThreadBounding:
     def test_threadpool_max_workers_is_bounded(self):
         """Verify the ThreadPoolExecutor in run_recon uses max_workers=5."""
         import inspect
+
         from recon import run_recon
+
         source = inspect.getsource(run_recon)
         assert "max_workers=5" in source
 
     def test_recon_thread_is_daemon(self):
         """Recon threads must be daemon threads so they don't block shutdown."""
         import inspect
+
         from recon import start_recon
+
         source = inspect.getsource(start_recon)
         assert "daemon=True" in source
 
     def test_scan_semaphore_bounds_concurrent_scans(self):
         """Scanner semaphore limits concurrent C binary executions."""
-        from scanner import _scan_semaphore
         from config import SCAN_CONCURRENCY
+
+        from scanner import _scan_semaphore
+
         # Semaphore should have SCAN_CONCURRENCY permits
         # _value is the internal counter
         assert _scan_semaphore._value == SCAN_CONCURRENCY
@@ -273,6 +285,7 @@ class TestReconThreadBounding:
     def test_concurrent_recon_threads_bounded(self):
         """Spawn multiple recon threads and verify ThreadPoolExecutor is bounded."""
         from concurrent.futures import ThreadPoolExecutor
+
         # ThreadPoolExecutor with max_workers=5 only runs 5 threads at a time
         # This is a structural test — we verify the executor doesn't allow > 5
         with ThreadPoolExecutor(max_workers=5) as pool:
@@ -297,9 +310,11 @@ class TestReconThreadBounding:
 
 # === Rate limit store cap ===
 
+
 class TestRateLimitStoreCap:
     """Verify rate limit store has a _MAX_STORE_KEYS cap."""
 
     def test_rate_limit_store_cap_exists(self):
         from ratelimit import _MAX_STORE_KEYS
-        assert _MAX_STORE_KEYS == 10000
+
+        assert _MAX_STORE_KEYS == 2000

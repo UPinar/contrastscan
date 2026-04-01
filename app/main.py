@@ -14,22 +14,28 @@ Routes only — business logic split into modules:
 import json
 import logging
 from contextlib import asynccontextmanager
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 
-from fastapi import FastAPI, Request, Form, HTTPException
-from fastapi.responses import HTMLResponse, RedirectResponse, JSONResponse, PlainTextResponse, Response
+from config import (
+    BADGE_CACHE_MAX_AGE,
+    BADGE_GRADE_WIDTH,
+    BADGE_LABEL_WIDTH,
+    BASE_DIR,
+    ERROR_MESSAGES,
+    GRADE_COLORS,
+    HOURLY_LIMIT,
+    MAX_DOMAIN_LENGTH,
+)
+from db import get_domain_grade, get_ip_usage, get_recon, get_scan, get_stats, get_stats_detailed, init_db
+from fastapi import FastAPI, Form, HTTPException, Request
+from fastapi.responses import HTMLResponse, JSONResponse, PlainTextResponse, RedirectResponse, Response
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
-
-from config import (BASE_DIR, GRADE_COLORS, ERROR_MESSAGES,
-                     MAX_DOMAIN_LENGTH,
-                     BADGE_LABEL_WIDTH, BADGE_GRADE_WIDTH, BADGE_CACHE_MAX_AGE,
-                     HOURLY_LIMIT)
-from db import (init_db, get_scan, get_stats, get_stats_detailed, get_domain_grade,
-                get_recon, get_ip_usage)
-from validation import SCAN_ID_PATTERN, clean_domain, get_client_ip, check_csrf
 from report import generate_report, report_response
+from starlette.concurrency import run_in_threadpool
+from validation import SCAN_ID_PATTERN, check_csrf, clean_domain, get_client_ip
+
 from scanner import perform_scan
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
@@ -39,7 +45,9 @@ logger = logging.getLogger("contrastscan")
 @asynccontextmanager
 async def lifespan(app):
     import asyncio
+
     from db import cleanup_ip_limits, purge_old_client_hashes
+
     init_db()
 
     async def _periodic_cleanup():
@@ -61,6 +69,7 @@ async def lifespan(app):
                         logger.info("Client hash purge: %d rows anonymized", purged)
                 except Exception as e:
                     logger.warning("Client hash purge failed: %s", e)
+
     task = asyncio.create_task(_periodic_cleanup())
     yield
     task.cancel()
@@ -68,6 +77,7 @@ async def lifespan(app):
         await task
     except asyncio.CancelledError:
         pass
+
 
 app = FastAPI(
     title="ContrastScan",
@@ -88,11 +98,16 @@ async def custom_error_handler(request: Request, exc: HTTPException):
         return JSONResponse(status_code=exc.status_code, content={"detail": exc.detail})
 
     title, message = ERROR_MESSAGES.get(exc.status_code, ("Error", "Something went wrong."))
-    return templates.TemplateResponse(request, "error.html", {
-        "status_code": exc.status_code,
-        "title": title,
-        "message": message,
-    }, status_code=exc.status_code)
+    return templates.TemplateResponse(
+        request,
+        "error.html",
+        {
+            "status_code": exc.status_code,
+            "title": title,
+            "message": message,
+        },
+        status_code=exc.status_code,
+    )
 
 
 @app.exception_handler(Exception)
@@ -101,22 +116,32 @@ async def generic_error_handler(request: Request, exc: Exception):
     logger.exception("Unhandled error on %s %s", request.method, request.url.path)
     if request.url.path.startswith("/api/"):
         return JSONResponse(status_code=500, content={"detail": "Internal server error"})
-    return templates.TemplateResponse(request, "error.html", {
-        "status_code": 500,
-        "title": "Error",
-        "message": "Something went wrong.",
-    }, status_code=500)
+    return templates.TemplateResponse(
+        request,
+        "error.html",
+        {
+            "status_code": 500,
+            "title": "Error",
+            "message": "Something went wrong.",
+        },
+        status_code=500,
+    )
 
 
 # === Pages ===
 
+
 @app.get("/", response_class=HTMLResponse, include_in_schema=False)
 def index(request: Request):
     total_scans, recent_scans = get_stats()
-    return templates.TemplateResponse(request, "index.html", {
-        "total_scans": total_scans,
-        "recent_scans": recent_scans,
-    })
+    return templates.TemplateResponse(
+        request,
+        "index.html",
+        {
+            "total_scans": total_scans,
+            "recent_scans": recent_scans,
+        },
+    )
 
 
 @app.get("/api", response_class=HTMLResponse, include_in_schema=False)
@@ -132,22 +157,29 @@ def stats_page(request: Request):
     for letter in ["A", "B", "C", "D", "F"]:
         count = data["grade_counts"].get(letter, 0)
         pct = round(count * 100 / data["unique"]) if data["unique"] > 0 else 0
-        grades.append({
-            "letter": letter,
-            "count": count,
-            "pct": pct,
-            "color": GRADE_COLORS.get(letter, "#ef4444"),
-        })
+        grades.append(
+            {
+                "letter": letter,
+                "count": count,
+                "pct": pct,
+                "color": GRADE_COLORS.get(letter, "#ef4444"),
+            }
+        )
 
-    return templates.TemplateResponse(request, "stats.html", {
-        "total_scans": data["total"],
-        "unique_domains": data["unique"],
-        "avg_score": data["avg_score"],
-        "grades": grades,
-    })
+    return templates.TemplateResponse(
+        request,
+        "stats.html",
+        {
+            "total_scans": data["total"],
+            "unique_domains": data["unique"],
+            "avg_score": data["avg_score"],
+            "grades": grades,
+        },
+    )
 
 
 # === Scan ===
+
 
 def _wants_dnt(request: Request) -> bool:
     """Check if the client sent Do Not Track or Global Privacy Control headers."""
@@ -155,9 +187,11 @@ def _wants_dnt(request: Request) -> bool:
 
 
 @app.post("/scan", include_in_schema=False)
-def scan(request: Request, domain: str = Form(...)):
+async def scan(request: Request, domain: str = Form(...)):
     check_csrf(request)
-    scan_id, _ = perform_scan(domain, get_client_ip(request), dnt=_wants_dnt(request))
+    client_ip = get_client_ip(request)
+    dnt = _wants_dnt(request)
+    scan_id, _ = await run_in_threadpool(perform_scan, domain, client_ip, dnt=dnt)
     return RedirectResponse(url=f"/result/{scan_id}", status_code=303)
 
 
@@ -170,30 +204,46 @@ def result(request: Request, scan_id: str):
     if not scan_data:
         raise HTTPException(status_code=404, detail="Scan not found")
 
-    result_data = json.loads(scan_data["result"])
+    try:
+        result_data = json.loads(scan_data["result"])
+    except (json.JSONDecodeError, TypeError) as exc:
+        logger.error("Corrupted scan result for %s: %s", scan_id, exc)
+        raise HTTPException(status_code=500, detail="Corrupted scan result") from exc
     grade = result_data.get("grade", "F")
 
-    return templates.TemplateResponse(request, "result.html", {
-        "scan": scan_data,
-        "scan_id": scan_id,
-        "result": result_data,
-        "grade_color": GRADE_COLORS.get(grade, "#ef4444"),
-    })
+    return templates.TemplateResponse(
+        request,
+        "result.html",
+        {
+            "scan": scan_data,
+            "scan_id": scan_id,
+            "result": result_data,
+            "grade_color": GRADE_COLORS.get(grade, "#ef4444"),
+        },
+    )
 
 
 # === API ===
 
-@app.get("/api/scan", tags=["scan"], summary="Scan a domain for security issues",
-         description="Returns SSL/TLS, HTTP headers, DNS (SPF/DKIM/DMARC) scores and vulnerability findings. Grade A-F, max 100 points. Free: 100/hour per IP.",
-         operation_id="scan_domain")
-def api_scan(request: Request, domain: str):
+
+@app.get(
+    "/api/scan",
+    tags=["scan"],
+    summary="Scan a domain for security issues",
+    description="Returns SSL/TLS, HTTP headers, DNS (SPF/DKIM/DMARC) scores and vulnerability findings. Grade A-F, max 100 points. Free: 100/hour per IP.",
+    operation_id="scan_domain",
+)
+async def api_scan(request: Request, domain: str):
     """JSON API — IP-based rate limit (100/hour)"""
-    _, result = perform_scan(domain, get_client_ip(request), dnt=_wants_dnt(request))
+    client_ip = get_client_ip(request)
+    dnt = _wants_dnt(request)
+    _, result = await run_in_threadpool(perform_scan, domain, client_ip, dnt=dnt)
     return result
 
 
-@app.get("/api/usage", tags=["scan"], summary="Check your hourly usage",
-         operation_id="get_usage", include_in_schema=False)
+@app.get(
+    "/api/usage", tags=["scan"], summary="Check your hourly usage", operation_id="get_usage", include_in_schema=False
+)
 def api_usage(request: Request):
     ip = get_client_ip(request)
     usage = get_ip_usage(ip)
@@ -202,10 +252,12 @@ def api_usage(request: Request):
 
 # === Reports ===
 
+
 @app.get("/report/{scan_id}.txt", include_in_schema=False)
 async def report_txt(scan_id: str):
     """Downloadable plain-text report by scan ID — waits for recon to finish"""
     import asyncio
+
     if not SCAN_ID_PATTERN.match(scan_id):
         raise HTTPException(status_code=404, detail="Scan not found")
 
@@ -213,7 +265,11 @@ async def report_txt(scan_id: str):
     if not scan_data:
         raise HTTPException(status_code=404, detail="Scan not found")
 
-    r = json.loads(scan_data["result"])
+    try:
+        r = json.loads(scan_data["result"])
+    except (json.JSONDecodeError, TypeError) as exc:
+        logger.error("Corrupted scan result for %s: %s", scan_id, exc)
+        raise HTTPException(status_code=500, detail="Corrupted scan result") from exc
 
     # Wait up to 10s for recon (non-blocking async sleep)
     recon = None
@@ -228,24 +284,37 @@ async def report_txt(scan_id: str):
     return report_response(text, r.get("domain", "unknown"))
 
 
-@app.get("/api/report", tags=["scan"], summary="Get a plain-text security report",
-         description="Scans the domain and returns a human-readable plain-text security report.",
-         operation_id="get_report")
-def api_report(request: Request, domain: str):
+@app.get(
+    "/api/report",
+    tags=["scan"],
+    summary="Get a plain-text security report",
+    description="Scans the domain and returns a human-readable plain-text security report.",
+    operation_id="get_report",
+)
+async def api_report(request: Request, domain: str):
     """API: scan domain and return plain-text report"""
-    scan_id, result = perform_scan(domain, get_client_ip(request), dnt=_wants_dnt(request))
+    client_ip = get_client_ip(request)
+    dnt = _wants_dnt(request)
+    scan_id, result = await run_in_threadpool(perform_scan, domain, client_ip, dnt=dnt)
     scan_data = get_scan(scan_id)
+    created_at = (
+        scan_data.get("created_at", datetime.now(UTC).isoformat()) if scan_data else datetime.now(UTC).isoformat()
+    )
     recon_row = get_recon(scan_id)
-    recon = json.loads(recon_row["result"]) if recon_row and recon_row.get("result") else None
-    text = generate_report(result, scan_id, scan_data.get("created_at", datetime.now(timezone.utc).isoformat()), recon=recon)
+    recon = None
+    if recon_row and recon_row.get("result"):
+        try:
+            recon = json.loads(recon_row["result"])
+        except (json.JSONDecodeError, TypeError):
+            logger.warning("Invalid recon JSON for %s", scan_id)
+    text = generate_report(result, scan_id, created_at, recon=recon)
     return report_response(text, result.get("domain", domain))
-
 
 
 # === Recon ===
 
-@app.get("/api/recon/{scan_id}", tags=["scan"], summary="Poll passive recon results",
-         operation_id="get_recon")
+
+@app.get("/api/recon/{scan_id}", tags=["scan"], summary="Poll passive recon results", operation_id="get_recon")
 def get_recon_data(scan_id: str):
     """Poll recon results — returns status + data when ready."""
     if not SCAN_ID_PATTERN.match(scan_id):
@@ -254,11 +323,17 @@ def get_recon_data(scan_id: str):
     if not recon:
         return {"status": "pending"}
     status = recon["status"]
-    data = json.loads(recon["result"]) if recon.get("result") else None
+    data = None
+    if recon.get("result"):
+        try:
+            data = json.loads(recon["result"])
+        except (json.JSONDecodeError, TypeError):
+            logger.warning("Invalid recon JSON for %s", scan_id)
     return {"status": status, "data": data}
 
 
 # === Badge ===
+
 
 @app.get("/badge/{domain}.svg", include_in_schema=False)
 def badge_svg(domain: str):
@@ -294,11 +369,13 @@ def badge_svg(domain: str):
     <text x="{label_w + grade_w // 2}" y="14" font-weight="bold">{grade}</text>
   </g>
 </svg>'''
-    return Response(content=svg, media_type="image/svg+xml",
-                    headers={"Cache-Control": f"public, max-age={BADGE_CACHE_MAX_AGE}"})
+    return Response(
+        content=svg, media_type="image/svg+xml", headers={"Cache-Control": f"public, max-age={BADGE_CACHE_MAX_AGE}"}
+    )
 
 
 # === Legal & Pricing ===
+
 
 @app.get("/terms", response_class=HTMLResponse, include_in_schema=False)
 def terms_page(request: Request):
@@ -317,6 +394,7 @@ def pricing_page(request: Request):
 
 # === SEO ===
 
+
 @app.get("/llms.txt", include_in_schema=False)
 def llms_txt():
     p = Path(__file__).parent / "static" / "llms.txt"
@@ -332,30 +410,32 @@ def robots_txt():
 
 @app.get("/sitemap.xml", include_in_schema=False)
 def sitemap_xml():
-    today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
-    xml = f'''<?xml version="1.0" encoding="UTF-8"?>
+    today = datetime.now(UTC).strftime("%Y-%m-%d")
+    xml = f"""<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url><loc>https://contrastcyber.com/</loc><lastmod>{today}</lastmod><changefreq>weekly</changefreq><priority>1.0</priority></url>
   <url><loc>https://contrastcyber.com/api</loc><lastmod>2026-03-25</lastmod><changefreq>monthly</changefreq><priority>0.7</priority></url>
   <url><loc>https://contrastcyber.com/stats</loc><lastmod>{today}</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
-</urlset>'''
+</urlset>"""
     return Response(content=xml, media_type="application/xml")
 
 
 @app.get("/.well-known/ai-plugin.json", include_in_schema=False)
 def ai_plugin():
-    return JSONResponse({
-        "schema_version": "v1",
-        "name_for_human": "ContrastScan — Free Security Scanner",
-        "name_for_model": "contrastscan",
-        "description_for_human": "Free security scanner — check SSL, headers, and DNS security for any domain.",
-        "description_for_model": "Scan any domain for security misconfigurations. Returns SSL/TLS grade, HTTP security headers, DNS email authentication (SPF/DKIM/DMARC), and vulnerability findings with severity and remediation. Use GET /api/scan?domain=example.com for JSON results.",
-        "auth": {"type": "none"},
-        "api": {
-            "type": "openapi",
-            "url": "https://contrastcyber.com/openapi.json",
-        },
-        "logo_url": "https://contrastcyber.com/static/og-image.png",
-        "contact_email": "contact@contrastcyber.com",
-        "legal_info_url": "https://contrastcyber.com",
-    })
+    return JSONResponse(
+        {
+            "schema_version": "v1",
+            "name_for_human": "ContrastScan — Free Security Scanner",
+            "name_for_model": "contrastscan",
+            "description_for_human": "Free security scanner — check SSL, headers, and DNS security for any domain.",
+            "description_for_model": "Scan any domain for security misconfigurations. Returns SSL/TLS grade, HTTP security headers, DNS email authentication (SPF/DKIM/DMARC), and vulnerability findings with severity and remediation. Use GET /api/scan?domain=example.com for JSON results.",
+            "auth": {"type": "none"},
+            "api": {
+                "type": "openapi",
+                "url": "https://contrastcyber.com/openapi.json",
+            },
+            "logo_url": "https://contrastcyber.com/static/og-image.png",
+            "contact_email": "contact@contrastcyber.com",
+            "legal_info_url": "https://contrastcyber.com",
+        }
+    )

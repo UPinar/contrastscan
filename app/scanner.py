@@ -6,13 +6,12 @@ import secrets
 import subprocess
 import threading
 
+from config import HOURLY_LIMIT, SCAN_CONCURRENCY, SCAN_TIMEOUT, SCANNER_PATH
+from db import check_and_increment_ip, hash_client_ip, save_scan
 from fastapi import HTTPException
-
-from config import SCANNER_PATH, SCAN_CONCURRENCY, SCAN_TIMEOUT, HOURLY_LIMIT
-from db import save_scan, check_and_increment_ip, hash_client_ip
-from validation import clean_domain, validate_domain, _is_valid_format
-from ratelimit import check_domain_limit
 from findings import enrich_with_findings
+from ratelimit import check_domain_limit
+from validation import _is_valid_format, clean_domain, validate_domain
 
 logger = logging.getLogger("contrastscan")
 
@@ -28,16 +27,13 @@ def run_scan(domain: str, resolved_ip: str | None = None) -> dict:
         cmd = [str(SCANNER_PATH), domain]
         if resolved_ip:
             cmd.append(resolved_ip)
-        result = subprocess.run(
-            cmd,
-            capture_output=True, text=True, timeout=SCAN_TIMEOUT
-        )
-    except subprocess.TimeoutExpired:
+        result = subprocess.run(cmd, capture_output=True, text=True, timeout=SCAN_TIMEOUT)
+    except subprocess.TimeoutExpired as exc:
         logger.warning("Scan timeout: %s", domain)
-        raise HTTPException(status_code=504, detail="Scan timed out")
-    except FileNotFoundError:
+        raise HTTPException(status_code=504, detail="Scan timed out") from exc
+    except FileNotFoundError as exc:
         logger.error("Scanner binary not found: %s", SCANNER_PATH)
-        raise HTTPException(status_code=500, detail="Scanner not available")
+        raise HTTPException(status_code=500, detail="Scanner not available") from exc
     finally:
         _scan_semaphore.release()
 
@@ -47,9 +43,9 @@ def run_scan(domain: str, resolved_ip: str | None = None) -> dict:
 
     try:
         return json.loads(result.stdout)
-    except json.JSONDecodeError:
+    except json.JSONDecodeError as exc:
         logger.error("Invalid scanner JSON for %s", domain)
-        raise HTTPException(status_code=502, detail="Scan failed")
+        raise HTTPException(status_code=502, detail="Scan failed") from exc
 
 
 def make_scan_id() -> str:
@@ -71,7 +67,10 @@ def perform_scan(domain: str, client_ip: str, dnt: bool = False) -> tuple[str, d
         resolved_ip = "127.0.0.1"
     if not resolved_ip:
         if _is_valid_format(domain):
-            raise HTTPException(status_code=422, detail="Could not resolve this domain. Some regional domains (.com.tr, .com.br, etc.) may not be reachable from our servers.")
+            raise HTTPException(
+                status_code=422,
+                detail="Could not resolve this domain. Some regional domains (.com.tr, .com.br, etc.) may not be reachable from our servers.",
+            )
         raise HTTPException(status_code=400, detail="Invalid domain")
 
     # domain rate limit (all users)
@@ -81,7 +80,9 @@ def perform_scan(domain: str, client_ip: str, dnt: bool = False) -> tuple[str, d
     # IP hourly limit
     allowed, usage = check_and_increment_ip(client_ip, HOURLY_LIMIT)
     if not allowed:
-        raise HTTPException(status_code=429, detail=f"Rate limit reached ({usage}/{HOURLY_LIMIT}/hour). Come back later.")
+        raise HTTPException(
+            status_code=429, detail=f"Rate limit reached ({usage}/{HOURLY_LIMIT}/hour). Come back later."
+        )
 
     log_ip = "dnt" if dnt else hash_client_ip(client_ip)
     logger.info("Scanning %s (ip=%s, resolved=%s)", domain, log_ip, resolved_ip)
@@ -91,14 +92,17 @@ def perform_scan(domain: str, client_ip: str, dnt: bool = False) -> tuple[str, d
     scan_id = make_scan_id()
 
     save_scan(
-        scan_id, domain, result,
+        scan_id,
+        domain,
+        result,
         result.get("grade", "F"),
         result.get("total_score", 0),
-        client_hash='' if dnt else hash_client_ip(client_ip),
+        client_hash="" if dnt else hash_client_ip(client_ip),
     )
 
     # start background recon
     from recon import start_recon
+
     start_recon(scan_id, domain, result)
 
     return scan_id, result

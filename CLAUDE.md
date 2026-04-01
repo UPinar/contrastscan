@@ -11,7 +11,8 @@ Live: contrastcyber.com | GitHub: UPinar/contrastscan
 - **Server path:** `/opt/contrastscan/`
 - **DB:** `/var/lib/contrastcyber/scans.db`
 - **Config overrides (server only):** SCAN_CONCURRENCY=8 in config.py
-- **1115 tests (194 C + 921 Python)**
+- **Lint:** `ruff check app/ && ruff format --check app/`
+- **1071 tests (194 C + 877 Python)**
 
 ## Architecture
 - `app/scanner.py` — orchestrates: validate → rate limit → C subprocess → enrich → save → recon

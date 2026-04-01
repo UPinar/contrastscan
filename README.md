@@ -141,21 +141,20 @@ curl -X POST "https://contrastcyber.com/api/bulk" \
 ## Tests
 
 ```bash
-bash run_tests.sh          # 1115 tests (no network)
+bash run_tests.sh          # 1071 tests (no network)
 bash run_tests.sh --all    # + live integration + smoke + load
 ```
 
 | Suite | Tests | What |
 |-------|-------|------|
 | C Unit | 194 | Scoring, parsing, CDN detection |
-| Backend | 330 | Validation, CSRF, rate limiting, findings |
+| Backend | 337 | Validation, CSRF, rate limiting, findings |
 | E2E | 133 | HTTP routes, templates, scan flow |
 | Auth | 14 | Rate limiting, usage tracking |
 | Race | 15 | Concurrent rate limits, DB writes |
-| Fuzz | 162 | Injection, SSRF bypass, crash resistance |
-| Integration | 67 | Module communication, config consistency |
+| Fuzz | 148 | Injection, SSRF bypass, crash resistance |
+| Integration | 64 | Module communication, config consistency |
 | Recon | 163 | WHOIS, DNS, tech stack, subdomains, takeover detection |
-| Hardening | 31 | Security hardening checks |
 | New Features | 6 | Bulk scan, OpenAPI, badges |
 
 ## Architecture
@@ -178,7 +177,7 @@ contrastscan/
 │   ├── recon.py                # Passive recon (WHOIS, tech stack, WAF, subdomains)
 │   ├── templates/              # Jinja2 HTML (7 pages)
 │   ├── static/                 # CSS, images
-│   └── tests/                  # All tests (921 Python + shell)
+│   └── tests/                  # All tests (877 Python + shell)
 ├── scripts/                    # Deploy, setup, status scripts
 ├── run_tests.sh                # Run all tests
 └── requirements.txt            # Python dependencies

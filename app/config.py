@@ -1,13 +1,17 @@
 """Configuration constants for ContrastScan"""
 
+import hashlib
 import os
+import socket
 from pathlib import Path
 
 VERSION = "1.5.0"
 
 BASE_DIR = Path(__file__).parent
 _default_db = Path("/var/lib/contrastscan/scans.db")
-DB_PATH = Path(os.environ.get("CONTRASTSCAN_DB", str(_default_db if _default_db.parent.exists() else BASE_DIR / "scans.db")))
+DB_PATH = Path(
+    os.environ.get("CONTRASTSCAN_DB", str(_default_db if _default_db.parent.exists() else BASE_DIR / "scans.db"))
+)
 
 # scanner binary — check scanner/ subdirectory first, then repo root (symlink)
 _scanner_in_dir = BASE_DIR.parent / "scanner" / "contrastscan"
@@ -16,12 +20,12 @@ _default_scanner = _scanner_in_dir if _scanner_in_dir.exists() else _scanner_in_
 SCANNER_PATH = _default_scanner
 
 # Rate limits
-HOURLY_LIMIT = 100          # 100/hour per IP
-DOMAIN_LIMIT = 10           # per-domain: 10/hour (all users)
+HOURLY_LIMIT = 100  # 100/hour per IP
+DOMAIN_LIMIT = 10  # per-domain: 10/hour (all users)
 
 SCAN_CONCURRENCY = 5
 SCAN_TIMEOUT = 30  # seconds
-RECON_TIMEOUT = 5   # seconds per recon network operation
+RECON_TIMEOUT = 5  # seconds per recon network operation
 CRTSH_TIMEOUT = 30  # crt.sh can be slow for large domains (runs in parallel)
 
 # Domain validation
@@ -48,8 +52,9 @@ GRADE_COLORS = {
     "F": "#ef4444",
 }
 
-# HMAC secret for IP hashing
-HASH_SECRET = os.environ.get("CONTRASTSCAN_HASH_SECRET", "")
+# HMAC secret for IP hashing — deterministic fallback so hashes survive restarts
+_raw_secret = os.environ.get("CONTRASTSCAN_HASH_SECRET", "")
+HASH_SECRET = _raw_secret or hashlib.sha256(f"{socket.gethostname()}:{DB_PATH}".encode()).hexdigest()
 
 # CSRF
 ALLOWED_ORIGINS = {"https://contrastcyber.com", "https://www.contrastcyber.com"}

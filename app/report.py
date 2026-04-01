@@ -1,9 +1,9 @@
 """Plain-text report generation for ContrastScan"""
 
 import re
-from fastapi.responses import Response
 
 from config import REPORT_LINE_WIDTH
+from fastapi.responses import Response
 
 # Pre-compute reused separator strings (avoid repeated multiplication)
 _SEP_EQUALS = "=" * REPORT_LINE_WIDTH
@@ -91,7 +91,11 @@ def _module_detail_lines(key: str, mod: dict, details: dict) -> list[str]:
             lines.append("    - Reflects arbitrary Origin header")
         elif details.get("wildcard_origin"):
             lines.append("    - Wildcard Access-Control-Allow-Origin")
-        if not details.get("wildcard_origin") and not details.get("reflects_origin") and not details.get("credentials_with_wildcard"):
+        if (
+            not details.get("wildcard_origin")
+            and not details.get("reflects_origin")
+            and not details.get("credentials_with_wildcard")
+        ):
             lines.append("    + CORS properly restricted")
 
     elif key == "html":
@@ -228,8 +232,7 @@ def _findings_section(findings: list[dict]) -> list[str]:
     return lines
 
 
-def generate_report(r: dict, scan_id: str, created_at: str,
-                    recon: dict | None = None) -> str:
+def generate_report(r: dict, scan_id: str, created_at: str, recon: dict | None = None) -> str:
     """Generate plain-text security report from scan result"""
     domain = r.get("domain", "unknown")
     grade = r.get("grade", "?")
@@ -278,7 +281,7 @@ def generate_report(r: dict, scan_id: str, created_at: str,
 
 
 def report_response(text: str, domain: str) -> Response:
-    safe_domain = re.sub(r'[^a-z0-9.-]', '', domain)
+    safe_domain = re.sub(r"[^a-z0-9.-]", "", domain)
     return Response(
         content=text,
         media_type="text/plain; charset=utf-8",

@@ -80,14 +80,14 @@ Upload a CSV or TXT file with multiple domains to scan them all at once.
 ## Trust & Transparency
 
 - **Open source**: Full source code on [GitHub](https://github.com/UPinar/contrastscan) — MIT license
-- **1,300+ automated tests**: Backend, integration, fuzz, and security tests
+- **1,071 automated tests**: Backend, integration, fuzz, and security tests
 - **No data collection**: We don't track users, sell data, or require accounts
 - **No ads**: The service is free with no advertising
 - **Active development**: Regular updates and security audits
 
 ## Related: ContrastAPI
 
-For deeper security intelligence (CVE lookup, IP reputation, technology fingerprinting, threat intelligence), visit [api.contrastcyber.com](https://api.contrastcyber.com) — 20 tools, free, MCP server for AI agents.
+For deeper security intelligence (CVE lookup, IP reputation, technology fingerprinting, threat intelligence), visit [api.contrastcyber.com](https://api.contrastcyber.com) — 20 tools, free.
 
 ## Grade Badge
 

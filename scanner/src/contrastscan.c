@@ -633,14 +633,18 @@ static cJSON *scan_ssl(const char *domain)
   SSL_CTX_set_default_verify_paths(ctx);
   SSL_CTX_set_verify(ctx, SSL_VERIFY_PEER, NULL);
 
-  /* Use pinned IP if available to prevent DNS rebinding TOCTOU */
-  const char *connect_host = (g_resolved_ip && g_resolved_ip[0] != '\0') ? g_resolved_ip : domain;
-  int sockfd = tcp_connect(connect_host, "443");
+  /* Require pinned IP to prevent DNS rebinding TOCTOU — never fall back to domain */
+  if (!g_resolved_ip || g_resolved_ip[0] == '\0')
+  {
+    cJSON_AddStringToObject(obj, "error", "No resolved IP provided — DNS rebinding risk");
+    return obj;
+  }
+  int sockfd = tcp_connect(g_resolved_ip, "443");
   if (sockfd < 0)
   {
     /* Retry once after 1 second — transient failures under load */
     usleep(1000000);
-    sockfd = tcp_connect(connect_host, "443");
+    sockfd = tcp_connect(g_resolved_ip, "443");
   }
   if (sockfd < 0)
   {
@@ -1466,6 +1470,7 @@ static cJSON *scan_cors(const char *domain)
   cJSON_AddBoolToObject(details, "wildcard_origin", wildcard);
   cJSON_AddBoolToObject(details, "reflects_origin", reflects_origin);
   cJSON_AddBoolToObject(details, "credentials_with_wildcard", wildcard && cors_credentials);
+  cJSON_AddBoolToObject(details, "cors_credentials", cors_credentials);
   if (cors_acao[0])
     cJSON_AddStringToObject(details, "acao_value", cors_acao);
   cJSON_AddItemToObject(obj, "details", details);

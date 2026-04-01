@@ -7,23 +7,24 @@ import socket
 import ssl
 import subprocess
 import threading
-from urllib.request import Request, HTTPRedirectHandler, build_opener
+from urllib.request import HTTPRedirectHandler, Request, build_opener
+
+import dns.resolver
+from config import CRTSH_TIMEOUT, RECON_TIMEOUT
+from db import create_recon, save_recon, save_recon_error, save_recon_partial
+from validation import is_private_ip
+
+logger = logging.getLogger("contrastscan")
 
 
 class _NoRedirectHandler(HTTPRedirectHandler):
     """Block HTTP redirects to prevent SSRF via redirect to internal IPs."""
+
     def redirect_request(self, req, fp, code, msg, headers, newurl):
         return None
 
+
 _no_redirect_opener = build_opener(_NoRedirectHandler)
-
-import dns.resolver
-
-from config import RECON_TIMEOUT, CRTSH_TIMEOUT
-from db import create_recon, save_recon, save_recon_partial, save_recon_error
-from validation import is_private_ip
-
-logger = logging.getLogger("contrastscan")
 
 CRTSH_MAX_BYTES = 2097152  # 2MB — large domains have many certs
 CRTSH_USER_AGENT = "contrastscan/1.0"
@@ -45,10 +46,36 @@ WAF_SIGNATURES = {
 }
 
 COMMON_SUBDOMAINS = [
-    "www", "mail", "ftp", "api", "dev", "staging", "test", "admin",
-    "blog", "shop", "store", "cdn", "media", "static", "assets",
-    "app", "portal", "dashboard", "cpanel", "webmail", "ns1", "ns2",
-    "mx", "smtp", "imap", "pop", "vpn", "remote", "git", "ci",
+    "www",
+    "mail",
+    "ftp",
+    "api",
+    "dev",
+    "staging",
+    "test",
+    "admin",
+    "blog",
+    "shop",
+    "store",
+    "cdn",
+    "media",
+    "static",
+    "assets",
+    "app",
+    "portal",
+    "dashboard",
+    "cpanel",
+    "webmail",
+    "ns1",
+    "ns2",
+    "mx",
+    "smtp",
+    "imap",
+    "pop",
+    "vpn",
+    "remote",
+    "git",
+    "ci",
 ]
 
 
@@ -63,7 +90,7 @@ def run_recon(scan_id: str, domain: str, scan_result: dict):
     Group A (tech_stack, waf, emails) is instant — no network.
     crt.sh result feeds both subdomains and CT logs after fetch completes.
     """
-    from concurrent.futures import ThreadPoolExecutor, as_completed
+    from concurrent.futures import ThreadPoolExecutor
 
     try:
         create_recon(scan_id, domain)
@@ -82,7 +109,7 @@ def run_recon(scan_id: str, domain: str, scan_result: dict):
             result = {
                 "robots": fetch_robots(domain),
                 "sitemap": fetch_sitemap(domain),
-                "http_version": check_http_version(domain),
+                "http_version": check_http_version(domain, resolved_ip),
                 "security_txt": fetch_security_txt(domain),
             }
             if resolved_ip:
@@ -162,6 +189,7 @@ _recon_semaphore = threading.Semaphore(10)  # max 10 concurrent recon threads
 
 def start_recon(scan_id: str, domain: str, scan_result: dict):
     """Launch recon in background thread (bounded to 10 concurrent)."""
+
     def _bounded_recon():
         if _recon_semaphore.acquire(timeout=30):
             try:
@@ -177,9 +205,9 @@ def start_recon(scan_id: str, domain: str, scan_result: dict):
 
 # === Group A: From existing scan data ===
 
+
 def detect_tech_stack(scan_result: dict) -> dict:
     detected = []
-    html_details = scan_result.get("html", {}).get("details", {})
     # We don't have raw HTML in Python — check what C scanner found
     # Use disclosure headers for server/powered-by
     disc = scan_result.get("disclosure", {}).get("details", {})
@@ -214,7 +242,7 @@ def harvest_emails(scan_result: dict, domain: str) -> dict:
     # Check DNS for MX
     emails = []
     try:
-        mx_records = dns.resolver.resolve(email_domain, "MX")
+        mx_records = dns.resolver.resolve(email_domain, "MX", lifetime=RECON_TIMEOUT)
         for mx in mx_records:
             host = str(mx.exchange).rstrip(".")
             emails.append(f"MX: {mx.preference} {host}")
@@ -227,11 +255,11 @@ def harvest_emails(scan_result: dict, domain: str) -> dict:
 
 # === Group B: Simple HTTP ===
 
+
 def fetch_security_txt(domain: str) -> dict:
     """Fetch /.well-known/security.txt and parse RFC 9116 fields."""
     try:
-        req = Request(f"https://{domain}/.well-known/security.txt",
-                      headers={"User-Agent": "contrastscan/1.0"})
+        req = Request(f"https://{domain}/.well-known/security.txt", headers={"User-Agent": "contrastscan/1.0"})
         resp = _no_redirect_opener.open(req, timeout=3)
         text = resp.read(8192).decode("utf-8", errors="ignore")
         if not text.strip():
@@ -300,6 +328,9 @@ def fetch_asn_info(ip: str) -> dict:
     """Look up ASN, org name, and announced prefixes from RIPE Stat."""
     import ipaddress
 
+    if is_private_ip(ip):
+        return {"asn": None, "error": "Cannot query ASN for private IP"}
+
     try:
         # Step 1: Get ASN from IP
         req = Request(
@@ -364,21 +395,20 @@ def fetch_asn_info(ip: str) -> dict:
         return {"asn": None, "error": "ASN lookup failed"}
 
 
-
-
 def fetch_robots(domain: str) -> dict:
     # Connect by domain name — IP causes SSL cert mismatch on HTTPS.
     # DNS rebinding mitigated by _no_redirect_opener blocking redirects.
     try:
-        req = Request(f"https://{domain}/robots.txt",
-                      headers={"User-Agent": "contrastscan/1.0"})
+        req = Request(f"https://{domain}/robots.txt", headers={"User-Agent": "contrastscan/1.0"})
         resp = _no_redirect_opener.open(req, timeout=RECON_TIMEOUT)
         text = resp.read(32768).decode("utf-8", errors="ignore")
         lines = text.strip().split("\n")
-        disallowed = [l.split(":", 1)[1].strip() for l in lines
-                      if l.lower().startswith("disallow:") and l.split(":", 1)[1].strip()]
-        sitemaps = [l.split(":", 1)[1].strip() for l in lines
-                    if l.lower().startswith("sitemap:")]
+        disallowed = [
+            line.split(":", 1)[1].strip()
+            for line in lines
+            if line.lower().startswith("disallow:") and line.split(":", 1)[1].strip()
+        ]
+        sitemaps = [line.split(":", 1)[1].strip() for line in lines if line.lower().startswith("sitemap:")]
         return {
             "exists": True,
             "disallowed_paths": disallowed[:20],
@@ -391,8 +421,7 @@ def fetch_robots(domain: str) -> dict:
 
 def fetch_sitemap(domain: str) -> dict:
     try:
-        req = Request(f"https://{domain}/sitemap.xml",
-                      headers={"User-Agent": "contrastscan/1.0"})
+        req = Request(f"https://{domain}/sitemap.xml", headers={"User-Agent": "contrastscan/1.0"})
         resp = _no_redirect_opener.open(req, timeout=RECON_TIMEOUT)
         text = resp.read(65536).decode("utf-8", errors="ignore")
         urls = re.findall(r"<loc>(.*?)</loc>", text)
@@ -405,15 +434,16 @@ def fetch_sitemap(domain: str) -> dict:
         return {"exists": False}
 
 
-def check_http_version(domain: str) -> dict:
+def check_http_version(domain: str, resolved_ip: str | None = None) -> dict:
     result = {"http2": False, "http3": False}
     try:
         ctx = ssl.create_default_context()
         ctx.set_alpn_protocols(["h2", "http/1.1"])
-        with socket.create_connection((domain, 443), timeout=RECON_TIMEOUT) as sock:
+        connect_target = resolved_ip if resolved_ip else domain
+        with socket.create_connection((connect_target, 443), timeout=RECON_TIMEOUT) as sock:
             with ctx.wrap_socket(sock, server_hostname=domain) as ssock:
                 proto = ssock.selected_alpn_protocol()
-                result["http2"] = (proto == "h2")
+                result["http2"] = proto == "h2"
                 result["negotiated"] = proto or "http/1.1"
     except Exception:
         result["negotiated"] = "unknown"
@@ -421,6 +451,7 @@ def check_http_version(domain: str) -> dict:
 
 
 # === Group C: DNS ===
+
 
 def reverse_dns_lookup(domain: str, resolved_ip: str | None = None) -> dict:
     try:
@@ -465,7 +496,7 @@ def reverse_dns_lookup(domain: str, resolved_ip: str | None = None) -> dict:
 def dns_ns_lookup(domain: str) -> dict:
     """Resolve NS records for domain, including each nameserver's IP."""
     try:
-        answers = dns.resolver.resolve(domain, "NS")
+        answers = dns.resolver.resolve(domain, "NS", lifetime=RECON_TIMEOUT)
         records = []
         ns_resolver = dns.resolver.Resolver()
         ns_resolver.lifetime = 2
@@ -475,11 +506,14 @@ def dns_ns_lookup(domain: str) -> dict:
             try:
                 a_answers = ns_resolver.resolve(hostname, "A")
                 ip = str(a_answers[0])
-            except Exception:
+            except (dns.resolver.NoAnswer, dns.resolver.NXDOMAIN, dns.resolver.NoNameservers, dns.exception.Timeout):
                 pass
             records.append({"hostname": hostname, "ip": ip})
         return {"ns_records": records, "count": len(records)}
-    except Exception:
+    except (dns.resolver.NoAnswer, dns.resolver.NXDOMAIN, dns.resolver.NoNameservers, dns.exception.Timeout):
+        return {"ns_records": [], "count": 0}
+    except Exception as e:
+        logger.warning("Unexpected error in dns_ns_lookup for %s: %s", domain, e)
         return {"ns_records": [], "count": 0}
 
 
@@ -487,11 +521,8 @@ def check_zone_transfer(domain: str) -> dict:
     """Check if AXFR zone transfer is possible (security risk if open)."""
     try:
         # Get nameservers
-        result = subprocess.run(
-            ["dig", "+short", "NS", domain],
-            capture_output=True, text=True, timeout=RECON_TIMEOUT
-        )
-        ns_pattern = re.compile(r'^[a-zA-Z0-9.-]+$')
+        result = subprocess.run(["dig", "+short", "NS", domain], capture_output=True, text=True, timeout=RECON_TIMEOUT)
+        ns_pattern = re.compile(r"^[a-zA-Z0-9.-]+$")
         nameservers = [
             ns.strip().rstrip(".")
             for ns in result.stdout.strip().split("\n")
@@ -504,11 +535,10 @@ def check_zone_transfer(domain: str) -> dict:
         for ns in nameservers[:2]:
             try:
                 axfr = subprocess.run(
-                    ["dig", f"@{ns}", domain, "AXFR", "+short"],
-                    capture_output=True, text=True, timeout=RECON_TIMEOUT
+                    ["dig", f"@{ns}", domain, "AXFR", "+short"], capture_output=True, text=True, timeout=RECON_TIMEOUT
                 )
                 if axfr.stdout.strip() and "Transfer failed" not in axfr.stdout:
-                    records = [l for l in axfr.stdout.strip().split("\n") if l.strip()]
+                    records = [rec for rec in axfr.stdout.strip().split("\n") if rec.strip()]
                     if len(records) > 2:
                         return {
                             "vulnerable": True,
@@ -532,9 +562,7 @@ def enumerate_subdomains(domain: str, crtsh_data: list | None = None) -> dict:
         try:
             results = socket.getaddrinfo(fqdn, None, type=socket.SOCK_STREAM)
             # Check ALL resolved IPs (IPv4 + IPv6) for private addresses
-            all_public = results and all(
-                not is_private_ip(sa[0]) for _, _, _, _, sa in results
-            )
+            all_public = results and all(not is_private_ip(sa[0]) for _, _, _, _, sa in results)
             if all_public:
                 found.append(fqdn)
         except socket.gaierror:
@@ -552,9 +580,9 @@ def enumerate_subdomains(domain: str, crtsh_data: list | None = None) -> dict:
 def _fetch_crtsh(query: str) -> list:
     try:
         from urllib.parse import quote
+
         req = Request(
-            f"https://crt.sh/?q={quote(query, safe='%.')}&output=json",
-            headers={"User-Agent": CRTSH_USER_AGENT}
+            f"https://crt.sh/?q={quote(query, safe='%.')}&output=json", headers={"User-Agent": CRTSH_USER_AGENT}
         )
         with _no_redirect_opener.open(req, timeout=CRTSH_TIMEOUT) as resp:
             return json.loads(resp.read(CRTSH_MAX_BYTES))
@@ -576,6 +604,7 @@ def _crtsh_subdomains(domain: str, data: list | None = None) -> list:
 
 
 # === Group D: External ===
+
 
 def whois_lookup(domain: str) -> dict:
     """Raw WHOIS query via port 43."""
@@ -616,7 +645,15 @@ def whois_lookup(domain: str) -> dict:
         if server is None:
             return {"error": f"No WHOIS server for .{tld} (RDAP only)"}
 
-        with socket.create_connection((server, 43), timeout=RECON_TIMEOUT) as sock:
+        # Validate WHOIS server doesn't resolve to private IP
+        try:
+            server_ip = socket.gethostbyname(server)
+            if is_private_ip(server_ip):
+                return {"error": f"WHOIS server {server} resolved to private IP"}
+        except socket.gaierror:
+            return {"error": f"Cannot resolve WHOIS server {server}"}
+
+        with socket.create_connection((server_ip, 43), timeout=RECON_TIMEOUT) as sock:
             sock.settimeout(RECON_TIMEOUT)
             sock.sendall(f"{domain}\r\n".encode())
             response = b""
@@ -700,8 +737,8 @@ TAKEOVER_MAX_BODY = 8192
 
 def check_subdomain_takeover(subdomains: list[str]) -> dict:
     """Check discovered subdomains for dangling CNAME records (takeover risk)."""
-    from concurrent.futures import ThreadPoolExecutor
     import threading
+    from concurrent.futures import ThreadPoolExecutor
 
     vulnerable = []
     cname_count = 0
@@ -758,15 +795,14 @@ def check_subdomain_takeover(subdomains: list[str]) -> dict:
         # CNAME resolves but check HTTP fingerprint for known services
         if matched_service and matched_fingerprint:
             try:
-                # Resolve and check for private IP before making HTTP request
+                # Resolve and check for private IP, then use resolved IP to prevent TOCTOU
                 try:
                     sub_ip = socket.gethostbyname(subdomain)
                     if is_private_ip(sub_ip):
                         return None
                 except socket.gaierror:
                     return None
-                req = Request(f"http://{subdomain}/",
-                              headers={"User-Agent": "contrastscan/1.0", "Host": subdomain})
+                req = Request(f"http://{sub_ip}/", headers={"User-Agent": "contrastscan/1.0", "Host": subdomain})
                 with _no_redirect_opener.open(req, timeout=TAKEOVER_HTTP_TIMEOUT) as resp:
                     body = resp.read(TAKEOVER_MAX_BODY).decode("utf-8", errors="ignore")
                     if matched_fingerprint.lower() in body.lower():
@@ -774,7 +810,7 @@ def check_subdomain_takeover(subdomains: list[str]) -> dict:
                             "subdomain": subdomain,
                             "cname": cname_target,
                             "service": matched_service,
-                            "evidence": f"HTTP fingerprint: \"{matched_fingerprint}\"",
+                            "evidence": f'HTTP fingerprint: "{matched_fingerprint}"',
                             "severity": "high",
                         }
             except Exception:
@@ -817,12 +853,14 @@ def check_ct_logs(domain: str, crtsh_data: list | None = None) -> dict:
             if serial in seen:
                 continue
             seen.add(serial)
-            certs.append({
-                "issuer": entry.get("issuer_name", ""),
-                "not_before": entry.get("not_before", ""),
-                "not_after": entry.get("not_after", ""),
-                "common_name": entry.get("common_name", ""),
-            })
+            certs.append(
+                {
+                    "issuer": entry.get("issuer_name", ""),
+                    "not_before": entry.get("not_before", ""),
+                    "not_after": entry.get("not_after", ""),
+                    "common_name": entry.get("common_name", ""),
+                }
+            )
 
         return {
             "total_certificates": len(data),

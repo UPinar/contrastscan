@@ -15,20 +15,27 @@ Run: cd app && python -m pytest tests/test_integration.py -v
 
 import json
 import secrets
+from datetime import UTC
 from pathlib import Path
 
 import pytest
-
-from config import (BASE_DIR, GRADE_COLORS, ERROR_MESSAGES, ALLOWED_ORIGINS,
-                    DOMAIN_LIMIT, SCANNER_PATH, SCAN_CONCURRENCY, SCAN_TIMEOUT)
-from validation import clean_domain, validate_domain, is_private_ip, get_client_ip
-from ratelimit import check_domain_limit
-from db import init_db, save_scan, get_scan, get_stats, get_domain_grade
+from config import (
+    ALLOWED_ORIGINS,
+    BASE_DIR,
+    ERROR_MESSAGES,
+    GRADE_COLORS,
+    SCAN_CONCURRENCY,
+    SCAN_TIMEOUT,
+    SCANNER_PATH,
+)
+from db import get_domain_grade, get_scan, get_stats, init_db, save_scan
 from findings import enrich_with_findings
+from ratelimit import check_domain_limit
 from report import generate_report
-
+from validation import clean_domain, is_private_ip, validate_domain
 
 # === config -> all modules ===
+
 
 class TestConfig:
     def test_base_dir_is_path(self):
@@ -55,6 +62,7 @@ class TestConfig:
 
 
 # === validation ===
+
 
 class TestValidation:
     def test_clean_domain_strips_proto(self):
@@ -93,12 +101,14 @@ class TestValidation:
 
 # === ratelimit -> domain limit check ===
 
+
 class TestRateLimit:
     def test_domain_limit_allows_first(self):
         assert check_domain_limit("test-domain-int.com")
 
 
 # === db round-trip ===
+
 
 class TestDb:
     @pytest.fixture(autouse=True)
@@ -109,7 +119,9 @@ class TestDb:
         test_scan_id = secrets.token_hex(16)
         test_result = {
             "domain": "integration-test.com",
-            "total_score": 85, "max_score": 100, "grade": "B",
+            "total_score": 85,
+            "max_score": 100,
+            "grade": "B",
             "headers": {"score": 25, "max": 30},
             "ssl": {"score": 25, "max": 25},
             "dns": {"score": 15, "max": 15},
@@ -126,7 +138,9 @@ class TestDb:
         test_scan_id = secrets.token_hex(16)
         test_result = {
             "domain": "integration-test2.com",
-            "total_score": 85, "max_score": 100, "grade": "B",
+            "total_score": 85,
+            "max_score": 100,
+            "grade": "B",
             "headers": {"score": 25, "max": 30},
             "ssl": {"score": 25, "max": 25},
             "dns": {"score": 15, "max": 15},
@@ -144,7 +158,9 @@ class TestDb:
         test_scan_id = secrets.token_hex(16)
         test_result = {
             "domain": "integration-test3.com",
-            "total_score": 85, "max_score": 100, "grade": "B",
+            "total_score": 85,
+            "max_score": 100,
+            "grade": "B",
             "headers": {"score": 25, "max": 30},
             "ssl": {"score": 25, "max": 25},
             "dns": {"score": 15, "max": 15},
@@ -161,7 +177,9 @@ class TestDb:
         test_scan_id = secrets.token_hex(16)
         test_result = {
             "domain": "integration-test4.com",
-            "total_score": 85, "max_score": 100, "grade": "B",
+            "total_score": 85,
+            "max_score": 100,
+            "grade": "B",
             "headers": {"score": 25, "max": 30},
             "ssl": {"score": 25, "max": 25},
             "dns": {"score": 15, "max": 15},
@@ -178,7 +196,9 @@ class TestDb:
         test_scan_id = secrets.token_hex(16)
         test_result = {
             "domain": "integration-test5.com",
-            "total_score": 85, "max_score": 100, "grade": "B",
+            "total_score": 85,
+            "max_score": 100,
+            "grade": "B",
             "headers": {"score": 25, "max": 30},
             "ssl": {"score": 25, "max": 25},
             "dns": {"score": 15, "max": 15},
@@ -195,7 +215,9 @@ class TestDb:
         test_scan_id = secrets.token_hex(16)
         test_result = {
             "domain": "integration-test6.com",
-            "total_score": 85, "max_score": 100, "grade": "B",
+            "total_score": 85,
+            "max_score": 100,
+            "grade": "B",
             "headers": {"score": 25, "max": 30},
             "ssl": {"score": 25, "max": 25},
             "dns": {"score": 15, "max": 15},
@@ -205,11 +227,12 @@ class TestDb:
             "dnssec": {"score": 0, "max": 5},
         }
         save_scan(test_scan_id, "integration-test6.com", test_result, "B", 85)
-        total, recent = get_stats()
+        total, _recent = get_stats()
         assert total >= 1
 
     def test_save_scan_with_client_hash(self):
         from db import hash_client_ip
+
         sid = secrets.token_hex(16)
         result = {"grade": "A", "total_score": 95}
         h = hash_client_ip("1.2.3.4")
@@ -228,77 +251,32 @@ class TestDb:
 
     def test_hash_client_ip_deterministic(self):
         from db import hash_client_ip
+
         h1 = hash_client_ip("192.168.1.1")
         h2 = hash_client_ip("192.168.1.1")
         assert h1 == h2
-        assert len(h1) == 16
+        assert len(h1) == 32
 
     def test_hash_client_ip_different_ips(self):
         from db import hash_client_ip
+
         h1 = hash_client_ip("1.1.1.1")
         h2 = hash_client_ip("8.8.8.8")
         assert h1 != h2
 
-    def test_get_new_users(self):
-        from db import get_new_users, hash_client_ip
-        sid = secrets.token_hex(16)
-        result = {"grade": "C", "total_score": 60}
-        test_hash = hash_client_ip(f"10.99.{secrets.randbelow(256)}.{secrets.randbelow(256)}")
-        save_scan(sid, "newuser.com", result, "C", 60, client_hash=test_hash)
-        new_users = get_new_users(since_hours=1)
-        hashes = [u["client_hash"] for u in new_users]
-        assert test_hash in hashes
-        entry = [u for u in new_users if u["client_hash"] == test_hash][0]
-        assert entry["scan_count"] >= 1
-
-    def test_get_new_users_excludes_returning(self):
-        from db import get_new_users, get_returning_users, get_db, hash_client_ip
-        from datetime import datetime, timedelta, timezone
-        old_hash = hash_client_ip(f"10.88.{secrets.randbelow(256)}.{secrets.randbelow(256)}")
-        old_time = (datetime.now(timezone.utc) - timedelta(hours=48)).isoformat()
-        sid_old = secrets.token_hex(16)
-        with get_db() as con:
-            con.execute(
-                "INSERT INTO scans (id, domain, client_hash, result, grade, total_score, created_at) "
-                "VALUES (?, ?, ?, ?, ?, ?, ?)",
-                (sid_old, "old.com", old_hash, '{"grade":"B"}', "B", 80, old_time)
-            )
-        sid_new = secrets.token_hex(16)
-        save_scan(sid_new, "new.com", {"grade": "B"}, "B", 80, client_hash=old_hash)
-        new_hashes = [u["client_hash"] for u in get_new_users(since_hours=24)]
-        assert old_hash not in new_hashes
-
-    def test_get_returning_users(self):
-        from db import get_returning_users, get_db, hash_client_ip
-        from datetime import datetime, timedelta, timezone
-        ret_hash = hash_client_ip(f"10.77.{secrets.randbelow(256)}.{secrets.randbelow(256)}")
-        old_time = (datetime.now(timezone.utc) - timedelta(hours=48)).isoformat()
-        sid_old = secrets.token_hex(16)
-        with get_db() as con:
-            con.execute(
-                "INSERT INTO scans (id, domain, client_hash, result, grade, total_score, created_at) "
-                "VALUES (?, ?, ?, ?, ?, ?, ?)",
-                (sid_old, "ret-old.com", ret_hash, '{"grade":"A"}', "A", 90, old_time)
-            )
-        sid_new = secrets.token_hex(16)
-        save_scan(sid_new, "ret-new.com", {"grade": "A"}, "A", 90, client_hash=ret_hash)
-        returning = get_returning_users(since_hours=24)
-        ret_hashes = [u["client_hash"] for u in returning]
-        assert ret_hash in ret_hashes
-        entry = [u for u in returning if u["client_hash"] == ret_hash][0]
-        assert entry["scan_count"] >= 1
-
     def test_purge_old_client_hashes(self):
-        from db import purge_old_client_hashes, get_db, hash_client_ip
-        from datetime import datetime, timedelta, timezone
+        from datetime import datetime, timedelta
+
+        from db import get_db, hash_client_ip, purge_old_client_hashes
+
         purge_hash = hash_client_ip(f"10.66.{secrets.randbelow(256)}.{secrets.randbelow(256)}")
-        old_time = (datetime.now(timezone.utc) - timedelta(days=100)).isoformat()
+        old_time = (datetime.now(UTC) - timedelta(days=100)).isoformat()
         sid = secrets.token_hex(16)
         with get_db() as con:
             con.execute(
                 "INSERT INTO scans (id, domain, client_hash, result, grade, total_score, created_at) "
                 "VALUES (?, ?, ?, ?, ?, ?, ?)",
-                (sid, "purge.com", purge_hash, '{"grade":"C"}', "C", 55, old_time)
+                (sid, "purge.com", purge_hash, '{"grade":"C"}', "C", 55, old_time),
             )
         purged = purge_old_client_hashes(days=90)
         assert purged >= 1
@@ -308,7 +286,8 @@ class TestDb:
             assert row[0] == ""
 
     def test_purge_keeps_recent_hashes(self):
-        from db import purge_old_client_hashes, hash_client_ip
+        from db import hash_client_ip, purge_old_client_hashes
+
         recent_hash = hash_client_ip(f"10.55.{secrets.randbelow(256)}.{secrets.randbelow(256)}")
         sid = secrets.token_hex(16)
         save_scan(sid, "recent.com", {"grade": "A"}, "A", 95, client_hash=recent_hash)
@@ -318,22 +297,28 @@ class TestDb:
 
     def test_dnt_skips_client_hash(self):
         """perform_scan with dnt=True should save empty client_hash."""
+        from unittest.mock import MagicMock
+        from unittest.mock import patch as mock_patch
+
         from scanner import perform_scan
-        from unittest.mock import patch as mock_patch, MagicMock
+
         mock_result = MagicMock()
         mock_result.returncode = 0
         mock_result.stdout = '{"grade":"B","total_score":75}'
-        with mock_patch("scanner.subprocess.run", return_value=mock_result), \
-             mock_patch("scanner.validate_domain", return_value="1.2.3.4"), \
-             mock_patch("scanner.check_domain_limit", return_value=True), \
-             mock_patch("scanner.check_and_increment_ip", return_value=(True, 1)), \
-             mock_patch("recon.start_recon"):
+        with (
+            mock_patch("scanner.subprocess.run", return_value=mock_result),
+            mock_patch("scanner.validate_domain", return_value="1.2.3.4"),
+            mock_patch("scanner.check_domain_limit", return_value=True),
+            mock_patch("scanner.check_and_increment_ip", return_value=(True, 1)),
+            mock_patch("recon.start_recon"),
+        ):
             scan_id, _ = perform_scan("example.com", "5.6.7.8", dnt=True)
         loaded = get_scan(scan_id)
         assert loaded["client_hash"] == ""
 
 
 # === findings enrichment ===
+
 
 class TestFindings:
     def test_enrich_adds_findings_key(self):
@@ -375,22 +360,77 @@ class TestFindings:
     def test_perfect_score_zero_findings(self):
         perfect = {
             "domain": "perfect.com",
-            "total_score": 100, "max_score": 100, "grade": "A",
-            "headers": {"score": 30, "max": 30, "details": [
-                {"header": h, "present": True} for h in
-                ["content-security-policy", "strict-transport-security", "x-content-type-options",
-                 "x-frame-options", "referrer-policy", "permissions-policy"]
-            ]},
-            "ssl": {"score": 25, "max": 25, "details": {"tls_version": "TLSv1.3", "cert_valid": True, "chain_valid": True, "days_remaining": 90}},
+            "total_score": 100,
+            "max_score": 100,
+            "grade": "A",
+            "headers": {
+                "score": 30,
+                "max": 30,
+                "details": [
+                    {"header": h, "present": True}
+                    for h in [
+                        "content-security-policy",
+                        "strict-transport-security",
+                        "x-content-type-options",
+                        "x-frame-options",
+                        "referrer-policy",
+                        "permissions-policy",
+                    ]
+                ],
+            },
+            "ssl": {
+                "score": 25,
+                "max": 25,
+                "details": {"tls_version": "TLSv1.3", "cert_valid": True, "chain_valid": True, "days_remaining": 90},
+            },
             "dns": {"score": 15, "max": 15, "details": {"spf": True, "dmarc": True, "dkim": True}},
             "redirect": {"score": 10, "max": 10, "details": {"redirects_to_https": True}},
             "disclosure": {"score": 5, "max": 5, "details": {"server_exposed": False, "powered_by_exposed": False}},
             "cookies": {"score": 5, "max": 5, "details": {"cookies_found": 0}},
             "dnssec": {"score": 5, "max": 5, "details": {"dnssec_enabled": True}},
-            "methods": {"score": 5, "max": 5, "details": {"trace_enabled": False, "delete_enabled": False, "put_enabled": False}},
-            "cors": {"score": 5, "max": 5, "details": {"wildcard_origin": False, "reflects_origin": False, "credentials_with_wildcard": False}},
-            "html": {"score": 5, "max": 5, "details": {"mixed_active": 0, "mixed_passive": 0, "inline_scripts": 0, "inline_handlers": 0, "external_scripts": 0, "external_scripts_no_sri": 0, "forms_total": 0, "forms_http_action": 0, "meta_set_cookie": 0, "meta_refresh_http": 0}},
-            "csp_analysis": {"score": 2, "max": 2, "details": {"csp_present": True, "unsafe_inline": False, "unsafe_eval": False, "wildcard_source": False, "data_uri": False, "blob_uri": False}},
+            "methods": {
+                "score": 5,
+                "max": 5,
+                "details": {"trace_enabled": False, "delete_enabled": False, "put_enabled": False},
+            },
+            "cors": {
+                "score": 5,
+                "max": 5,
+                "details": {
+                    "wildcard_origin": False,
+                    "reflects_origin": False,
+                    "credentials_with_wildcard": False,
+                    "cors_credentials": False,
+                },
+            },
+            "html": {
+                "score": 5,
+                "max": 5,
+                "details": {
+                    "mixed_active": 0,
+                    "mixed_passive": 0,
+                    "inline_scripts": 0,
+                    "inline_handlers": 0,
+                    "external_scripts": 0,
+                    "external_scripts_no_sri": 0,
+                    "forms_total": 0,
+                    "forms_http_action": 0,
+                    "meta_set_cookie": 0,
+                    "meta_refresh_http": 0,
+                },
+            },
+            "csp_analysis": {
+                "score": 2,
+                "max": 2,
+                "details": {
+                    "csp_present": True,
+                    "unsafe_inline": False,
+                    "unsafe_eval": False,
+                    "wildcard_source": False,
+                    "data_uri": False,
+                    "blob_uri": False,
+                },
+            },
         }
         enriched = enrich_with_findings(perfect)
         fc = enriched.get("findings_count", {})
@@ -399,9 +439,12 @@ class TestFindings:
     def _make_missing_result(self):
         return {
             "domain": "test.com",
-            "total_score": 40, "max_score": 100, "grade": "D",
+            "total_score": 40,
+            "max_score": 100,
+            "grade": "D",
             "headers": {
-                "score": 0, "max": 30,
+                "score": 0,
+                "max": 30,
                 "details": [
                     {"header": "content-security-policy", "present": False},
                     {"header": "strict-transport-security", "present": False},
@@ -409,31 +452,86 @@ class TestFindings:
                     {"header": "x-frame-options", "present": False},
                     {"header": "referrer-policy", "present": False},
                     {"header": "permissions-policy", "present": False},
-                ]
+                ],
             },
-            "ssl": {"score": 25, "max": 25, "details": {"tls_version": "TLSv1.3", "cert_valid": True, "chain_valid": True}},
+            "ssl": {
+                "score": 25,
+                "max": 25,
+                "details": {"tls_version": "TLSv1.3", "cert_valid": True, "chain_valid": True},
+            },
             "dns": {"score": 0, "max": 20, "details": {"spf": False, "dmarc": False, "dkim": False}},
             "redirect": {"score": 10, "max": 10, "details": {"redirects_to_https": True}},
-            "disclosure": {"score": 2, "max": 5, "details": {"server_exposed": True, "server_value": "nginx/1.24.0", "powered_by_exposed": False}},
-            "cookies": {"score": 0, "max": 5, "details": {"cookies_found": 2, "all_secure": False, "all_httponly": False, "all_samesite": False}},
+            "disclosure": {
+                "score": 2,
+                "max": 5,
+                "details": {"server_exposed": True, "server_value": "nginx/1.24.0", "powered_by_exposed": False},
+            },
+            "cookies": {
+                "score": 0,
+                "max": 5,
+                "details": {"cookies_found": 2, "all_secure": False, "all_httponly": False, "all_samesite": False},
+            },
             "dnssec": {"score": 0, "max": 5, "details": {"dnssec_enabled": False}},
-            "methods": {"score": 0, "max": 5, "details": {"trace_enabled": True, "delete_enabled": False, "put_enabled": False}},
-            "cors": {"score": 0, "max": 5, "details": {"wildcard_origin": True, "reflects_origin": False, "credentials_with_wildcard": False}},
-            "html": {"score": 0, "max": 5, "details": {"mixed_active": 2, "mixed_passive": 0, "inline_scripts": 0, "inline_handlers": 0, "external_scripts": 0, "external_scripts_no_sri": 0, "forms_total": 0, "forms_http_action": 0, "meta_set_cookie": 0, "meta_refresh_http": 0}},
-            "csp_analysis": {"score": 0, "max": 2, "details": {"csp_present": False, "unsafe_inline": True, "unsafe_eval": False, "wildcard_source": False, "data_uri": False, "blob_uri": False}},
+            "methods": {
+                "score": 0,
+                "max": 5,
+                "details": {"trace_enabled": True, "delete_enabled": False, "put_enabled": False},
+            },
+            "cors": {
+                "score": 0,
+                "max": 5,
+                "details": {
+                    "wildcard_origin": True,
+                    "reflects_origin": False,
+                    "credentials_with_wildcard": False,
+                    "cors_credentials": False,
+                },
+            },
+            "html": {
+                "score": 0,
+                "max": 5,
+                "details": {
+                    "mixed_active": 2,
+                    "mixed_passive": 0,
+                    "inline_scripts": 0,
+                    "inline_handlers": 0,
+                    "external_scripts": 0,
+                    "external_scripts_no_sri": 0,
+                    "forms_total": 0,
+                    "forms_http_action": 0,
+                    "meta_set_cookie": 0,
+                    "meta_refresh_http": 0,
+                },
+            },
+            "csp_analysis": {
+                "score": 0,
+                "max": 2,
+                "details": {
+                    "csp_present": False,
+                    "unsafe_inline": True,
+                    "unsafe_eval": False,
+                    "wildcard_source": False,
+                    "data_uri": False,
+                    "blob_uri": False,
+                },
+            },
         }
 
 
 # === report generation ===
+
 
 class TestReportGeneration:
     @pytest.fixture
     def enriched_result(self):
         missing_result = {
             "domain": "test.com",
-            "total_score": 40, "max_score": 100, "grade": "D",
+            "total_score": 40,
+            "max_score": 100,
+            "grade": "D",
             "headers": {
-                "score": 0, "max": 30,
+                "score": 0,
+                "max": 30,
                 "details": [
                     {"header": "content-security-policy", "present": False},
                     {"header": "strict-transport-security", "present": False},
@@ -441,13 +539,25 @@ class TestReportGeneration:
                     {"header": "x-frame-options", "present": False},
                     {"header": "referrer-policy", "present": False},
                     {"header": "permissions-policy", "present": False},
-                ]
+                ],
             },
-            "ssl": {"score": 25, "max": 25, "details": {"tls_version": "TLSv1.3", "cert_valid": True, "chain_valid": True}},
+            "ssl": {
+                "score": 25,
+                "max": 25,
+                "details": {"tls_version": "TLSv1.3", "cert_valid": True, "chain_valid": True},
+            },
             "dns": {"score": 0, "max": 20, "details": {"spf": False, "dmarc": False, "dkim": False}},
             "redirect": {"score": 10, "max": 10, "details": {"redirects_to_https": True}},
-            "disclosure": {"score": 2, "max": 5, "details": {"server_exposed": True, "server_value": "nginx/1.24.0", "powered_by_exposed": False}},
-            "cookies": {"score": 0, "max": 5, "details": {"cookies_found": 2, "all_secure": False, "all_httponly": False, "all_samesite": False}},
+            "disclosure": {
+                "score": 2,
+                "max": 5,
+                "details": {"server_exposed": True, "server_value": "nginx/1.24.0", "powered_by_exposed": False},
+            },
+            "cookies": {
+                "score": 0,
+                "max": 5,
+                "details": {"cookies_found": 2, "all_secure": False, "all_httponly": False, "all_samesite": False},
+            },
             "dnssec": {"score": 0, "max": 5, "details": {"dnssec_enabled": False}},
         }
         return enrich_with_findings(missing_result)
@@ -475,13 +585,17 @@ class TestReportGeneration:
 
 # === cross-module: findings -> report ===
 
+
 class TestCrossModuleFindings:
     def test_report_includes_findings(self):
         missing_result = {
             "domain": "test.com",
-            "total_score": 40, "max_score": 100, "grade": "D",
+            "total_score": 40,
+            "max_score": 100,
+            "grade": "D",
             "headers": {
-                "score": 0, "max": 30,
+                "score": 0,
+                "max": 30,
                 "details": [
                     {"header": "content-security-policy", "present": False},
                     {"header": "strict-transport-security", "present": False},
@@ -489,13 +603,25 @@ class TestCrossModuleFindings:
                     {"header": "x-frame-options", "present": False},
                     {"header": "referrer-policy", "present": False},
                     {"header": "permissions-policy", "present": False},
-                ]
+                ],
             },
-            "ssl": {"score": 25, "max": 25, "details": {"tls_version": "TLSv1.3", "cert_valid": True, "chain_valid": True}},
+            "ssl": {
+                "score": 25,
+                "max": 25,
+                "details": {"tls_version": "TLSv1.3", "cert_valid": True, "chain_valid": True},
+            },
             "dns": {"score": 0, "max": 20, "details": {"spf": False, "dmarc": False, "dkim": False}},
             "redirect": {"score": 10, "max": 10, "details": {"redirects_to_https": True}},
-            "disclosure": {"score": 2, "max": 5, "details": {"server_exposed": True, "server_value": "nginx/1.24.0", "powered_by_exposed": False}},
-            "cookies": {"score": 0, "max": 5, "details": {"cookies_found": 2, "all_secure": False, "all_httponly": False, "all_samesite": False}},
+            "disclosure": {
+                "score": 2,
+                "max": 5,
+                "details": {"server_exposed": True, "server_value": "nginx/1.24.0", "powered_by_exposed": False},
+            },
+            "cookies": {
+                "score": 0,
+                "max": 5,
+                "details": {"cookies_found": 2, "all_secure": False, "all_httponly": False, "all_samesite": False},
+            },
             "dnssec": {"score": 0, "max": 5, "details": {"dnssec_enabled": False}},
         }
         enriched = enrich_with_findings(missing_result)
@@ -507,6 +633,7 @@ class TestCrossModuleFindings:
 
 
 # === regression: score consistency ===
+
 
 class TestScoreConsistency:
     def test_max_score_is_100(self):
@@ -536,21 +663,33 @@ class TestNewModulesConfig:
 
     def test_report_has_11_modules(self):
         """report.py should list all 11 modules"""
-        from report import generate_report
         from conftest import make_scan_result
+        from report import generate_report
+
         result = make_scan_result()
         result["grade"] = "A"
         result["total_score"] = 100
         result["max_score"] = 100
         enriched = enrich_with_findings(result)
         report = generate_report(enriched, "ccdd" * 8, "2026-03-25T12:00:00Z")
-        for name in ("Security Headers", "SSL / TLS", "DNS Security",
-                     "HTTP Redirect", "Info Disclosure", "Cookie Security",
-                     "DNSSEC", "HTTP Methods", "CORS", "HTML Analysis", "CSP Analysis"):
+        for name in (
+            "Security Headers",
+            "SSL / TLS",
+            "DNS Security",
+            "HTTP Redirect",
+            "Info Disclosure",
+            "Cookie Security",
+            "DNSSEC",
+            "HTTP Methods",
+            "CORS",
+            "HTML Analysis",
+            "CSP Analysis",
+        ):
             assert name in report, f"Missing module {name} in report"
 
     def test_findings_includes_methods_category(self):
         from conftest import make_scan_result
+
         result = make_scan_result(trace_enabled=True)
         enriched = enrich_with_findings(result)
         categories = {f["category"] for f in enriched["findings"]}
@@ -558,6 +697,7 @@ class TestNewModulesConfig:
 
     def test_findings_includes_cors_category(self):
         from conftest import make_scan_result
+
         result = make_scan_result(wildcard_origin=True)
         enriched = enrich_with_findings(result)
         categories = {f["category"] for f in enriched["findings"]}
@@ -565,6 +705,7 @@ class TestNewModulesConfig:
 
     def test_findings_includes_html_category(self):
         from conftest import make_scan_result
+
         result = make_scan_result(mixed_active=1)
         enriched = enrich_with_findings(result)
         categories = {f["category"] for f in enriched["findings"]}
@@ -572,6 +713,7 @@ class TestNewModulesConfig:
 
     def test_findings_includes_csp_analysis_category(self):
         from conftest import make_scan_result
+
         result = make_scan_result(unsafe_eval=True)
         enriched = enrich_with_findings(result)
         categories = {f["category"] for f in enriched["findings"]}
@@ -580,10 +722,12 @@ class TestNewModulesConfig:
 
 # === CSP "not present" in report ===
 
+
 class TestCspNotPresentReport:
     def test_csp_not_present_shows_in_report(self):
         """When csp_present=False, report should show 'CSP header not present'."""
         from conftest import make_scan_result
+
         result = make_scan_result(csp_present=False)
         result["grade"] = "D"
         result["total_score"] = 40
@@ -595,6 +739,7 @@ class TestCspNotPresentReport:
     def test_csp_present_shows_checks(self):
         """When csp_present=True, report should NOT show 'CSP header not present'."""
         from conftest import make_scan_result
+
         result = make_scan_result(csp_present=True, unsafe_inline=False, unsafe_eval=False)
         result["grade"] = "A"
         result["total_score"] = 100
@@ -606,6 +751,7 @@ class TestCspNotPresentReport:
 
     def test_csp_present_with_unsafe_inline(self):
         from conftest import make_scan_result
+
         result = make_scan_result(csp_present=True, unsafe_inline=True)
         result["grade"] = "C"
         result["total_score"] = 60
@@ -617,21 +763,25 @@ class TestCspNotPresentReport:
 
 # === report_txt recon wait logic ===
 
+
 class TestReportTxtReconWait:
     def test_report_txt_waits_for_recon(self):
         """report_txt endpoint should wait for recon to finish, up to 35s."""
-        from unittest.mock import patch, MagicMock
+        import json as _json
+        from unittest.mock import patch
+
+        from db import init_db, save_scan
         from fastapi.testclient import TestClient
         from main import app
-        from db import init_db, save_scan
-        import json as _json
 
         init_db()
         client = TestClient(app)
 
         scan_id = "aabb" * 8  # 32-char hex
         result_data = {
-            "domain": "recon-wait.com", "grade": "B", "total_score": 75,
+            "domain": "recon-wait.com",
+            "grade": "B",
+            "total_score": 75,
             "max_score": 100,
             "headers": {"score": 20, "max": 30, "details": []},
             "ssl": {"score": 25, "max": 25, "details": {}},
@@ -648,17 +798,22 @@ class TestReportTxtReconWait:
         save_scan(scan_id, "recon-wait.com", result_data, "B", 75)
 
         call_count = {"n": 0}
+
         def mock_get_recon(sid):
             call_count["n"] += 1
             if call_count["n"] < 3:
                 return None  # Still pending
-            return {"status": "done", "result": _json.dumps({
-                "tech_stack": {"technologies": [], "count": 0},
-                "waf": {"detected": [], "waf_present": False},
-            })}
+            return {
+                "status": "done",
+                "result": _json.dumps(
+                    {
+                        "tech_stack": {"technologies": [], "count": 0},
+                        "waf": {"detected": [], "waf_present": False},
+                    }
+                ),
+            }
 
-        with patch("main.get_recon", side_effect=mock_get_recon), \
-             patch("time.sleep"):
+        with patch("main.get_recon", side_effect=mock_get_recon), patch("time.sleep"):
             r = client.get(f"/report/{scan_id}.txt")
             assert r.status_code == 200
             assert "PASSIVE RECON" in r.text
@@ -667,17 +822,19 @@ class TestReportTxtReconWait:
     def test_report_txt_no_recon_still_works(self):
         """If recon never finishes, report should still be generated without it."""
         from unittest.mock import patch
+
+        from db import init_db, save_scan
         from fastapi.testclient import TestClient
         from main import app
-        from db import init_db, save_scan
-        import json as _json
 
         init_db()
         client = TestClient(app)
 
         scan_id = "ccdd" * 8
         result_data = {
-            "domain": "no-recon.com", "grade": "C", "total_score": 55,
+            "domain": "no-recon.com",
+            "grade": "C",
+            "total_score": 55,
             "max_score": 100,
             "headers": {"score": 10, "max": 30, "details": []},
             "ssl": {"score": 25, "max": 25, "details": {}},
@@ -693,8 +850,7 @@ class TestReportTxtReconWait:
         }
         save_scan(scan_id, "no-recon.com", result_data, "C", 55)
 
-        with patch("main.get_recon", return_value=None), \
-             patch("time.sleep"):
+        with patch("main.get_recon", return_value=None), patch("time.sleep"):
             r = client.get(f"/report/{scan_id}.txt")
             assert r.status_code == 200
             assert "no-recon.com" in r.text

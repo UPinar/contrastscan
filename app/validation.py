@@ -1,19 +1,17 @@
 """Domain validation, IP checks, CSRF for ContrastScan"""
 
-import re
-import socket
 import ipaddress
 import logging
+import re
+import socket
 
 import dns.resolver
-from fastapi import Request, HTTPException
-
 from config import ALLOWED_ORIGINS, MAX_DOMAIN_LENGTH
+from fastapi import HTTPException, Request
 
 logger = logging.getLogger(__name__)
 
 SCAN_ID_PATTERN = re.compile(r"^[0-9a-f]{32}$")
-EMAIL_PATTERN = re.compile(r"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$")
 
 # Pre-built frozenset for O(1) domain character validation (vs set() per call)
 _DOMAIN_CHARS = frozenset("abcdefghijklmnopqrstuvwxyz0123456789.-")
@@ -21,13 +19,13 @@ _DOMAIN_CHARS = frozenset("abcdefghijklmnopqrstuvwxyz0123456789.-")
 
 def clean_domain(raw: str) -> str:
     d = raw.strip().lower()
-    d = d.replace("\x00", "")   # strip null bytes
+    d = d.replace("\x00", "")  # strip null bytes
     for prefix in ("https://", "http://"):
         if d.startswith(prefix):
-            d = d[len(prefix):]
+            d = d[len(prefix) :]
     d = d.split("/")[0]
     d = d.split(":")[0]
-    d = d.rstrip(".")            # strip trailing DNS dot
+    d = d.rstrip(".")  # strip trailing DNS dot
     return d
 
 
@@ -35,9 +33,13 @@ def is_private_ip(ip_str: str) -> bool:
     try:
         addr = ipaddress.ip_address(ip_str)
         return (
-            addr.is_private or addr.is_reserved or addr.is_loopback or
-            addr.is_link_local or addr.is_multicast or addr.is_unspecified or
-            not addr.is_global
+            addr.is_private
+            or addr.is_reserved
+            or addr.is_loopback
+            or addr.is_link_local
+            or addr.is_multicast
+            or addr.is_unspecified
+            or not addr.is_global
         )
     except ValueError:
         return True
@@ -66,13 +68,16 @@ def resolve_and_check(domain: str) -> str | None:
     """Resolve DNS, check if IP is private. Return first valid IP or None."""
     # Try system resolver first with strict timeout
     import threading
+
     result_box = [None]
     exc_box = [None]
+
     def _resolve():
         try:
             result_box[0] = socket.getaddrinfo(domain, 443, type=socket.SOCK_STREAM)
         except Exception as e:
             exc_box[0] = e
+
     t = threading.Thread(target=_resolve, daemon=True)
     t.start()
     t.join(timeout=3)
@@ -81,7 +86,7 @@ def resolve_and_check(domain: str) -> str | None:
     results = result_box[0]
     if not results:
         return _dns_fallback(domain)
-    for family, stype, proto, canonname, sockaddr in results:
+    for _family, _stype, _proto, _canonname, sockaddr in results:
         if is_private_ip(sockaddr[0]):
             return None
     return results[0][4][0]
@@ -123,12 +128,17 @@ _TRUSTED_PROXIES = {"127.0.0.1", "::1"}
 
 
 def get_client_ip(request: Request) -> str:
-    """Client IP — only trust X-Real-IP / X-Forwarded-For from known proxies."""
+    """Client IP — trust CF-Connecting-IP, X-Real-IP, X-Forwarded-For from known proxies."""
     direct_ip = request.client.host if request.client else "unknown"
 
     if direct_ip not in _TRUSTED_PROXIES:
         return direct_ip
 
+    cf_ip = request.headers.get("cf-connecting-ip")
+    if cf_ip:
+        ip = cf_ip.strip()
+        if is_valid_ip(ip):
+            return ip
     real_ip = request.headers.get("x-real-ip")
     if real_ip:
         ip = real_ip.strip()

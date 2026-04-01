@@ -15,27 +15,40 @@ Run: cd app && python -m pytest tests/test_recon.py -v
 
 import json
 import socket
-import threading
-from io import BytesIO
-from unittest.mock import patch, MagicMock
+from unittest.mock import MagicMock, patch
 
 import dns.resolver
 import pytest
-from db import init_db, create_recon, save_recon, save_recon_error, get_recon, save_scan
+from db import create_recon, get_recon, init_db, save_recon, save_recon_error
 from recon import (
-    detect_tech_stack, detect_waf, harvest_emails,
-    fetch_robots, fetch_sitemap, check_http_version,
-    fetch_security_txt, check_caa, fetch_asn_info,
-    reverse_dns_lookup, check_zone_transfer, enumerate_subdomains,
-    _crtsh_subdomains, whois_lookup, _parse_whois, check_ct_logs,
-    check_subdomain_takeover, run_recon, start_recon,
-    WAF_SIGNATURES, COMMON_SUBDOMAINS,
+    COMMON_SUBDOMAINS,
+    WAF_SIGNATURES,
+    _crtsh_subdomains,
+    _parse_whois,
+    check_caa,
+    check_ct_logs,
+    check_http_version,
+    check_subdomain_takeover,
+    check_zone_transfer,
+    detect_tech_stack,
+    detect_waf,
+    enumerate_subdomains,
+    fetch_asn_info,
+    fetch_robots,
+    fetch_security_txt,
+    fetch_sitemap,
+    harvest_emails,
+    reverse_dns_lookup,
+    run_recon,
+    start_recon,
+    whois_lookup,
 )
 
 init_db()
 
 
 # === Helpers ===
+
 
 def _scan_result(**overrides):
     """Minimal scan result dict for recon tests."""
@@ -66,6 +79,7 @@ def _mock_urlopen_response(body: bytes, status=200):
 # ============================================================
 # Group A — Tech Stack Detection (no network)
 # ============================================================
+
 
 class TestDetectTechStack:
     def test_empty_result_returns_zero(self):
@@ -125,6 +139,7 @@ class TestDetectTechStack:
 # Group A — WAF Detection
 # ============================================================
 
+
 class TestDetectWaf:
     def test_no_waf_detected(self):
         r = detect_waf(_scan_result())
@@ -173,12 +188,13 @@ class TestDetectWaf:
 # Group A — Email Harvesting
 # ============================================================
 
+
 class TestHarvestEmails:
     def test_common_guesses_generated(self):
         r = harvest_emails(_scan_result(), "example.com")
-        assert f"info@example.com" in r["common_guesses"]
-        assert f"admin@example.com" in r["common_guesses"]
-        assert f"contact@example.com" in r["common_guesses"]
+        assert "info@example.com" in r["common_guesses"]
+        assert "admin@example.com" in r["common_guesses"]
+        assert "contact@example.com" in r["common_guesses"]
 
     def test_common_guesses_count(self):
         r = harvest_emails(_scan_result(), "example.com")
@@ -209,6 +225,7 @@ class TestHarvestEmails:
 # ============================================================
 # Group B — robots.txt
 # ============================================================
+
 
 class TestFetchRobots:
     @patch("recon._no_redirect_opener.open")
@@ -259,6 +276,7 @@ class TestFetchRobots:
 # Group B — sitemap.xml
 # ============================================================
 
+
 class TestFetchSitemap:
     @patch("recon._no_redirect_opener.open")
     def test_sitemap_found(self, mock_open):
@@ -295,6 +313,7 @@ class TestFetchSitemap:
 # Group B — HTTP Version
 # ============================================================
 
+
 class TestCheckHttpVersion:
     @patch("recon.socket.create_connection")
     @patch("recon.ssl.create_default_context")
@@ -327,13 +346,14 @@ class TestCheckHttpVersion:
 # Group C — Reverse DNS
 # ============================================================
 
+
 class TestReverseDnsLookup:
     @patch("recon.socket.gethostbyaddr", return_value=("server1.hosting.com", [], []))
     @patch("recon.socket.getaddrinfo")
     def test_ptr_found(self, mock_gai, mock_rev):
-        mock_gai.side_effect = lambda domain, port, family, stype: [
-            (family, stype, 0, '', ("93.184.216.34", 0))
-        ] if family == socket.AF_INET else socket.gaierror("no AAAA")
+        mock_gai.side_effect = lambda domain, port, family, stype: (
+            [(family, stype, 0, "", ("93.184.216.34", 0))] if family == socket.AF_INET else socket.gaierror("no AAAA")
+        )
         mock_gai.side_effect = self._make_gai("93.184.216.34", None)
         r = reverse_dns_lookup("example.com")
         assert r["ip"] == "93.184.216.34"
@@ -383,22 +403,25 @@ class TestReverseDnsLookup:
     @staticmethod
     def _make_gai(ipv4, ipv6):
         """Helper to create getaddrinfo side_effect for IPv4/IPv6 mocking."""
+
         def side_effect(domain, port, family, stype):
             if family == socket.AF_INET:
                 if ipv4:
-                    return [(family, stype, 0, '', (ipv4, 0))]
+                    return [(family, stype, 0, "", (ipv4, 0))]
                 raise socket.gaierror("no A record")
             elif family == socket.AF_INET6:
                 if ipv6:
-                    return [(family, stype, 0, '', (ipv6, 0, 0, 0))]
+                    return [(family, stype, 0, "", (ipv6, 0, 0, 0))]
                 raise socket.gaierror("no AAAA record")
             return []
+
         return side_effect
 
 
 # ============================================================
 # Group C — Zone Transfer
 # ============================================================
+
 
 class TestCheckZoneTransfer:
     @patch("recon.subprocess.run")
@@ -443,12 +466,15 @@ class TestCheckZoneTransfer:
 # Group C — Subdomain Enumeration
 # ============================================================
 
+
 def _mock_getaddrinfo(resolvable_fqdns):
     """Create a getaddrinfo side_effect that returns public IP for given FQDNs."""
+
     def side_effect(fqdn, port, **kwargs):
         if fqdn in resolvable_fqdns:
-            return [(socket.AF_INET, socket.SOCK_STREAM, 0, '', ('1.2.3.4', 0))]
+            return [(socket.AF_INET, socket.SOCK_STREAM, 0, "", ("1.2.3.4", 0))]
         raise socket.gaierror("NXDOMAIN")
+
     return side_effect
 
 
@@ -488,14 +514,17 @@ class TestEnumerateSubdomains:
 # Group C — crt.sh helper
 # ============================================================
 
+
 class TestCrtshSubdomains:
     @patch("recon._no_redirect_opener")
     def test_parses_crtsh_json(self, mock_opener):
-        data = json.dumps([
-            {"name_value": "www.example.com"},
-            {"name_value": "api.example.com\ncdn.example.com"},
-            {"name_value": "*.example.com"},  # wildcard — should be skipped
-        ]).encode()
+        data = json.dumps(
+            [
+                {"name_value": "www.example.com"},
+                {"name_value": "api.example.com\ncdn.example.com"},
+                {"name_value": "*.example.com"},  # wildcard — should be skipped
+            ]
+        ).encode()
         mock_opener.open.return_value = _mock_urlopen_response(data)
         r = _crtsh_subdomains("example.com")
         assert "www.example.com" in r
@@ -519,10 +548,12 @@ class TestCrtshSubdomains:
 
     @patch("recon._no_redirect_opener")
     def test_filters_other_domains(self, mock_opener):
-        data = json.dumps([
-            {"name_value": "www.example.com"},
-            {"name_value": "evil.attacker.com"},
-        ]).encode()
+        data = json.dumps(
+            [
+                {"name_value": "www.example.com"},
+                {"name_value": "evil.attacker.com"},
+            ]
+        ).encode()
         mock_opener.open.return_value = _mock_urlopen_response(data)
         r = _crtsh_subdomains("example.com")
         assert "evil.attacker.com" not in r
@@ -532,9 +563,11 @@ class TestCrtshSubdomains:
 # Group D — WHOIS
 # ============================================================
 
+
 class TestWhoisLookup:
+    @patch("recon.socket.gethostbyname", return_value="1.2.3.4")
     @patch("recon.socket.create_connection")
-    def test_whois_parsed(self, mock_conn):
+    def test_whois_parsed(self, mock_conn, mock_resolve):
         whois_text = (
             "Domain Name: EXAMPLE.COM\n"
             "Registrar: Example Registrar Inc.\n"
@@ -554,34 +587,42 @@ class TestWhoisLookup:
         assert len(r["name_servers"]) == 2
         assert r["raw_length"] > 0
 
+    @patch("recon.socket.gethostbyname", return_value="1.2.3.4")
     @patch("recon.socket.create_connection", side_effect=Exception("connection refused"))
-    def test_whois_failure(self, mock_conn):
+    def test_whois_failure(self, mock_conn, mock_resolve):
         r = whois_lookup("example.com")
         assert "error" in r
 
     def test_whois_server_selection_com(self):
         """Verify .com uses verisign."""
-        with patch("recon.socket.create_connection", side_effect=Exception("x")) as mock_conn:
+        with (
+            patch("recon.socket.gethostbyname", return_value="1.2.3.4") as mock_resolve,
+            patch("recon.socket.create_connection", side_effect=Exception("x")),
+        ):
             whois_lookup("test.com")
-            args = mock_conn.call_args[0][0]
-            assert args[0] == "whois.verisign-grs.com"
+            mock_resolve.assert_called_with("whois.verisign-grs.com")
 
     def test_whois_server_selection_org(self):
-        with patch("recon.socket.create_connection", side_effect=Exception("x")) as mock_conn:
+        with (
+            patch("recon.socket.gethostbyname", return_value="1.2.3.4") as mock_resolve,
+            patch("recon.socket.create_connection", side_effect=Exception("x")),
+        ):
             whois_lookup("test.org")
-            args = mock_conn.call_args[0][0]
-            assert args[0] == "whois.pir.org"
+            mock_resolve.assert_called_with("whois.pir.org")
 
     def test_whois_server_selection_unknown_tld(self):
-        with patch("recon.socket.create_connection", side_effect=Exception("x")) as mock_conn:
+        with (
+            patch("recon.socket.gethostbyname", return_value="1.2.3.4") as mock_resolve,
+            patch("recon.socket.create_connection", side_effect=Exception("x")),
+        ):
             whois_lookup("test.xyz")
-            args = mock_conn.call_args[0][0]
-            assert args[0] == "whois.nic.xyz"
+            mock_resolve.assert_called_with("whois.nic.xyz")
 
 
 # ============================================================
 # Group D — WHOIS Parser
 # ============================================================
+
 
 class TestParseWhois:
     def test_parses_registrar(self):
@@ -626,12 +667,25 @@ class TestParseWhois:
 # Group D — Certificate Transparency Logs
 # ============================================================
 
+
 class TestCheckCtLogs:
     @patch("recon._no_redirect_opener")
     def test_certs_parsed(self, mock_opener):
         data = [
-            {"serial_number": "abc", "issuer_name": "Let's Encrypt", "not_before": "2025-01-01", "not_after": "2025-04-01", "common_name": "example.com"},
-            {"serial_number": "def", "issuer_name": "DigiCert", "not_before": "2024-06-01", "not_after": "2025-06-01", "common_name": "example.com"},
+            {
+                "serial_number": "abc",
+                "issuer_name": "Let's Encrypt",
+                "not_before": "2025-01-01",
+                "not_after": "2025-04-01",
+                "common_name": "example.com",
+            },
+            {
+                "serial_number": "def",
+                "issuer_name": "DigiCert",
+                "not_before": "2024-06-01",
+                "not_after": "2025-06-01",
+                "common_name": "example.com",
+            },
         ]
         mock_opener.open.return_value = _mock_urlopen_response(json.dumps(data).encode())
         r = check_ct_logs("example.com")
@@ -642,8 +696,20 @@ class TestCheckCtLogs:
     @patch("recon._no_redirect_opener")
     def test_deduplicates_by_serial(self, mock_opener):
         data = [
-            {"serial_number": "abc", "issuer_name": "LE", "not_before": "2025-01-01", "not_after": "2025-04-01", "common_name": "example.com"},
-            {"serial_number": "abc", "issuer_name": "LE", "not_before": "2025-01-01", "not_after": "2025-04-01", "common_name": "example.com"},
+            {
+                "serial_number": "abc",
+                "issuer_name": "LE",
+                "not_before": "2025-01-01",
+                "not_after": "2025-04-01",
+                "common_name": "example.com",
+            },
+            {
+                "serial_number": "abc",
+                "issuer_name": "LE",
+                "not_before": "2025-01-01",
+                "not_after": "2025-04-01",
+                "common_name": "example.com",
+            },
         ]
         mock_opener.open.return_value = _mock_urlopen_response(json.dumps(data).encode())
         r = check_ct_logs("example.com")
@@ -651,7 +717,16 @@ class TestCheckCtLogs:
 
     @patch("recon._no_redirect_opener")
     def test_recent_certs_capped_at_10(self, mock_opener):
-        data = [{"serial_number": str(i), "issuer_name": "CA", "not_before": "2025-01-01", "not_after": "2025-04-01", "common_name": "x.com"} for i in range(25)]
+        data = [
+            {
+                "serial_number": str(i),
+                "issuer_name": "CA",
+                "not_before": "2025-01-01",
+                "not_after": "2025-04-01",
+                "common_name": "x.com",
+            }
+            for i in range(25)
+        ]
         mock_opener.open.return_value = _mock_urlopen_response(json.dumps(data).encode())
         r = check_ct_logs("example.com")
         assert len(r["recent_certificates"]) <= 10
@@ -668,6 +743,7 @@ class TestCheckCtLogs:
 # Orchestration — run_recon
 # ============================================================
 
+
 class TestRunRecon:
     @patch("recon.check_ct_logs", return_value={"total_certificates": 0})
     @patch("recon.whois_lookup", return_value={"registrar": "Test"})
@@ -683,12 +759,23 @@ class TestRunRecon:
     @patch("recon.fetch_robots", return_value={"exists": True, "disallowed_paths": [], "sitemaps": [], "line_count": 1})
     @patch("recon.save_recon")
     @patch("recon.create_recon")
-    def test_run_recon_calls_all_modules(self, mock_create, mock_save,
-                                          mock_robots, mock_sitemap,
-                                          mock_asn, mock_sec_txt,
-                                          mock_http,
-                                          mock_rdns, mock_caa, mock_zone, mock_crtsh,
-                                          mock_subs, mock_whois, mock_ct):
+    def test_run_recon_calls_all_modules(
+        self,
+        mock_create,
+        mock_save,
+        mock_robots,
+        mock_sitemap,
+        mock_asn,
+        mock_sec_txt,
+        mock_http,
+        mock_rdns,
+        mock_caa,
+        mock_zone,
+        mock_crtsh,
+        mock_subs,
+        mock_whois,
+        mock_ct,
+    ):
         sr = _scan_result()
         sr["resolved_ip"] = "1.2.3.4"
         run_recon("abc123", "example.com", sr)
@@ -727,10 +814,21 @@ class TestRunRecon:
     def test_run_recon_saves_all_keys(self, mock_create, mock_save, *_):
         run_recon("abc123", "example.com", _scan_result())
         saved_data = mock_save.call_args[0][1]
-        expected_keys = ["tech_stack", "waf", "emails", "robots", "sitemap",
-                         "http_version", "reverse_dns", "zone_transfer",
-                         "subdomains", "whois", "ct_logs", "security_txt",
-                         "caa"]
+        expected_keys = [
+            "tech_stack",
+            "waf",
+            "emails",
+            "robots",
+            "sitemap",
+            "http_version",
+            "reverse_dns",
+            "zone_transfer",
+            "subdomains",
+            "whois",
+            "ct_logs",
+            "security_txt",
+            "caa",
+        ]
         for key in expected_keys:
             assert key in saved_data, f"Missing key: {key}"
 
@@ -755,12 +853,14 @@ class TestRunRecon:
 # Orchestration — start_recon
 # ============================================================
 
+
 class TestStartRecon:
     @patch("recon.run_recon")
     def test_starts_daemon_thread(self, mock_run):
         start_recon("abc123", "example.com", _scan_result())
         # Give thread a moment to start
         import time
+
         time.sleep(0.1)
         mock_run.assert_called_once_with("abc123", "example.com", mock_run.call_args[0][2])
 
@@ -775,6 +875,7 @@ class TestStartRecon:
 # ============================================================
 # DB — Recon round-trip
 # ============================================================
+
 
 class TestReconDb:
     def test_create_and_get(self, init_test_db):
@@ -820,11 +921,13 @@ class TestReconDb:
 # E2E — GET /api/recon/{scan_id}
 # ============================================================
 
+
 class TestReconEndpoint:
     @pytest.fixture(autouse=True)
     def setup_client(self):
         from fastapi.testclient import TestClient
         from main import app
+
         self.client = TestClient(app)
         init_db()
 
@@ -864,6 +967,7 @@ class TestReconEndpoint:
 # Report — Recon section in plain-text report
 # ============================================================
 
+
 class TestReconReport:
     """Tests that recon data renders correctly in the txt report."""
 
@@ -877,13 +981,19 @@ class TestReconReport:
         "reverse_dns": {"ip": "93.184.216.34", "ptr": "server1.hosting.com", "shared_hosting": True},
         "zone_transfer": {"vulnerable": False, "nameservers": ["ns1.example.com"]},
         "subdomains": {"subdomains": ["www.example.com", "api.example.com"], "count": 2},
-        "whois": {"registrar": "GoDaddy", "creation_date": "2020-01-01", "expiry_date": "2030-01-01", "name_servers": ["ns1.example.com", "ns2.example.com"]},
+        "whois": {
+            "registrar": "GoDaddy",
+            "creation_date": "2020-01-01",
+            "expiry_date": "2030-01-01",
+            "name_servers": ["ns1.example.com", "ns2.example.com"],
+        },
         "ct_logs": {"total_certificates": 15, "recent_certificates": []},
     }
 
     def _generate(self, recon=None):
         from conftest import make_scan_result
         from report import generate_report
+
         sr = make_scan_result()
         sr["grade"] = "A"
         sr["total_score"] = 100
@@ -1001,6 +1111,7 @@ class TestReconReport:
 # Constants & Pattern Integrity
 # ============================================================
 
+
 class TestReconConstants:
     def test_common_subdomains_not_empty(self):
         assert len(COMMON_SUBDOMAINS) >= 10
@@ -1015,20 +1126,24 @@ class TestReconConstants:
 
     def test_recon_timeout_positive(self):
         from recon import RECON_TIMEOUT
+
         assert RECON_TIMEOUT > 0
 
     def test_crtsh_max_bytes_is_2mb(self):
         from recon import CRTSH_MAX_BYTES
+
         assert CRTSH_MAX_BYTES == 2097152
 
     def test_crtsh_timeout_is_30(self):
         from recon import CRTSH_TIMEOUT
+
         assert CRTSH_TIMEOUT == 30
 
 
 # ============================================================
 # harvest_emails — www. prefix stripping
 # ============================================================
+
 
 class TestHarvestEmailsWwwStrip:
     def test_www_prefix_stripped_from_guesses(self):
@@ -1057,6 +1172,7 @@ class TestHarvestEmailsWwwStrip:
 # WHOIS — compound TLDs, RDAP-only, new TLD servers
 # ============================================================
 
+
 class TestWhoisCompoundTlds:
     def test_rdap_only_dev(self):
         """'.dev' domains should return RDAP-only error without connecting."""
@@ -1070,52 +1186,67 @@ class TestWhoisCompoundTlds:
         assert "RDAP only" in r["error"]
 
     def test_whois_server_tr(self):
-        with patch("recon.socket.create_connection", side_effect=Exception("x")) as mock_conn:
+        with (
+            patch("recon.socket.gethostbyname", return_value="1.2.3.4") as mock_resolve,
+            patch("recon.socket.create_connection", side_effect=Exception("x")),
+        ):
             whois_lookup("example.tr")
-            args = mock_conn.call_args[0][0]
-            assert args[0] == "whois.trabis.gov.tr"
+            mock_resolve.assert_called_with("whois.trabis.gov.tr")
 
     def test_whois_server_uk(self):
-        with patch("recon.socket.create_connection", side_effect=Exception("x")) as mock_conn:
+        with (
+            patch("recon.socket.gethostbyname", return_value="1.2.3.4") as mock_resolve,
+            patch("recon.socket.create_connection", side_effect=Exception("x")),
+        ):
             whois_lookup("example.uk")
-            args = mock_conn.call_args[0][0]
-            assert args[0] == "whois.nic.uk"
+            mock_resolve.assert_called_with("whois.nic.uk")
 
     def test_whois_server_de(self):
-        with patch("recon.socket.create_connection", side_effect=Exception("x")) as mock_conn:
+        with (
+            patch("recon.socket.gethostbyname", return_value="1.2.3.4") as mock_resolve,
+            patch("recon.socket.create_connection", side_effect=Exception("x")),
+        ):
             whois_lookup("example.de")
-            args = mock_conn.call_args[0][0]
-            assert args[0] == "whois.denic.de"
+            mock_resolve.assert_called_with("whois.denic.de")
 
     def test_whois_server_fr(self):
-        with patch("recon.socket.create_connection", side_effect=Exception("x")) as mock_conn:
+        with (
+            patch("recon.socket.gethostbyname", return_value="1.2.3.4") as mock_resolve,
+            patch("recon.socket.create_connection", side_effect=Exception("x")),
+        ):
             whois_lookup("example.fr")
-            args = mock_conn.call_args[0][0]
-            assert args[0] == "whois.nic.fr"
+            mock_resolve.assert_called_with("whois.nic.fr")
 
     def test_whois_server_io(self):
-        with patch("recon.socket.create_connection", side_effect=Exception("x")) as mock_conn:
+        with (
+            patch("recon.socket.gethostbyname", return_value="1.2.3.4") as mock_resolve,
+            patch("recon.socket.create_connection", side_effect=Exception("x")),
+        ):
             whois_lookup("example.io")
-            args = mock_conn.call_args[0][0]
-            assert args[0] == "whois.nic.io"
+            mock_resolve.assert_called_with("whois.nic.io")
 
     def test_whois_server_jp(self):
-        with patch("recon.socket.create_connection", side_effect=Exception("x")) as mock_conn:
+        with (
+            patch("recon.socket.gethostbyname", return_value="1.2.3.4") as mock_resolve,
+            patch("recon.socket.create_connection", side_effect=Exception("x")),
+        ):
             whois_lookup("example.jp")
-            args = mock_conn.call_args[0][0]
-            assert args[0] == "whois.jprs.jp"
+            mock_resolve.assert_called_with("whois.jprs.jp")
 
     def test_whois_server_fallback_unknown_tld(self):
         """Unknown TLDs should fall back to whois.nic.<tld>."""
-        with patch("recon.socket.create_connection", side_effect=Exception("x")) as mock_conn:
+        with (
+            patch("recon.socket.gethostbyname", return_value="1.2.3.4") as mock_resolve,
+            patch("recon.socket.create_connection", side_effect=Exception("x")),
+        ):
             whois_lookup("example.museum")
-            args = mock_conn.call_args[0][0]
-            assert args[0] == "whois.nic.museum"
+            mock_resolve.assert_called_with("whois.nic.museum")
 
 
 # ============================================================
 # _parse_whois — UK/TR format variations
 # ============================================================
+
 
 class TestParseWhoisFormats:
     def test_uk_registered_on_format(self):
@@ -1177,12 +1308,14 @@ class TestParseWhoisFormats:
 # _fetch_crtsh — direct unit tests
 # ============================================================
 
+
 class TestFetchCrtsh:
     @patch("recon._no_redirect_opener")
     def test_returns_parsed_json(self, mock_opener):
         data = [{"name_value": "test.example.com", "serial_number": "abc"}]
         mock_opener.open.return_value = _mock_urlopen_response(json.dumps(data).encode())
         from recon import _fetch_crtsh
+
         result = _fetch_crtsh("%.example.com")
         assert len(result) == 1
         assert result[0]["name_value"] == "test.example.com"
@@ -1191,6 +1324,7 @@ class TestFetchCrtsh:
     def test_returns_empty_on_failure(self, mock_opener):
         mock_opener.open.side_effect = Exception("timeout")
         from recon import _fetch_crtsh
+
         result = _fetch_crtsh("%.example.com")
         assert result == []
 
@@ -1199,6 +1333,7 @@ class TestFetchCrtsh:
         """Exact query (CT logs) uses domain without wildcard."""
         mock_opener.open.return_value = _mock_urlopen_response(b"[]")
         from recon import _fetch_crtsh
+
         _fetch_crtsh("example.com")
         url = mock_opener.open.call_args[0][0].full_url
         assert "q=example.com" in url
@@ -1209,6 +1344,7 @@ class TestFetchCrtsh:
         """Wildcard query (subdomains) uses %.domain."""
         mock_opener.open.return_value = _mock_urlopen_response(b"[]")
         from recon import _fetch_crtsh
+
         _fetch_crtsh("%.example.com")
         url = mock_opener.open.call_args[0][0].full_url
         assert "q=%25.example.com" in url or "q=%.example.com" in url
@@ -1218,12 +1354,18 @@ class TestFetchCrtsh:
 # check_ct_logs — with pre-fetched data
 # ============================================================
 
+
 class TestCheckCtLogsPreFetched:
     def test_uses_prefetched_data(self):
         """When crtsh_data is passed, should not call _fetch_crtsh."""
         data = [
-            {"serial_number": "s1", "issuer_name": "LE", "not_before": "2025-01-01",
-             "not_after": "2025-04-01", "common_name": "example.com"},
+            {
+                "serial_number": "s1",
+                "issuer_name": "LE",
+                "not_before": "2025-01-01",
+                "not_after": "2025-04-01",
+                "common_name": "example.com",
+            },
         ]
         with patch("recon._fetch_crtsh") as mock_fetch:
             r = check_ct_logs("example.com", crtsh_data=data)
@@ -1239,6 +1381,7 @@ class TestCheckCtLogsPreFetched:
 # ============================================================
 # enumerate_subdomains — with pre-fetched crtsh data
 # ============================================================
+
 
 class TestEnumerateSubdomainsPreFetched:
     @patch("recon.socket.gethostbyname", side_effect=socket.gaierror("NXDOMAIN"))
@@ -1256,6 +1399,7 @@ class TestEnumerateSubdomainsPreFetched:
 # ============================================================
 # run_recon — parallel crt.sh split (two separate queries)
 # ============================================================
+
 
 class TestRunReconParallelCrtsh:
     @patch("recon.save_recon")
@@ -1293,12 +1437,18 @@ class TestRunReconParallelCrtsh:
     @patch("recon.enumerate_subdomains", return_value={"subdomains": [], "count": 0})
     @patch("recon.check_ct_logs", return_value={"total_certificates": 5, "recent_certificates": []})
     @patch("recon._fetch_crtsh")
-    def test_crtsh_results_fed_to_correct_consumers(self, mock_crtsh,
-                                                      mock_ct, mock_subs, *_):
+    def test_crtsh_results_fed_to_correct_consumers(self, mock_crtsh, mock_ct, mock_subs, *_):
         """Wildcard result goes to enumerate_subdomains, exact to check_ct_logs."""
         sub_data = [{"name_value": "api.example.com"}]
-        ct_data = [{"serial_number": "s1", "issuer_name": "LE", "not_before": "2025-01-01",
-                     "not_after": "2025-04-01", "common_name": "example.com"}]
+        ct_data = [
+            {
+                "serial_number": "s1",
+                "issuer_name": "LE",
+                "not_before": "2025-01-01",
+                "not_after": "2025-04-01",
+                "common_name": "example.com",
+            }
+        ]
 
         def crtsh_side_effect(query):
             if query.startswith("%"):
@@ -1346,19 +1496,29 @@ class TestRunReconParallelCrtsh:
     @patch("recon._fetch_crtsh", return_value=[])
     def test_5_parallel_groups_all_execute(self, *_):
         """All 5 parallel groups (http, dns, crtsh_subs, crtsh_ct, whois) execute."""
-        from unittest.mock import call
         mock_save = _[11]  # save_recon mock from decorator stack
         run_recon("pool01", "example.com", _scan_result())
         saved_data = mock_save.call_args[0][1]
-        for key in ["robots", "sitemap", "http_version", "reverse_dns",
-                     "zone_transfer", "whois", "subdomains", "ct_logs",
-                     "subdomain_takeover", "security_txt", "caa"]:
+        for key in [
+            "robots",
+            "sitemap",
+            "http_version",
+            "reverse_dns",
+            "zone_transfer",
+            "whois",
+            "subdomains",
+            "ct_logs",
+            "subdomain_takeover",
+            "security_txt",
+            "caa",
+        ]:
             assert key in saved_data, f"Missing parallel group result: {key}"
 
 
 # ============================================================
 # Subdomain Takeover Detection
 # ============================================================
+
 
 class TestSubdomainTakeover:
     @patch("socket.gethostbyname", side_effect=socket.gaierror("NXDOMAIN"))
@@ -1460,15 +1620,16 @@ class TestSubdomainTakeover:
 # security.txt
 # ============================================================
 
+
 class TestFetchSecurityTxt:
     @patch("recon._no_redirect_opener")
     def test_found_with_fields(self, mock_opener):
         body = (
-            "Contact: mailto:security@example.com\n"
-            "Expires: 2026-12-31T23:59:00.000Z\n"
-            "Policy: https://example.com/security-policy\n"
-            "Preferred-Languages: en, tr\n"
-        ).encode()
+            b"Contact: mailto:security@example.com\n"
+            b"Expires: 2026-12-31T23:59:00.000Z\n"
+            b"Policy: https://example.com/security-policy\n"
+            b"Preferred-Languages: en, tr\n"
+        )
         mock_opener.open.return_value = _mock_urlopen_response(body)
         r = fetch_security_txt("example.com")
         assert r["found"] is True
@@ -1480,10 +1641,7 @@ class TestFetchSecurityTxt:
 
     @patch("recon._no_redirect_opener")
     def test_multiple_contacts(self, mock_opener):
-        body = (
-            "Contact: mailto:a@example.com\n"
-            "Contact: mailto:b@example.com\n"
-        ).encode()
+        body = b"Contact: mailto:a@example.com\nContact: mailto:b@example.com\n"
         mock_opener.open.return_value = _mock_urlopen_response(body)
         r = fetch_security_txt("example.com")
         assert r["found"] is True
@@ -1514,6 +1672,7 @@ class TestFetchSecurityTxt:
 # ============================================================
 # CAA Records
 # ============================================================
+
 
 class TestCheckCaa:
     @patch("recon.dns.resolver.Resolver")
@@ -1566,17 +1725,24 @@ class TestCheckCaa:
 # ASN / Network Range
 # ============================================================
 
+
 class TestFetchAsnInfo:
     @patch("recon._no_redirect_opener")
     def test_full_asn_lookup(self, mock_opener):
         """Successful lookup returns ASN, name, and prefixes."""
         network_info = json.dumps({"data": {"asns": ["13335"]}}).encode()
         overview = json.dumps({"data": {"holder": "CLOUDFLARENET"}}).encode()
-        prefixes = json.dumps({"data": {"prefixes": [
-            {"prefix": "1.1.1.0/24"},
-            {"prefix": "104.16.0.0/13"},
-            {"prefix": "2606:4700::/32"},
-        ]}}).encode()
+        prefixes = json.dumps(
+            {
+                "data": {
+                    "prefixes": [
+                        {"prefix": "1.1.1.0/24"},
+                        {"prefix": "104.16.0.0/13"},
+                        {"prefix": "2606:4700::/32"},
+                    ]
+                }
+            }
+        ).encode()
 
         responses = [
             _mock_urlopen_response(network_info),
@@ -1613,6 +1779,7 @@ class TestFetchAsnInfo:
         overview = json.dumps({"data": {"holder": "CLOUDFLARENET"}}).encode()
 
         call_count = [0]
+
         def side_effect(*args, **kwargs):
             call_count[0] += 1
             if call_count[0] == 1:
@@ -1621,6 +1788,7 @@ class TestFetchAsnInfo:
                 return _mock_urlopen_response(overview)
             else:
                 raise Exception("prefix timeout")
+
         mock_opener.open.side_effect = side_effect
 
         r = fetch_asn_info("1.1.1.1")

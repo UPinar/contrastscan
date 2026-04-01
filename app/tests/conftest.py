@@ -15,18 +15,19 @@ os.environ["CONTRASTSCAN_DB"] = _test_db
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 import pytest
-from fastapi import HTTPException
-
 
 # === Shared fixtures ===
+
 
 @pytest.fixture(autouse=True)
 def reset_rate_limits():
     """Reset all rate limit stores before each test."""
     from ratelimit import reset_all
+
     reset_all()
     # Also clear DB-based IP limits
     from db import get_db
+
     try:
         with get_db() as con:
             con.execute("DELETE FROM ip_limits")
@@ -45,6 +46,7 @@ def reset_rate_limits():
 def init_test_db():
     """Initialize the test database."""
     from db import init_db
+
     init_db()
 
 
@@ -56,8 +58,10 @@ def pytest_sessionfinish(session, exitstatus):
 
 # === Shared helpers ===
 
+
 class FakeRequest:
     """Fake Request object for CSRF/IP tests."""
+
     def __init__(self, headers=None, client_host="127.0.0.1"):
         self.headers = headers or {}
         self.client = type("C", (), {"host": client_host})()
@@ -66,31 +70,61 @@ class FakeRequest:
 
 def make_scan_result(
     headers_missing=None,
-    ssl_error=None, tls_version="TLSv1.3", cert_valid=True,
-    chain_valid=True, days_remaining=90, cipher="TLS_AES_256_GCM_SHA384",
+    ssl_error=None,
+    tls_version="TLSv1.3",
+    cert_valid=True,
+    chain_valid=True,
+    days_remaining=90,
+    cipher="TLS_AES_256_GCM_SHA384",
     cipher_score=8,
-    spf=True, dmarc=True, dkim=True,
+    spf=True,
+    dmarc=True,
+    dkim=True,
     redirects_to_https=True,
-    server_exposed=False, server_value="", powered_by_exposed=False,
+    server_exposed=False,
+    server_value="",
+    powered_by_exposed=False,
     powered_by_value="",
-    cookies_found=0, all_secure=True, all_httponly=True, all_samesite=True,
+    cookies_found=0,
+    all_secure=True,
+    all_httponly=True,
+    all_samesite=True,
     dnssec_enabled=True,
-    trace_enabled=False, delete_enabled=False, put_enabled=False,
-    wildcard_origin=False, reflects_origin=False, credentials_with_wildcard=False,
-    mixed_active=0, mixed_passive=0, inline_scripts=0, inline_handlers=0,
-    external_scripts=0, external_scripts_no_sri=0, forms_total=0, forms_http_action=0,
-    meta_set_cookie=0, meta_refresh_http=0,
-    csp_present=True, unsafe_inline=False, unsafe_eval=False,
-    wildcard_source=False, data_uri=False, blob_uri=False,
+    trace_enabled=False,
+    delete_enabled=False,
+    put_enabled=False,
+    wildcard_origin=False,
+    reflects_origin=False,
+    credentials_with_wildcard=False,
+    cors_credentials=False,
+    mixed_active=0,
+    mixed_passive=0,
+    inline_scripts=0,
+    inline_handlers=0,
+    external_scripts=0,
+    external_scripts_no_sri=0,
+    forms_total=0,
+    forms_http_action=0,
+    meta_set_cookie=0,
+    meta_refresh_http=0,
+    csp_present=True,
+    unsafe_inline=False,
+    unsafe_eval=False,
+    wildcard_source=False,
+    data_uri=False,
+    blob_uri=False,
 ):
     """Build a controlled scan result dict."""
     headers_missing = headers_missing or []
 
     header_details = []
     all_headers = [
-        "content-security-policy", "strict-transport-security",
-        "x-content-type-options", "x-frame-options",
-        "referrer-policy", "permissions-policy"
+        "content-security-policy",
+        "strict-transport-security",
+        "x-content-type-options",
+        "x-frame-options",
+        "referrer-policy",
+        "permissions-policy",
     ]
     for h in all_headers:
         header_details.append({"header": h, "present": h not in headers_missing})
@@ -179,6 +213,7 @@ def make_scan_result(
             "wildcard_origin": wildcard_origin,
             "reflects_origin": reflects_origin,
             "credentials_with_wildcard": credentials_with_wildcard,
+            "cors_credentials": cors_credentials,
         },
     }
 
