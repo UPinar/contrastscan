@@ -17,6 +17,11 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 
 import pytest
 
+# Initialize DB tables at import time (before any test runs)
+from db import init_db
+
+init_db()
+
 
 # === Shared fixtures ===
 

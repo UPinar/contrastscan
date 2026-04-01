@@ -629,13 +629,22 @@ class TestEnterpriseE2e:
 class TestReport:
     @pytest.fixture(autouse=True)
     def setup_scan(self):
-        """Create a scan for report tests."""
+        """Create a scan for report tests, with recon pre-completed to avoid 10s wait."""
         with (
             patch("scanner.run_scan", side_effect=mock_run_scan),
             patch("scanner.validate_domain", side_effect=mock_validate_domain),
+            patch("recon.start_recon"),
         ):
             r = client.post("/scan", data={"domain": "example.com"}, follow_redirects=False, headers=CSRF_HEADERS)
             self.scan_id = r.headers.get("location", "").split("/result/")[-1]
+        # Pre-populate recon so report_txt doesn't wait 10s polling
+        from db import get_db
+
+        with get_db() as con:
+            con.execute(
+                "INSERT OR REPLACE INTO recon_results (scan_id, domain, status, result, created_at) VALUES (?, 'example.com', 'done', ?, datetime('now'))",
+                (self.scan_id, "{}"),
+            )
 
     def test_report_status(self):
         r = client.get(f"/report/{self.scan_id}.txt")

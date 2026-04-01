@@ -813,7 +813,7 @@ class TestReportTxtReconWait:
                 ),
             }
 
-        with patch("main.get_recon", side_effect=mock_get_recon), patch("time.sleep"):
+        with patch("main.get_recon", side_effect=mock_get_recon), patch("asyncio.sleep", return_value=None):
             r = client.get(f"/report/{scan_id}.txt")
             assert r.status_code == 200
             assert "PASSIVE RECON" in r.text
@@ -850,7 +850,7 @@ class TestReportTxtReconWait:
         }
         save_scan(scan_id, "no-recon.com", result_data, "C", 55)
 
-        with patch("main.get_recon", return_value=None), patch("time.sleep"):
+        with patch("main.get_recon", return_value=None), patch("asyncio.sleep", return_value=None):
             r = client.get(f"/report/{scan_id}.txt")
             assert r.status_code == 200
             assert "no-recon.com" in r.text
