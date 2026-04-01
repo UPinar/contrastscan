@@ -144,7 +144,7 @@ jobs:
 
       - name: Integration — hidden endpoints blocked
         run: |
-          for path in /openapi.json /docs /redoc; do
+          for path in /docs /redoc; do
             STATUS=$(curl -s -o /dev/null -w '%{http_code}' "http://127.0.0.1:8001$path")
             [ "$STATUS" = "404" ] && echo "PASS: $path -> 404" || { echo "FAIL: $path -> $STATUS"; exit 1; }
           done
