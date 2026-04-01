@@ -1,0 +1,36 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630">
+  <rect width="1200" height="630" fill="#09090b"/>
+  <!-- Grid -->
+  <defs>
+    <pattern id="grid" width="64" height="64" patternUnits="userSpaceOnUse">
+      <path d="M 64 0 L 0 0 0 64" fill="none" stroke="rgba(255,255,255,0.03)" stroke-width="1"/>
+    </pattern>
+  </defs>
+  <rect width="1200" height="630" fill="url(#grid)"/>
+  <!-- Glow -->
+  <ellipse cx="600" cy="200" rx="400" ry="250" fill="rgba(59,130,246,0.08)"/>
+  <!-- Logo -->
+  <text x="600" y="230" text-anchor="middle" font-family="monospace" font-size="64" font-weight="800" fill="#fafafa">
+    <tspan fill="#3b82f6">Contrast</tspan>Scan
+  </text>
+  <!-- Tagline -->
+  <text x="600" y="300" text-anchor="middle" font-family="monospace" font-size="28" fill="#a1a1aa">
+    Free Security Scanner
+  </text>
+  <!-- Features row 1 -->
+  <text x="600" y="380" text-anchor="middle" font-family="monospace" font-size="20" fill="#71717a">
+    SSL/TLS · Headers · DNS · CORS · HTTP Methods · DNSSEC
+  </text>
+  <!-- Features row 2 -->
+  <text x="600" y="420" text-anchor="middle" font-family="monospace" font-size="20" fill="#71717a">
+    Cookies · Redirect · Disclosure · HTML Analysis · CSP
+  </text>
+  <!-- Grade -->
+  <text x="600" y="490" text-anchor="middle" font-family="monospace" font-size="22" fill="#52525b">
+    11 Security Checks · Single A-F Grade · No Signup
+  </text>
+  <!-- URL -->
+  <text x="600" y="570" text-anchor="middle" font-family="monospace" font-size="20" fill="#3b82f6">
+    contrastcyber.com
+  </text>
+</svg>

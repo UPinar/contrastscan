@@ -1,0 +1,42 @@
+/* === Error Page === */
+
+body {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem;
+}
+
+.error-card {
+  position: relative;
+  z-index: 10;
+  text-align: center;
+  max-inline-size: 26.25rem;
+  padding-block: 3rem;
+  padding-inline: 2rem;
+  border-radius: 1rem;
+  border: 1px solid var(--border-dim);
+  background-color: rgba(24,24,27,0.4);
+}
+
+.error-code {
+  font-size: 3.5rem;
+  font-weight: 800;
+  color: var(--red);
+  line-height: 1;
+  margin-block-end: 1rem;
+}
+
+.error-title {
+  font-size: 1.1rem;
+  font-weight: 600;
+  margin-block-end: 0.75rem;
+}
+
+.error-message {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  line-height: 1.7;
+  margin-block-end: 2rem;
+}

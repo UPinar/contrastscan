@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Pricing | ContrastScan</title>
+  <meta name="theme-color" content="#09090b">
+  <link rel="icon" type="image/svg+xml" href="/static/favicon.svg">
+  <link rel="stylesheet" href="/static/css/base.css?v=13">
+</head>
+<body>
+  <nav>
+    <a href="/" class="logo">Contrast<span>Scan</span></a>
+    <button class="hamburger" aria-label="Menu" aria-expanded="false"><span class="hamburger__lines" aria-hidden="true"></span></button>
+    <div class="nav-links">
+      <a href="/stats">Stats</a>
+      <a href="https://api.contrastcyber.com">API</a>
+      <a href="/pricing">Pricing</a>
+    </div>
+  </nav>
+<div class="pricing">
+  <h1>Pricing</h1>
+  <p class="subtitle">One plan, two services. Free forever for individuals.</p>
+
+  <div class="plans">
+    <div class="plan">
+      <h2>Free</h2>
+      <div class="price">$0 <span>/forever</span></div>
+      <p class="desc">For developers, researchers, and anyone who wants to check their security.</p>
+      <ul>
+        <li>100 requests/hour (scans + API combined)</li>
+        <li>Full 11-module security scan</li>
+        <li>A-F grade + 100-point score</li>
+        <li>30+ API endpoints (CVE, domain, threat intel)</li>
+        <li>Passive recon (WHOIS, subdomains, CT logs)</li>
+        <li>Bulk scan (up to 10 domains)</li>
+        <li>JSON API access</li>
+      </ul>
+      <a href="/" class="cta cta-free">Start Scanning — Free</a>
+    </div>
+
+    <div class="plan featured">
+      <h2>Pro</h2>
+      <div class="price">$9 <span>/month</span></div>
+      <p class="desc">For teams and power users who need higher limits.</p>
+      <ul>
+        <li>1,000 requests/hour (scans + API combined)</li>
+        <li>Everything in Free</li>
+        <li>Bulk scan up to 50 domains</li>
+        <li>Usage dashboard (/v1/usage)</li>
+      </ul>
+      <a href="https://contrastcyber.lemonsqueezy.com/checkout/buy/da64b10b-457d-4162-ae96-8e0e6e83f368" class="cta cta-pro">Get Pro →</a>
+    </div>
+  </div>
+
+  <div class="faq">
+    <h2>FAQ</h2>
+    <dl>
+      <dt>Is the free tier really free?</dt>
+      <dd>Yes. No credit card, no signup, no trial period. 100 requests/hour forever — covers both scans and API calls. The scanner is open source — you can even self-host it.</dd>
+
+      <dt>What does a scan check?</dt>
+      <dd>11 modules: SSL/TLS, HTTP security headers, DNS (SPF/DKIM/DMARC), HTTPS redirect, information disclosure, cookie security, DNSSEC, HTTP methods, CORS, HTML analysis, and CSP deep analysis. Total: 100 points.</dd>
+
+      <dt>How fast is a scan?</dt>
+      <dd>Under 1 second for the core scan. Passive recon (WHOIS, subdomains, CT logs) runs in the background and completes in 5-30 seconds.</dd>
+
+      <dt>Can I use the API commercially?</dt>
+      <dd>Yes. Both the scanner and API are free for commercial use. Pro provides higher rate limits (1,000/hr) and bulk scan up to 50 domains.</dd>
+
+      <dt>How do I get my API key after purchase?</dt>
+      <dd>After checkout, you'll be redirected to a welcome page showing your key. Save it immediately — it's shown only once for security.</dd>
+
+      <dt>Can I cancel anytime?</dt>
+      <dd>Yes. Cancel through the Lemon Squeezy customer portal. Your key stays active until the billing period ends.</dd>
+    </dl>
+  </div>
+  <script src="/static/js/nav.js"></script>
+  <footer>
+    <div class="footer-links">
+      <a href="/terms">Terms</a>
+      <a href="/privacy">Privacy</a>
+      <a href="mailto:contact@contrastcyber.com">Contact</a>
+      <a href="https://github.com/UPinar/contrastscan">GitHub</a>
+    </div>
+    <p>&copy; 2026 ContrastScan</p>
+  </footer>
+</div>
+</body>
+</html>

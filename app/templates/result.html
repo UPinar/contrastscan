@@ -1,0 +1,751 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{{ result.domain }} — {{ result.grade }} | ContrastScan</title>
+  <meta name="description" content="{{ result.domain }} scored {{ result.grade }} ({{ result.total_score }}/{{ result.max_score|default(100) }}) on ContrastScan security scan.">
+  <!-- Open Graph -->
+  <meta property="og:title" content="{{ result.domain }} — Grade {{ result.grade }} | ContrastScan">
+  <meta property="og:description" content="{{ result.domain }} scored {{ result.grade }} ({{ result.total_score }}/{{ result.max_score|default(100) }}). Check your server's security score for free.">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://contrastcyber.com/result/{{ scan_id }}">
+  <meta property="og:image" content="https://contrastcyber.com/static/og-image.png">
+  <meta property="og:site_name" content="ContrastScan">
+  <!-- Twitter Card -->
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="{{ result.domain }} — Grade {{ result.grade }} | ContrastScan">
+  <meta name="twitter:description" content="{{ result.domain }} scored {{ result.grade }} ({{ result.total_score }}/{{ result.max_score|default(100) }}). Scan your domain for free.">
+  <meta name="twitter:image" content="https://contrastcyber.com/static/og-image.png">
+  <meta name="theme-color" content="#09090b">
+  <link rel="canonical" href="https://contrastcyber.com/result/{{ scan_id }}">
+  <link rel="icon" type="image/svg+xml" href="/static/favicon.svg">
+  <link rel="stylesheet" href="/static/css/base.css?v=13">
+  <link rel="stylesheet" href="/static/css/result.css?v=3">
+</head>
+<body>
+  <nav>
+    <a href="/" class="logo">Contrast<span>Scan</span></a>
+    <button class="hamburger" aria-label="Menu" aria-expanded="false"><span class="hamburger__lines" aria-hidden="true"></span></button>
+    <div class="nav-links">
+      <a href="/stats">Stats</a>
+      <a href="https://api.contrastcyber.com">API</a>
+      <a href="/pricing">Pricing</a>
+    </div>
+  </nav>
+
+  <div class="content">
+    {% set max_s = result.max_score|default(100) %}
+    {% set pct = (result.total_score / max_s * 100)|int %}
+    {% set dash = 408 - (408 * pct / 100)|int %}
+
+    <div class="score-hero">
+      <h1 class="domain-name">{{ result.domain }}</h1>
+      <div class="grade-ring">
+        <svg viewBox="0 0 140 140">
+          <circle class="bg" cx="70" cy="70" r="65"/>
+          <circle class="fill" cx="70" cy="70" r="65"
+                  stroke="{{ grade_color }}"
+                  stroke-dashoffset="{{ dash }}"/>
+        </svg>
+        <span class="grade-letter" style="color: {{ grade_color }}">{{ result.grade }}</span>
+      </div>
+      <div class="score-text"><strong>{{ result.total_score }}</strong> / {{ result.max_score|default(100) }} points</div>
+      <button id="shareBtn" class="share-btn">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle; margin-right:0.35rem;">
+          <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+        </svg>
+        Copy Link
+      </button>
+      <button id="reportBtn" class="share-btn" style="cursor:pointer; border:1px solid #27272a; background:transparent;">
+        <svg id="reportIcon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle; margin-right:0.35rem;">
+          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
+        </svg>
+        <span id="reportLabel">Download Report</span>
+      </button>
+      <div id="reportHint" style="font-size:0.7rem;color:#71717a;margin-top:0.3rem;min-height:1rem;"></div>
+      <div id="result-data" data-scan-id="{{ scan_id }}" data-domain="{{ result.domain }}" hidden></div>
+    </div>
+
+    {% if result.enterprise and result.enterprise.is_enterprise %}
+    <div class="enterprise-note">
+      <span class="ent-icon">ℹ️</span>
+      <div>
+        <strong>{{ result.enterprise.company }}</strong> uses a non-standard security model.
+        Large enterprises often omit certain headers or DNS records due to custom infrastructure,
+        CDN configurations, or scale-specific trade-offs.
+        A lower score does not necessarily indicate poor security.
+      </div>
+    </div>
+    {% endif %}
+
+    {% if result.grade in ['D', 'F'] and not result.enterprise %}
+    <div class="low-score-cta">
+      <div class="cta-icon">⚠️</div>
+      <p class="cta-title">Your server needs attention</p>
+      <p class="cta-desc">We can fix your security score. SSH hardening, headers, SSL, DNS — professional server hardening starting at <strong>$15</strong>.</p>
+      <a href="https://www.fiverr.com/s/akDPorW" target="_blank" rel="noopener" class="cta-link">
+        Fix My Score →
+      </a>
+    </div>
+    {% endif %}
+
+    <div class="sections">
+      <!-- HEADERS -->
+      {% set hs = result.headers %}
+      {% set hpct = (hs.score / [hs.max, 1]|max * 100)|int %}
+      <div class="section">
+        <div class="section-head">
+          <div class="section-left">
+            <div class="section-icon green">🛡️</div>
+            <span class="section-name">Security Headers</span>
+          </div>
+          <div class="section-right">
+            <div class="section-bar bar-bg">
+              <div class="bar-fill" style="width:{{ hpct }}%; background:{{ grade_color }};"></div>
+            </div>
+            <span class="section-score">{{ hs.score }}/{{ hs.max }}</span>
+          </div>
+        </div>
+        <div class="section-details">
+          {% for h in hs.details %}
+          <div class="detail-row">
+            <span class="detail-label">{{ h.header }}</span>
+            <span class="detail-value">
+              {% if h.present %}
+                <span class="dot green"></span>
+                <span class="tag pass">Present</span>
+              {% else %}
+                <span class="dot red"></span>
+                <span class="tag fail">Missing</span>
+              {% endif %}
+            </span>
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+
+      <!-- SSL -->
+      {% set ss = result.ssl %}
+      {% set spct = (ss.score / [ss.max, 1]|max * 100)|int %}
+      <div class="section">
+        <div class="section-head">
+          <div class="section-left">
+            <div class="section-icon blue">🔒</div>
+            <span class="section-name">SSL / TLS</span>
+          </div>
+          <div class="section-right">
+            <div class="section-bar bar-bg">
+              <div class="bar-fill" style="width:{{ spct }}%; background:{{ grade_color }};"></div>
+            </div>
+            <span class="section-score">{{ ss.score }}/{{ ss.max }}</span>
+          </div>
+        </div>
+        <div class="section-details">
+          {% if ss.error %}
+          <div class="detail-row">
+            <span class="detail-label">Error</span>
+            <span class="detail-value"><span class="tag fail">{{ ss.error }}</span></span>
+          </div>
+          {% else %}
+          <div class="detail-row">
+            <span class="detail-label">TLS Version</span>
+            <span class="detail-value">
+              <span class="tag info">{{ ss.details.tls_version }}</span>
+            </span>
+          </div>
+          <div class="detail-row">
+            <span class="detail-label">Cipher Suite</span>
+            <span class="detail-value">
+              <span style="color:#a1a1aa; font-size:0.75rem;">{{ ss.details.cipher }}</span>
+            </span>
+          </div>
+          <div class="detail-row">
+            <span class="detail-label">Certificate</span>
+            <span class="detail-value">
+              {% if ss.details.cert_valid %}
+                <span class="dot green"></span>
+                <span class="tag pass">Valid</span>
+                <span style="color:#71717a; font-size:0.7rem;">{{ ss.details.days_remaining }}d left</span>
+              {% else %}
+                <span class="dot red"></span>
+                <span class="tag fail">Expired</span>
+              {% endif %}
+            </span>
+          </div>
+          {% endif %}
+        </div>
+      </div>
+
+      <!-- DNS -->
+      {% set ds = result.dns %}
+      {% set dpct = (ds.score / [ds.max, 1]|max * 100)|int %}
+      <div class="section">
+        <div class="section-head">
+          <div class="section-left">
+            <div class="section-icon purple">📧</div>
+            <span class="section-name">DNS Security</span>
+          </div>
+          <div class="section-right">
+            <div class="section-bar bar-bg">
+              <div class="bar-fill" style="width:{{ dpct }}%; background:{{ grade_color }};"></div>
+            </div>
+            <span class="section-score">{{ ds.score }}/{{ ds.max }}</span>
+          </div>
+        </div>
+        <div class="section-details">
+          <div class="detail-row">
+            <span class="detail-label">SPF Record</span>
+            <span class="detail-value">
+              {% if ds.details.spf %}
+                <span class="dot green"></span>
+                <span class="tag pass">Found</span>
+              {% else %}
+                <span class="dot red"></span>
+                <span class="tag fail">Missing</span>
+              {% endif %}
+            </span>
+          </div>
+          <div class="detail-row">
+            <span class="detail-label">DMARC Record</span>
+            <span class="detail-value">
+              {% if ds.details.dmarc %}
+                <span class="dot green"></span>
+                <span class="tag pass">Found</span>
+              {% else %}
+                <span class="dot red"></span>
+                <span class="tag fail">Missing</span>
+              {% endif %}
+            </span>
+          </div>
+          <div class="detail-row">
+            <span class="detail-label">DKIM Record</span>
+            <span class="detail-value">
+              {% if ds.details.dkim %}
+                <span class="dot green"></span>
+                <span class="tag pass">Found</span>
+              {% else %}
+                <span class="dot red"></span>
+                <span class="tag fail">Missing</span>
+              {% endif %}
+            </span>
+          </div>
+        </div>
+      </div>
+
+      <!-- REDIRECT -->
+      {% set rd = result.redirect %}
+      {% if rd %}
+      {% set rpct = (rd.score / [rd.max, 1]|max * 100)|int %}
+      <div class="section">
+        <div class="section-head">
+          <div class="section-left">
+            <div class="section-icon blue">↗️</div>
+            <span class="section-name">HTTP → HTTPS Redirect</span>
+          </div>
+          <div class="section-right">
+            <div class="section-bar bar-bg">
+              <div class="bar-fill" style="width:{{ rpct }}%; background:{{ grade_color }};"></div>
+            </div>
+            <span class="section-score">{{ rd.score }}/{{ rd.max }}</span>
+          </div>
+        </div>
+        <div class="section-details">
+          <div class="detail-row">
+            <span class="detail-label">Redirects to HTTPS</span>
+            <span class="detail-value">
+              {% if rd.details.redirects_to_https %}
+                <span class="dot green"></span>
+                <span class="tag pass">Yes</span>
+              {% else %}
+                <span class="dot red"></span>
+                <span class="tag fail">No</span>
+              {% endif %}
+            </span>
+          </div>
+        </div>
+      </div>
+      {% endif %}
+
+      <!-- DISCLOSURE -->
+      {% set disc = result.disclosure %}
+      {% if disc %}
+      {% set discpct = (disc.score / [disc.max, 1]|max * 100)|int %}
+      <div class="section">
+        <div class="section-head">
+          <div class="section-left">
+            <div class="section-icon purple">🔍</div>
+            <span class="section-name">Information Disclosure</span>
+          </div>
+          <div class="section-right">
+            <div class="section-bar bar-bg">
+              <div class="bar-fill" style="width:{{ discpct }}%; background:{{ grade_color }};"></div>
+            </div>
+            <span class="section-score">{{ disc.score }}/{{ disc.max }}</span>
+          </div>
+        </div>
+        <div class="section-details">
+          <div class="detail-row">
+            <span class="detail-label">Server Header</span>
+            <span class="detail-value">
+              {% if disc.details.server_exposed %}
+                <span class="dot red"></span>
+                <span class="tag fail">Exposed</span>
+                <span style="color:#71717a; font-size:0.7rem;">{{ disc.details.server_value }}</span>
+              {% else %}
+                <span class="dot green"></span>
+                <span class="tag pass">Hidden</span>
+              {% endif %}
+            </span>
+          </div>
+          <div class="detail-row">
+            <span class="detail-label">X-Powered-By</span>
+            <span class="detail-value">
+              {% if disc.details.powered_by_exposed %}
+                <span class="dot red"></span>
+                <span class="tag fail">Exposed</span>
+                <span style="color:#71717a; font-size:0.7rem;">{{ disc.details.powered_by_value }}</span>
+              {% else %}
+                <span class="dot green"></span>
+                <span class="tag pass">Hidden</span>
+              {% endif %}
+            </span>
+          </div>
+        </div>
+      </div>
+      {% endif %}
+
+      <!-- COOKIES -->
+      {% set ck = result.cookies %}
+      {% if ck %}
+      {% set ckpct = (ck.score / [ck.max, 1]|max * 100)|int %}
+      <div class="section">
+        <div class="section-head">
+          <div class="section-left">
+            <div class="section-icon green">🍪</div>
+            <span class="section-name">Cookie Security</span>
+          </div>
+          <div class="section-right">
+            <div class="section-bar bar-bg">
+              <div class="bar-fill" style="width:{{ ckpct }}%; background:{{ grade_color }};"></div>
+            </div>
+            <span class="section-score">{{ ck.score }}/{{ ck.max }}</span>
+          </div>
+        </div>
+        <div class="section-details">
+          <div class="detail-row">
+            <span class="detail-label">Cookies Found</span>
+            <span class="detail-value">
+              <span class="tag info">{{ ck.details.cookies_found }}</span>
+            </span>
+          </div>
+          {% if ck.details.cookies_found > 0 %}
+          <div class="detail-row">
+            <span class="detail-label">Secure Flag</span>
+            <span class="detail-value">
+              {% if ck.details.all_secure %}
+                <span class="dot green"></span>
+                <span class="tag pass">All Set</span>
+              {% else %}
+                <span class="dot red"></span>
+                <span class="tag fail">Missing</span>
+              {% endif %}
+            </span>
+          </div>
+          <div class="detail-row">
+            <span class="detail-label">HttpOnly Flag</span>
+            <span class="detail-value">
+              {% if ck.details.all_httponly %}
+                <span class="dot green"></span>
+                <span class="tag pass">All Set</span>
+              {% else %}
+                <span class="dot red"></span>
+                <span class="tag fail">Missing</span>
+              {% endif %}
+            </span>
+          </div>
+          <div class="detail-row">
+            <span class="detail-label">SameSite Flag</span>
+            <span class="detail-value">
+              {% if ck.details.all_samesite %}
+                <span class="dot green"></span>
+                <span class="tag pass">All Set</span>
+              {% else %}
+                <span class="dot red"></span>
+                <span class="tag fail">Missing</span>
+              {% endif %}
+            </span>
+          </div>
+          {% endif %}
+        </div>
+      </div>
+      {% endif %}
+
+      <!-- DNSSEC -->
+      {% set dsec = result.dnssec %}
+      {% if dsec %}
+      {% set dsecpct = (dsec.score / [dsec.max, 1]|max * 100)|int %}
+      <div class="section">
+        <div class="section-head">
+          <div class="section-left">
+            <div class="section-icon blue">✅</div>
+            <span class="section-name">DNSSEC</span>
+          </div>
+          <div class="section-right">
+            <div class="section-bar bar-bg">
+              <div class="bar-fill" style="width:{{ dsecpct }}%; background:{{ grade_color }};"></div>
+            </div>
+            <span class="section-score">{{ dsec.score }}/{{ dsec.max }}</span>
+          </div>
+        </div>
+        <div class="section-details">
+          <div class="detail-row">
+            <span class="detail-label">DNSSEC Enabled</span>
+            <span class="detail-value">
+              {% if dsec.details.dnssec_enabled %}
+                <span class="dot green"></span>
+                <span class="tag pass">Yes</span>
+              {% else %}
+                <span class="dot red"></span>
+                <span class="tag fail">No</span>
+              {% endif %}
+            </span>
+          </div>
+        </div>
+      </div>
+      {% endif %}
+
+      <!-- HTTP METHODS -->
+      {% if result.methods %}
+      {% set mth = result.methods %}
+      {% set mthpct = (mth.score / [mth.max, 1]|max * 100)|int %}
+      <div class="section">
+        <div class="section-head">
+          <div class="section-left">
+            <div class="section-icon purple">⚙️</div>
+            <span class="section-name">HTTP Methods</span>
+          </div>
+          <div class="section-right">
+            <div class="section-bar bar-bg">
+              <div class="bar-fill" style="width:{{ mthpct }}%; background:{{ grade_color }};"></div>
+            </div>
+            <span class="section-score">{{ mth.score }}/{{ mth.max }}</span>
+          </div>
+        </div>
+        <div class="section-details">
+          <div class="detail-row">
+            <span class="detail-label">TRACE</span>
+            <span class="detail-value">
+              {% if mth.details.trace_enabled %}
+                <span class="dot red"></span>
+                <span class="tag fail">Enabled</span>
+              {% else %}
+                <span class="dot green"></span>
+                <span class="tag pass">Disabled</span>
+              {% endif %}
+            </span>
+          </div>
+          <div class="detail-row">
+            <span class="detail-label">DELETE</span>
+            <span class="detail-value">
+              {% if mth.details.delete_enabled %}
+                <span class="dot red"></span>
+                <span class="tag fail">Enabled</span>
+              {% else %}
+                <span class="dot green"></span>
+                <span class="tag pass">Disabled</span>
+              {% endif %}
+            </span>
+          </div>
+          <div class="detail-row">
+            <span class="detail-label">PUT</span>
+            <span class="detail-value">
+              {% if mth.details.put_enabled %}
+                <span class="dot red"></span>
+                <span class="tag fail">Enabled</span>
+              {% else %}
+                <span class="dot green"></span>
+                <span class="tag pass">Disabled</span>
+              {% endif %}
+            </span>
+          </div>
+        </div>
+      </div>
+      {% endif %}
+
+      <!-- CORS -->
+      {% if result.cors %}
+      {% set cr = result.cors %}
+      {% set crpct = (cr.score / [cr.max, 1]|max * 100)|int %}
+      <div class="section">
+        <div class="section-head">
+          <div class="section-left">
+            <div class="section-icon blue">🌐</div>
+            <span class="section-name">CORS</span>
+          </div>
+          <div class="section-right">
+            <div class="section-bar bar-bg">
+              <div class="bar-fill" style="width:{{ crpct }}%; background:{{ grade_color }};"></div>
+            </div>
+            <span class="section-score">{{ cr.score }}/{{ cr.max }}</span>
+          </div>
+        </div>
+        <div class="section-details">
+          <div class="detail-row">
+            <span class="detail-label">Wildcard Origin</span>
+            <span class="detail-value">
+              {% if cr.details.wildcard_origin %}
+                <span class="dot red"></span>
+                <span class="tag fail">Yes</span>
+              {% else %}
+                <span class="dot green"></span>
+                <span class="tag pass">No</span>
+              {% endif %}
+            </span>
+          </div>
+          <div class="detail-row">
+            <span class="detail-label">Reflects Origin</span>
+            <span class="detail-value">
+              {% if cr.details.reflects_origin %}
+                <span class="dot red"></span>
+                <span class="tag fail">Yes</span>
+              {% else %}
+                <span class="dot green"></span>
+                <span class="tag pass">No</span>
+              {% endif %}
+            </span>
+          </div>
+          <div class="detail-row">
+            <span class="detail-label">Credentials + Wildcard</span>
+            <span class="detail-value">
+              {% if cr.details.credentials_with_wildcard %}
+                <span class="dot red"></span>
+                <span class="tag fail">Yes</span>
+              {% else %}
+                <span class="dot green"></span>
+                <span class="tag pass">No</span>
+              {% endif %}
+            </span>
+          </div>
+        </div>
+      </div>
+      {% endif %}
+
+      <!-- HTML ANALYSIS -->
+      {% if result.html %}
+      {% set ht = result.html %}
+      {% set htpct = (ht.score / [ht.max, 1]|max * 100)|int %}
+      <div class="section">
+        <div class="section-head">
+          <div class="section-left">
+            <div class="section-icon green">📄</div>
+            <span class="section-name">HTML Analysis</span>
+          </div>
+          <div class="section-right">
+            <div class="section-bar bar-bg">
+              <div class="bar-fill" style="width:{{ htpct }}%; background:{{ grade_color }};"></div>
+            </div>
+            <span class="section-score">{{ ht.score }}/{{ ht.max }}</span>
+          </div>
+        </div>
+        <div class="section-details">
+          <div class="detail-row">
+            <span class="detail-label">Active Mixed Content</span>
+            <span class="detail-value">
+              {% if ht.details.mixed_active > 0 %}
+                <span class="dot red"></span>
+                <span class="tag fail">{{ ht.details.mixed_active }}</span>
+              {% else %}
+                <span class="dot green"></span>
+                <span class="tag pass">0</span>
+              {% endif %}
+            </span>
+          </div>
+          <div class="detail-row">
+            <span class="detail-label">Passive Mixed Content</span>
+            <span class="detail-value">
+              {% if ht.details.mixed_passive > 0 %}
+                <span class="dot red"></span>
+                <span class="tag fail">{{ ht.details.mixed_passive }}</span>
+              {% else %}
+                <span class="dot green"></span>
+                <span class="tag pass">0</span>
+              {% endif %}
+            </span>
+          </div>
+          <div class="detail-row">
+            <span class="detail-label">Inline Scripts</span>
+            <span class="detail-value">
+              <span class="tag info">{{ ht.details.inline_scripts }}</span>
+            </span>
+          </div>
+          <div class="detail-row">
+            <span class="detail-label">External Scripts (no SRI)</span>
+            <span class="detail-value">
+              {% if ht.details.external_scripts_no_sri > 0 %}
+                <span class="dot red"></span>
+                <span class="tag fail">{{ ht.details.external_scripts_no_sri }}</span>
+              {% else %}
+                <span class="dot green"></span>
+                <span class="tag pass">0</span>
+              {% endif %}
+            </span>
+          </div>
+          <div class="detail-row">
+            <span class="detail-label">Forms to HTTP</span>
+            <span class="detail-value">
+              {% if ht.details.forms_http_action > 0 %}
+                <span class="dot red"></span>
+                <span class="tag fail">{{ ht.details.forms_http_action }}</span>
+              {% else %}
+                <span class="dot green"></span>
+                <span class="tag pass">0</span>
+              {% endif %}
+            </span>
+          </div>
+        </div>
+      </div>
+      {% endif %}
+
+      <!-- CSP ANALYSIS -->
+      {% if result.csp_analysis %}
+      {% set csp = result.csp_analysis %}
+      {% set csppct = (csp.score / [csp.max, 1]|max * 100)|int %}
+      <div class="section">
+        <div class="section-head">
+          <div class="section-left">
+            <div class="section-icon purple">🧱</div>
+            <span class="section-name">CSP Analysis</span>
+          </div>
+          <div class="section-right">
+            <div class="section-bar bar-bg">
+              <div class="bar-fill" style="width:{{ csppct }}%; background:{{ grade_color }};"></div>
+            </div>
+            <span class="section-score">{{ csp.score }}/{{ csp.max }}</span>
+          </div>
+        </div>
+        <div class="section-details">
+          {% if not csp.details.csp_present %}
+          <div class="detail-row">
+            <span class="detail-label">CSP Header</span>
+            <span class="detail-value">
+              <span class="dot red"></span>
+              <span class="tag fail">Not Present</span>
+            </span>
+          </div>
+          {% else %}
+          <div class="detail-row">
+            <span class="detail-label">unsafe-inline</span>
+            <span class="detail-value">
+              {% if csp.details.unsafe_inline %}
+                <span class="dot red"></span>
+                <span class="tag fail">Present</span>
+              {% else %}
+                <span class="dot green"></span>
+                <span class="tag pass">Not Used</span>
+              {% endif %}
+            </span>
+          </div>
+          <div class="detail-row">
+            <span class="detail-label">unsafe-eval</span>
+            <span class="detail-value">
+              {% if csp.details.unsafe_eval %}
+                <span class="dot red"></span>
+                <span class="tag fail">Present</span>
+              {% else %}
+                <span class="dot green"></span>
+                <span class="tag pass">Not Used</span>
+              {% endif %}
+            </span>
+          </div>
+          <div class="detail-row">
+            <span class="detail-label">Wildcard Source</span>
+            <span class="detail-value">
+              {% if csp.details.wildcard_source %}
+                <span class="dot red"></span>
+                <span class="tag fail">Present</span>
+              {% else %}
+                <span class="dot green"></span>
+                <span class="tag pass">Not Used</span>
+              {% endif %}
+            </span>
+          </div>
+          <div class="detail-row">
+            <span class="detail-label">data: URI</span>
+            <span class="detail-value">
+              {% if csp.details.data_uri %}
+                <span class="dot red"></span>
+                <span class="tag fail">Allowed</span>
+              {% else %}
+                <span class="dot green"></span>
+                <span class="tag pass">Not Allowed</span>
+              {% endif %}
+            </span>
+          </div>
+          {% endif %}
+        </div>
+      </div>
+      {% endif %}
+
+    </div>
+
+    {% if result.findings and result.findings|length > 0 %}
+    <!-- Vulnerability Findings -->
+    <div class="section" style="margin-top:0.75rem;">
+      <div class="findings-header" tabindex="0" role="button" aria-expanded="false">
+        <div class="section-left">
+          <div class="section-icon" style="background:rgba(239,68,68,0.1); box-shadow:0 0 1.5rem rgba(239,68,68,0.06);">⚡</div>
+          <span class="section-name">Findings</span>
+        </div>
+        <div class="findings-summary">
+          {% if result.findings_count.critical > 0 %}<span class="tag critical">{{ result.findings_count.critical }} critical</span>{% endif %}
+          {% if result.findings_count.high > 0 %}<span class="tag high">{{ result.findings_count.high }} high</span>{% endif %}
+          {% if result.findings_count.medium > 0 %}<span class="tag medium">{{ result.findings_count.medium }} medium</span>{% endif %}
+          {% if result.findings_count.low > 0 %}<span class="tag low">{{ result.findings_count.low }} low</span>{% endif %}
+          <span class="findings-toggle" id="findings-arrow">▶</span>
+        </div>
+      </div>
+      <div id="findings-list" style="display:none;">
+        {% for f in result.findings %}
+        <div class="finding-item">
+          <div class="finding-top">
+            <span class="tag {{ f.severity }}">{{ f.severity }}</span>
+            <span style="font-size:0.75rem; color:#fafafa; font-weight:500;">{{ f.attack_vector }}</span>
+          </div>
+          <div class="finding-desc">{{ f.description }}</div>
+          <div class="finding-fix"><strong>Fix:</strong> {{ f.remediation }}</div>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+    {% endif %}
+
+    <!-- Passive Recon -->
+    <div class="section" style="margin-top:1.5rem;" id="recon-section">
+      <div class="findings-header">
+        <div class="section-left">
+          <div class="section-icon" style="background:rgba(139,92,246,0.1); box-shadow:0 0 1.5rem rgba(139,92,246,0.06);">🔎</div>
+          <span class="section-name">Passive Recon</span>
+        </div>
+        <div class="findings-summary">
+          <span class="tag info" id="recon-status"><span class="spinner"></span>Loading...</span>
+        </div>
+      </div>
+      <div id="recon-data" style="padding:0.75rem;"></div>
+    </div>
+
+  </div>
+
+  <script src="/static/js/nav.js"></script>
+  <script src="/static/js/result.js"></script>
+    <footer>
+    <div class="footer-links">
+      <a href="/terms">Terms</a>
+      <a href="/privacy">Privacy</a>
+      <a href="mailto:contact@contrastcyber.com">Contact</a>
+      <a href="https://github.com/UPinar/contrastscan">GitHub</a>
+    </div>
+    <p>&copy; 2026 ContrastScan</p>
+  </footer>
+</body>
+</html>

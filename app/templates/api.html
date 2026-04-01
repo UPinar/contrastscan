@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>API | ContrastScan</title>
+  <meta name="description" content="Free security scanning API. 100 requests/hour, JSON + TXT reports, no signup required.">
+  <meta name="theme-color" content="#09090b">
+  <link rel="canonical" href="https://contrastcyber.com/api">
+  <link rel="icon" type="image/svg+xml" href="/static/favicon.svg">
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "WebAPI",
+    "name": "ContrastScan API",
+    "description": "Security scanning API — 11 checks, A-F grade, free and open",
+    "url": "https://contrastcyber.com/api",
+    "provider": { "@type": "Organization", "name": "ContrastScan" }
+  }
+  </script>
+  <link rel="stylesheet" href="/static/css/base.css?v=13">
+  <link rel="stylesheet" href="/static/css/api.css?v=4">
+</head>
+<body>
+  <nav>
+    <a href="/" class="logo">Contrast<span>Scan</span></a>
+    <button class="hamburger" aria-label="Menu" aria-expanded="false"><span class="hamburger__lines" aria-hidden="true"></span></button>
+    <div class="nav-links">
+      <a href="/stats">Stats</a>
+      <a href="https://api.contrastcyber.com">API</a>
+      <a href="/pricing">Pricing</a>
+    </div>
+  </nav>
+
+  <div class="content">
+    <h1>API</h1>
+    <p class="subtitle">Scan any domain programmatically. Free, no signup, just curl.</p>
+
+    <!-- QUICK START -->
+    <h2>1. Scan a Domain</h2>
+    <div class="endpoint">
+      <span class="method get">GET</span>
+      <span class="url">/api/scan?domain=example.com</span>
+      <p class="desc">Scan a domain and get JSON with 11 security modules, A-F grade, and findings.</p>
+    </div>
+
+    <pre>curl "https://contrastcyber.com/api/scan?domain=example.com"</pre>
+
+    <h2>Response</h2>
+    <pre>{
+  <span class="key">"domain"</span>: <span class="str">"example.com"</span>,
+  <span class="key">"total_score"</span>: <span class="num">85</span>,
+  <span class="key">"max_score"</span>: <span class="num">100</span>,
+  <span class="key">"grade"</span>: <span class="str">"B"</span>,
+  <span class="key">"headers"</span>:    { <span class="key">"score"</span>: <span class="num">25</span>, <span class="key">"max"</span>: <span class="num">30</span>, <span class="key">"details"</span>: [...] },
+  <span class="key">"ssl"</span>:        { <span class="key">"score"</span>: <span class="num">25</span>, <span class="key">"max"</span>: <span class="num">25</span>, <span class="key">"details"</span>: {...} },
+  <span class="key">"dns"</span>:        { <span class="key">"score"</span>: <span class="num">20</span>, <span class="key">"max"</span>: <span class="num">20</span>, <span class="key">"details"</span>: {...} },
+  <span class="key">"redirect"</span>:   { <span class="key">"score"</span>: <span class="num">10</span>, <span class="key">"max"</span>: <span class="num">10</span> },
+  <span class="key">"disclosure"</span>: { <span class="key">"score"</span>: <span class="num">5</span>,  <span class="key">"max"</span>: <span class="num">5</span> },
+  <span class="key">"cookies"</span>:    { <span class="key">"score"</span>: <span class="num">5</span>,  <span class="key">"max"</span>: <span class="num">5</span> },
+  <span class="key">"dnssec"</span>:     { <span class="key">"score"</span>: <span class="num">0</span>,  <span class="key">"max"</span>: <span class="num">5</span> },
+  <span class="key">"methods"</span>:    { <span class="key">"score"</span>: <span class="num">5</span>,  <span class="key">"max"</span>: <span class="num">5</span>,  <span class="key">"details"</span>: {...} },
+  <span class="key">"cors"</span>:       { <span class="key">"score"</span>: <span class="num">5</span>,  <span class="key">"max"</span>: <span class="num">5</span>,  <span class="key">"details"</span>: {...} },
+  <span class="key">"html"</span>:       { <span class="key">"score"</span>: <span class="num">5</span>,  <span class="key">"max"</span>: <span class="num">5</span>,  <span class="key">"details"</span>: {...} },
+  <span class="key">"csp_analysis"</span>: { <span class="key">"score"</span>: <span class="num">2</span>, <span class="key">"max"</span>: <span class="num">2</span>, <span class="key">"details"</span>: {...} },
+  <span class="key">"findings"</span>: [...],
+  <span class="key">"findings_count"</span>: { <span class="key">"critical"</span>: <span class="num">0</span>, <span class="key">"high"</span>: <span class="num">1</span>, <span class="key">"medium"</span>: <span class="num">0</span>, <span class="key">"low"</span>: <span class="num">2</span> }
+}</pre>
+
+    <!-- REPORT -->
+    <h2>2. Download Report</h2>
+    <div class="endpoint">
+      <span class="method get">GET</span>
+      <span class="url">/api/report?domain=example.com</span>
+      <p class="desc">Scan + download a human-readable .txt security report.</p>
+    </div>
+
+    <pre>curl "https://contrastcyber.com/api/report?domain=example.com" -o report.txt</pre>
+
+    <!-- OTHER ENDPOINTS -->
+    <h2>Other Endpoints</h2>
+    <div class="endpoint">
+      <div class="param">
+        <span class="param-name">GET</span>
+        <span class="param-desc"><code>/report/{scan_id}.txt</code> — download report by scan ID</span>
+      </div>
+      <div class="param">
+        <span class="param-name">GET</span>
+        <span class="param-desc"><code>/badge/{domain}.svg</code> — dynamic SVG grade badge for README files</span>
+      </div>
+      <div class="param">
+        <span class="param-name">GET</span>
+        <span class="param-desc"><code>/result/{scan_id}</code> — web result page (HTML)</span>
+      </div>
+      <div class="param">
+        <span class="param-name">GET</span>
+        <span class="param-desc"><code>/stats</code> — aggregate scan statistics</span>
+      </div>
+    </div>
+
+    <!-- RATE LIMITS -->
+    <h2>Rate Limits</h2>
+    <div class="endpoint">
+      <div class="param">
+        <span class="param-name">API</span>
+        <span class="param-desc">100 requests/hour per IP</span>
+      </div>
+      <div class="param">
+        <span class="param-name">Per domain</span>
+        <span class="param-desc">10 scans/hour (all IPs combined)</span>
+      </div>
+    </div>
+
+    <!-- API PLATFORM -->
+    <h2>Need More?</h2>
+    <div class="limit-box">
+      Looking for CVE intelligence, domain reconnaissance, or code security verification?
+      Visit <a href="https://api.contrastcyber.com" style="color:#22c55e;">api.contrastcyber.com</a> for our full API platform with higher rate limits.
+    </div>
+
+    <!-- ERROR CODES -->
+    <h2>Error Codes</h2>
+    <div class="endpoint">
+      <div class="param">
+        <span class="param-name">400</span>
+        <span class="param-desc">Invalid domain format</span>
+      </div>
+      <div class="param">
+        <span class="param-name">429</span>
+        <span class="param-desc">Rate limit exceeded</span>
+      </div>
+      <div class="param">
+        <span class="param-name">502</span>
+        <span class="param-desc">Scan failed (domain unreachable)</span>
+      </div>
+      <div class="param">
+        <span class="param-name">504</span>
+        <span class="param-desc">Scan timed out</span>
+      </div>
+    </div>
+  </div>
+
+  <script src="/static/js/nav.js"></script>
+    <footer>
+    <div class="footer-links">
+      <a href="/terms">Terms</a>
+      <a href="/privacy">Privacy</a>
+      <a href="mailto:contact@contrastcyber.com">Contact</a>
+      <a href="https://github.com/UPinar/contrastscan">GitHub</a>
+    </div>
+    <p>&copy; 2026 ContrastScan</p>
+  </footer>
+</body>
+</html>

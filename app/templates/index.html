@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ContrastScan — Free Security Scanner</title>
+  <meta name="description" content="Check your website's security in 3 seconds. Get a single A-F grade covering 11 security checks, 100-point scoring. Open source, 1,300+ tests, no signup required.">
+  <!-- Open Graph -->
+  <meta property="og:title" content="ContrastScan — Free Security Scanner">
+  <meta property="og:description" content="Scan any domain in seconds. Get an A-F security grade covering 11 security checks. Free, no signup required.">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://contrastcyber.com">
+  <meta property="og:image" content="https://contrastcyber.com/static/og-image.png?v=2">
+  <meta property="og:site_name" content="ContrastScan">
+  <!-- Twitter Card -->
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="ContrastScan — Free Security Scanner">
+  <meta name="twitter:description" content="Scan any domain in seconds. Get an A-F security grade covering 11 security checks.">
+  <meta name="twitter:image" content="https://contrastcyber.com/static/og-image.png?v=2">
+  <meta name="google-site-verification" content="Rvk38xUF62L4lcTCM8XIpCzzSzLaFI3xLs--gv6L4lc">
+  <meta name="msvalidate.01" content="FF2D74F962D3EB9B4CD7B81481A4C873">
+  <meta name="theme-color" content="#09090b">
+  <link rel="canonical" href="https://contrastcyber.com/">
+  <link rel="icon" type="image/svg+xml" href="/static/favicon.svg">
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "WebApplication",
+    "name": "ContrastScan",
+    "url": "https://contrastcyber.com",
+    "description": "Free security scanner — 11 checks (SSL, headers, DNS, DNSSEC, cookies, redirects, info disclosure, HTTP methods, CORS, HTML analysis, CSP) in one scan. Get a single A-F grade.",
+    "applicationCategory": "SecurityApplication",
+    "operatingSystem": "Web",
+    "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" },
+    "author": { "@type": "Organization", "name": "ContrastScan", "email": "contact@contrastcyber.com" }
+  }
+  </script>
+  <link rel="stylesheet" href="/static/css/base.css?v=13">
+  <link rel="stylesheet" href="/static/css/index.css?v=16">
+</head>
+<body>
+  <div class="glow"></div>
+
+  <nav>
+    <a href="/" class="logo">Contrast<span>Scan</span></a>
+    <button class="hamburger" aria-label="Menu" aria-expanded="false"><span class="hamburger__lines" aria-hidden="true"></span></button>
+    <div class="nav-links">
+      <a href="/stats">Stats</a>
+      <a href="https://api.contrastcyber.com">API</a>
+      <a href="/pricing">Pricing</a>
+    </div>
+  </nav>
+
+  <div class="hero">
+    <div class="pill">FREE &middot; NO SIGNUP &middot; OPEN SOURCE</div>
+    <h1>Know your website's<br><span class="gradient">security score</span></h1>
+    <p class="subtitle">
+      Scan any domain in seconds. Get an A-F security grade covering 11 security checks.
+      Results are based on publicly available data (DNS records, HTTP headers, SSL certificates). No intrusive testing is performed.
+    </p>
+
+    <form action="/scan" method="post" id="scanForm">
+      <input type="text" name="domain" placeholder="example.com" required autofocus>
+      <button type="submit" id="scanBtn" class="btn">Scan Now</button>
+    </form>
+    <input type="file" id="bulkFile" accept=".csv,.txt" hidden>
+    <div class="bulk-row">
+      <button type="button" class="btn-bulk">Bulk Scan — upload CSV/TXT (max 10)</button>
+    </div>
+
+    <div class="cta-row">
+      <a href="#" class="test-us">
+        We score <span class="grade-a">A</span> — try scanning us
+      </a>
+      {% if total_scans > 0 %}
+      <span class="scan-count"><strong>{{ "{:,}".format(total_scans) }}</strong> scan{{ "s" if total_scans != 1 else "" }} completed</span>
+      {% endif %}
+    </div>
+
+  </div>
+
+  <div class="features">
+    <div class="feature">
+      <div class="feature-icon blue">🔒</div>
+      <h3>SSL / TLS</h3>
+      <p>Protocol version, cipher strength, certificate validity</p>
+    </div>
+    <div class="feature">
+      <div class="feature-icon green">🛡️</div>
+      <h3>Security Headers</h3>
+      <p>CSP, HSTS, X-Frame-Options and 3 more critical headers</p>
+    </div>
+    <div class="feature">
+      <div class="feature-icon purple">📧</div>
+      <h3>DNS Security</h3>
+      <p>SPF, DKIM, DMARC &mdash; prevent email spoofing</p>
+    </div>
+    <div class="feature">
+      <div class="feature-icon blue">↗️</div>
+      <h3>HTTP Redirect</h3>
+      <p>Checks if HTTP automatically redirects to HTTPS</p>
+    </div>
+    <div class="feature">
+      <div class="feature-icon purple">🔍</div>
+      <h3>Info Disclosure</h3>
+      <p>Server and X-Powered-By header exposure check</p>
+    </div>
+    <div class="feature">
+      <div class="feature-icon green">🍪</div>
+      <h3>Cookie Security</h3>
+      <p>Secure, HttpOnly, SameSite flag verification</p>
+    </div>
+    <div class="feature">
+      <div class="feature-icon blue">✅</div>
+      <h3>DNSSEC</h3>
+      <p>DNS response authenticity &mdash; prevents DNS spoofing</p>
+    </div>
+    <div class="feature">
+      <div class="feature-icon purple">⚙️</div>
+      <h3>HTTP Methods</h3>
+      <p>Checks for dangerous methods (TRACE, DELETE, PUT)</p>
+    </div>
+    <div class="feature">
+      <div class="feature-icon blue">🌐</div>
+      <h3>CORS</h3>
+      <p>Cross-origin resource sharing misconfiguration detection</p>
+    </div>
+    <div class="feature">
+      <div class="feature-icon green">📄</div>
+      <h3>HTML Analysis</h3>
+      <p>Mixed content, inline scripts, SRI, form security</p>
+    </div>
+    <div class="feature">
+      <div class="feature-icon purple">🧱</div>
+      <h3>CSP Analysis</h3>
+      <p>Content Security Policy deep analysis</p>
+    </div>
+  </div>
+
+  <div class="trust">
+    <div class="trust-items">
+      <div class="trust-item">
+        <div class="dot green"></div>
+        No data sold or shared
+      </div>
+      <div class="trust-item">
+        <div class="dot green"></div>
+        Open source scanner
+      </div>
+      <div class="trust-item">
+        <div class="dot green"></div>
+        No account required
+      </div>
+    </div>
+  </div>
+
+  <div class="about">
+    <h2>About ContrastScan</h2>
+    <p>ContrastScan is a free, open-source website security scanner built by an independent developer. It checks 11 security aspects of any website and returns a single A-F grade out of 100 points in under 3 seconds. The scanner engine is written in C for speed. The web backend is Python (FastAPI). The entire codebase is open source on GitHub with 900+ automated tests.</p>
+    <p>ContrastScan is not affiliated with Contrast Security (contrast.com). They are completely different products.</p>
+    <p>We do not collect personal data, require accounts, or show ads. Scan results are stored temporarily for caching purposes only.</p>
+  </div>
+
+  <script src="/static/js/nav.js"></script>
+  <script src="/static/js/scan.js"></script>
+  <footer>
+    <div class="footer-links">
+      <a href="/terms">Terms</a>
+      <a href="/privacy">Privacy</a>
+      <a href="mailto:contact@contrastcyber.com">Contact</a>
+      <a href="https://github.com/UPinar/contrastscan">GitHub</a>
+    </div>
+    <p>&copy; 2026 ContrastScan</p>
+  </footer>
+</body>
+</html>

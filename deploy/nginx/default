@@ -1,0 +1,10 @@
+server {
+    listen 80 default_server;
+    listen [::]:80 default_server;
+    listen 443 ssl default_server;
+    listen [::]:443 ssl default_server;
+    ssl_certificate /etc/letsencrypt/live/contrastcyber.com/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/contrastcyber.com/privkey.pem;
+    server_name _;
+    return 444;
+}

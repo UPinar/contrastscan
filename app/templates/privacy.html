@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Privacy Policy | ContrastScan</title>
+  <meta name="theme-color" content="#09090b">
+  <link rel="icon" type="image/svg+xml" href="/static/favicon.svg">
+  <link rel="stylesheet" href="/static/css/base.css?v=13">
+</head>
+<body>
+  <nav>
+    <a href="/" class="logo">Contrast<span>Scan</span></a>
+    <button class="hamburger" aria-label="Menu" aria-expanded="false"><span class="hamburger__lines" aria-hidden="true"></span></button>
+    <div class="nav-links">
+      <a href="/stats">Stats</a>
+      <a href="https://api.contrastcyber.com">API</a>
+      <a href="/pricing">Pricing</a>
+    </div>
+  </nav>
+<div class="legal">
+  <h1>Privacy Policy</h1>
+  <p class="updated">Last updated: March 30, 2026</p>
+
+  <h2>1. Introduction</h2>
+  <p>ContrastCyber ("we", "us") operates ContrastScan at contrastcyber.com and the ContrastAPI at api.contrastcyber.com. This Privacy Policy explains what data we collect and how we use it.</p>
+
+  <h2>2. Data We Collect</h2>
+
+  <h3>2.1 Scan Data</h3>
+  <ul>
+    <li><strong>Domain names</strong> submitted for scanning</li>
+    <li><strong>Scan results</strong> (security scores, grades, findings)</li>
+    <li><strong>Passive recon data</strong> (DNS records, WHOIS, certificate transparency logs) — all from public sources</li>
+  </ul>
+
+  <h3>2.2 Technical Data</h3>
+  <ul>
+    <li><strong>Hashed IP addresses</strong> — a truncated SHA-256 hash of your IP is stored for aggregate analytics (new vs. returning users). No raw IP address is ever stored in the database.</li>
+    <li><strong>Rate limiting</strong> — raw IP addresses are stored temporarily in a local database for rate limiting, purged hourly, and never shared.</li>
+  </ul>
+
+  <h3>2.3 What We Do NOT Collect</h3>
+  <ul>
+    <li>No personal information (name, email, phone) — no signup required, no accounts</li>
+    <li>No tracking cookies</li>
+    <li>No third-party analytics (no Google Analytics, no Facebook Pixel, no fingerprinting)</li>
+    <li>No advertising data</li>
+    <li>We do not sell, rent, or share any data with third parties</li>
+    <li>We do not track users across sites</li>
+  </ul>
+
+  <h2>3. DNT &amp; Global Privacy Control</h2>
+  <p>We respect the <strong>Do Not Track</strong> (DNT) and <strong>Global Privacy Control</strong> (Sec-GPC) headers. If your browser sends either signal, we do not store any hashed IP data with your scan. The scan still works normally — we simply skip the analytics hash.</p>
+
+  <h2>4. How We Use Data</h2>
+  <ul>
+    <li><strong>Rate limiting:</strong> IP addresses are used in-memory to enforce fair usage limits (100/hour). This data is purged hourly.</li>
+    <li><strong>Analytics:</strong> Hashed IPs let us count new vs. returning users in aggregate. IP hashes are irreversible and cannot be traced back to individual users.</li>
+    <li><strong>Public statistics:</strong> The /stats page shows aggregate data (total scans, grade distribution). No individual scan data is publicly exposed.</li>
+  </ul>
+
+  <h2>5. Data Retention</h2>
+  <ul>
+    <li><strong>Hashed IPs:</strong> Automatically anonymized (set to empty) after 90 days. The scan result is kept, but can no longer be linked to any user.</li>
+    <li><strong>Scan results:</strong> Stored indefinitely for result lookup and historical comparison, but anonymized after 90 days.</li>
+    <li><strong>IP rate limit data:</strong> In-memory only, purged automatically every hour.</li>
+    <li><strong>Server logs:</strong> Rotated and deleted after 14 days.</li>
+  </ul>
+
+  <h2>6. Data Sharing</h2>
+  <p>We do not sell, rent, or share any data with third parties. Scan results are accessible only via the unique scan ID URL.</p>
+
+  <h2>7. Security</h2>
+  <p>All data is transmitted over HTTPS. The server is hardened with fail2ban, Suricata IDS, AIDE file integrity monitoring, and kernel-level security (sysctl hardening). The application is open source and available for audit.</p>
+
+  <h2>8. Open Source</h2>
+  <p>ContrastScan is fully open source under the MIT License. You can review exactly what data is collected by reading the source code at <a href="https://github.com/UPinar/contrastscan" target="_blank">github.com/UPinar/contrastscan</a>.</p>
+
+  <h2>9. Your Rights</h2>
+  <p>Since we don't collect personal data, there is generally no personal data to access, correct, or delete. If you have concerns about data associated with your domain, contact us.</p>
+
+  <h2>10. Changes</h2>
+  <p>We may update this Privacy Policy. Changes will be posted on this page with an updated date.</p>
+
+  <h2>11. Contact</h2>
+  <p>For privacy questions: <a href="mailto:contact@contrastcyber.com">contact@contrastcyber.com</a> or visit <a href="https://contrastcyber.com">contrastcyber.com</a>.</p>
+</div>
+
+  <script src="/static/js/nav.js"></script>
+  <footer>
+    <div class="footer-links">
+      <a href="/terms">Terms</a>
+      <a href="/privacy">Privacy</a>
+      <a href="mailto:contact@contrastcyber.com">Contact</a>
+      <a href="https://github.com/UPinar/contrastscan">GitHub</a>
+    </div>
+    <p>&copy; 2026 ContrastScan</p>
+  </footer>
+</body>
+</html>

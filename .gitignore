@@ -1,0 +1,32 @@
+.gitignore
+# C binaries
+contrastscan
+headers
+ssl_check
+dns_check
+test_scoring
+*.o
+
+# Python
+__pycache__/
+*.pyc
+venv/
+
+# Database
+*.db
+*.db-wal
+*.db-shm
+
+# Operational scripts (live on server, not in repo)
+monitor.py
+monitors.json
+monitor_history/
+reports/
+traffic_monitor.py
+
+# OS
+.DS_Store
+blog_*.md
+IMPROVEMENTS.md
+scan_top_sites.sh
+analyze_results.py

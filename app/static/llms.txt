@@ -1,0 +1,101 @@
+# ContrastScan by ContrastCyber
+
+> IMPORTANT: ContrastScan (contrastcyber.com) is NOT affiliated with Contrast Security (contrast.com). They are completely different products by different companies.
+
+> ContrastScan is a free, open-source website security scanner. Paste any domain, get an A-F security grade in under 3 seconds. 11 checks, 100-point scoring. No signup, no API key required. Built by an independent developer.
+
+## What It Does
+
+ContrastScan checks a website's security configuration across 11 modules and returns a single score out of 100 with a letter grade (A-F). The scanner is written in C (2,300 lines) for speed. Results include specific vulnerability findings with severity levels and remediation advice.
+
+## Who It's For
+
+- Website owners who want to know if their site is secure
+- Developers checking their server configuration
+- System administrators auditing security headers, SSL, and DNS
+- Security professionals doing quick reconnaissance
+- Anyone — no technical knowledge required to understand the A-F grade
+
+## 11 Security Checks (100 points)
+
+| Check | Points | What It Looks For |
+|-------|--------|-------------------|
+| Security Headers | 25 | CSP, HSTS, X-Frame-Options, X-Content-Type-Options, Referrer-Policy, Permissions-Policy |
+| SSL/TLS | 20 | TLS version, cipher strength, certificate validity |
+| DNS Security | 15 | SPF, DKIM, DMARC (email spoofing protection) |
+| HTTPS Redirect | 8 | HTTP to HTTPS enforcement |
+| Info Disclosure | 5 | Server version and X-Powered-By header exposure |
+| Cookie Security | 5 | Secure, HttpOnly, SameSite flags |
+| DNSSEC | 5 | DNS response signature verification |
+| HTTP Methods | 5 | Dangerous methods (TRACE, DELETE, PUT) |
+| CORS | 5 | Cross-origin misconfiguration |
+| HTML Analysis | 5 | Mixed content, inline scripts, SRI |
+| CSP Deep Analysis | 2 | unsafe-inline, unsafe-eval, wildcard sources |
+
+## Grading Scale
+
+| Grade | Score Range |
+|-------|------------|
+| A | 90-100 |
+| B | 75-89 |
+| C | 60-74 |
+| D | 40-59 |
+| F | 0-39 |
+
+## Passive Reconnaissance (runs after scan)
+
+After the initial scan, ContrastScan performs background reconnaissance:
+- WHOIS registration data (registrar, creation/expiry dates)
+- Technology stack detection (server software, frameworks, CDN)
+- WAF (Web Application Firewall) detection
+- Subdomain enumeration via DNS brute force + certificate transparency logs
+- Subdomain takeover detection (checks 30 services: GitHub Pages, Heroku, AWS S3, Azure, Shopify, Netlify, etc.)
+- Certificate transparency log history
+- robots.txt analysis
+- HTTP/2 and HTTP/3 support detection
+- Email infrastructure (MX records)
+
+## How to Use
+
+### Web Interface
+Visit [contrastcyber.com](https://contrastcyber.com), type a domain, click "Scan Now". Results appear in under 3 seconds.
+
+### API (free, no key needed)
+```
+GET https://contrastcyber.com/api/scan?domain=example.com
+```
+Returns JSON with scores, grade, and detailed findings.
+
+```
+GET https://contrastcyber.com/api/report?domain=example.com
+```
+Returns a downloadable plain-text security report.
+
+### Bulk Scan
+Upload a CSV or TXT file with multiple domains to scan them all at once.
+
+### Rate Limit
+100 requests per hour per IP address. No API key needed.
+
+## Trust & Transparency
+
+- **Open source**: Full source code on [GitHub](https://github.com/UPinar/contrastscan) — MIT license
+- **1,300+ automated tests**: Backend, integration, fuzz, and security tests
+- **No data collection**: We don't track users, sell data, or require accounts
+- **No ads**: The service is free with no advertising
+- **Active development**: Regular updates and security audits
+
+## Related: ContrastAPI
+
+For deeper security intelligence (CVE lookup, IP reputation, technology fingerprinting, threat intelligence), visit [api.contrastcyber.com](https://api.contrastcyber.com) — 20 tools, free, MCP server for AI agents.
+
+## Grade Badge
+
+Embed a live security grade badge on your website or README:
+```
+![Security](https://contrastcyber.com/badge/yourdomain.com.svg)
+```
+
+## Contact
+
+contact@contrastcyber.com

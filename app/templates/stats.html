@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Stats | ContrastScan</title>
+  <meta name="description" content="Aggregate security scan statistics from ContrastScan. View grade distribution, average scores, and unique domains scanned.">
+  <meta name="theme-color" content="#09090b">
+  <meta property="og:title" content="Stats | ContrastScan">
+  <meta property="og:description" content="Aggregate security scan statistics. View grade distribution, average scores, and unique domains scanned.">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://contrastcyber.com/stats">
+  <link rel="canonical" href="https://contrastcyber.com/stats">
+  <link rel="icon" type="image/svg+xml" href="/static/favicon.svg">
+  <link rel="stylesheet" href="/static/css/base.css?v=13">
+  <link rel="stylesheet" href="/static/css/stats.css?v=2">
+</head>
+<body>
+  <nav>
+    <a href="/" class="logo">Contrast<span>Scan</span></a>
+    <button class="hamburger" aria-label="Menu" aria-expanded="false"><span class="hamburger__lines" aria-hidden="true"></span></button>
+    <div class="nav-links">
+      <a href="/stats">Stats</a>
+      <a href="https://api.contrastcyber.com">API</a>
+      <a href="/pricing">Pricing</a>
+    </div>
+  </nav>
+
+  <div class="content">
+    <h1>Scan Statistics</h1>
+    <p class="subtitle">Aggregate data from all scans performed on ContrastScan.</p>
+
+    {% if total_scans > 0 %}
+    <div class="stat-grid">
+      <div class="stat-card">
+        <div class="stat-value">{{ "{:,}".format(total_scans) }}</div>
+        <div class="stat-label">Total Scans</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-value">{{ unique_domains }}</div>
+        <div class="stat-label">Unique Domains</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-value" style="color: {{ '#22c55e' if avg_score >= 75 else '#eab308' if avg_score >= 50 else '#ef4444' }}">{{ avg_score }}</div>
+        <div class="stat-label">Avg Score / 100</div>
+      </div>
+    </div>
+
+    <h2>Grade Distribution</h2>
+    <div class="grade-bars">
+    {% for g in grades %}
+    <div class="grade-bar">
+      <span class="grade-letter" style="color: {{ g.color }}">{{ g.letter }}</span>
+      <div class="bar-bg">
+        <div class="bar-fill" style="width: {{ g.pct }}%; background: {{ g.color }};"></div>
+      </div>
+      <span class="bar-count">{{ g.count }} ({{ g.pct }}%)</span>
+    </div>
+    {% endfor %}
+    </div>
+
+    {% else %}
+    <div class="empty-state">
+      No scans yet. Be the first to <a href="/">scan a domain</a>.
+    </div>
+    {% endif %}
+  </div>
+
+  <script src="/static/js/nav.js"></script>
+    <footer>
+    <div class="footer-links">
+      <a href="/terms">Terms</a>
+      <a href="/privacy">Privacy</a>
+      <a href="mailto:contact@contrastcyber.com">Contact</a>
+      <a href="https://github.com/UPinar/contrastscan">GitHub</a>
+    </div>
+    <p>&copy; 2026 ContrastScan</p>
+  </footer>
+</body>
+</html>

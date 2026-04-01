@@ -1,0 +1,314 @@
+/* === Index / Homepage === */
+
+.glow {
+  position: fixed;
+  top: -12.5rem;
+  left: 50%;
+  transform: translateX(-50%);
+  inline-size: 43.75rem;
+  block-size: 31.25rem;
+  background: radial-gradient(ellipse, rgba(59,130,246,0.08) 0%, transparent 70%);
+  pointer-events: none;
+  z-index: 0;
+}
+
+.hero {
+  position: relative;
+  z-index: 10;
+  text-align: center;
+  max-inline-size: 40rem;
+  margin-inline: auto;
+  padding-block: 3.5rem 2rem;
+  padding-inline: 1.25rem;
+}
+
+.pill {
+  display: inline-block;
+  padding-block: 0.3rem;
+  padding-inline: 0.9rem;
+  border-radius: 6.25rem;
+  border: 1px solid var(--border);
+  background-color: rgba(39,39,42,0.5);
+  font-size: 0.7rem;
+  font-weight: 500;
+  color: var(--text-muted);
+  letter-spacing: 0.05em;
+  margin-block-end: 1.75rem;
+}
+
+h1 {
+  font-size: 1.75rem;
+  letter-spacing: -0.04em;
+  line-height: 1.15;
+  margin-block-end: 1.25rem;
+}
+
+h1 .gradient {
+  background: linear-gradient(135deg, var(--primary), var(--purple));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.subtitle {
+  font-size: 0.85rem;
+  line-height: 1.7;
+  max-inline-size: 27.5rem;
+  margin-inline: auto;
+  margin-block-end: 2.5rem;
+}
+
+form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  max-inline-size: 30rem;
+  margin-inline: auto;
+  background-color: var(--bg-card-solid);
+  border: 1px solid var(--border);
+  border-radius: 0.75rem;
+  padding: 0.5rem;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+form:focus-within {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 0.1875rem rgba(59,130,246,0.1);
+}
+
+input[type="text"] {
+  flex: 1;
+  padding-block: 0.85rem;
+  padding-inline: 1.1rem;
+  border: none;
+  background: transparent;
+  color: var(--text);
+  font-family: inherit;
+  font-size: 0.9rem;
+  outline: none;
+}
+
+input[type="text"]::placeholder { color: #52525b; }
+
+button:not(.hamburger) {
+  min-inline-size: 7.5rem;
+  inline-size: 100%;
+}
+
+.bulk-row {
+  max-inline-size: 30rem;
+  box-sizing: content-box;
+  margin-inline: auto;
+  margin-block-start: 0.5rem;
+  padding-inline: calc(0.5rem + 1px);
+}
+
+@media screen and (min-width: 640px) {
+  .bulk-row {
+    padding-inline: calc(0.3rem + 1px);
+  }
+}
+
+.btn-bulk {
+  display: block;
+  inline-size: 100%;
+  background-color: var(--primary);
+  color: var(--text);
+  border: none;
+  font-family: inherit;
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 0.85rem 1.25rem;
+  border-radius: 0.5rem;
+  cursor: pointer;
+  transition: background-color 0.2s;
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+.btn-bulk:hover { background-color: var(--primary-hover); }
+
+.cta-row {
+  position: relative;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  margin-block-start: 1.5rem;
+  flex-wrap: wrap;
+  flex-direction: column;
+}
+
+.test-us {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  text-decoration: none;
+  padding-block: 0.4rem;
+  padding-inline: 0.85rem;
+  border-radius: 0.375rem;
+  border: 1px solid transparent;
+  transition: all 0.2s;
+}
+
+.test-us:hover {
+  color: var(--text);
+  border-color: var(--border);
+  background-color: var(--bg-hover);
+}
+
+.test-us:focus-visible {
+  outline: 0.125rem solid var(--focus);
+  outline-offset: 0.125rem;
+}
+
+.test-us .grade-a {
+  color: var(--green);
+  font-weight: 700;
+}
+
+.scan-count {
+  font-size: 0.75rem;
+  color: var(--text-dim);
+}
+
+.scan-count strong {
+  color: var(--text-muted);
+  font-weight: 600;
+}
+
+.features {
+  position: relative;
+  z-index: 10;
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0.75rem;
+  max-inline-size: 21.25rem;
+  margin-block-start: 3.5rem;
+  margin-inline: auto;
+  padding-inline: 1.25rem;
+}
+
+.feature {
+  text-align: center;
+  padding-block: 1.25rem;
+  padding-inline: 1rem;
+  border-radius: 0.75rem;
+  border: 1px solid var(--border-dim);
+  background-color: var(--bg-card);
+  transition: border-color 0.25s, background-color 0.25s;
+}
+
+.feature:hover {
+  border-color: var(--border);
+  background-color: rgba(24,24,27,0.8);
+}
+
+.feature-icon {
+  inline-size: 3rem;
+  block-size: 3rem;
+  border-radius: 0.75rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-inline: auto;
+  margin-block-end: 1rem;
+  font-size: 1.25rem;
+}
+
+.feature-icon.blue   { background-color: rgba(59,130,246,0.1);  box-shadow: 0 0 1.5rem rgba(59,130,246,0.06); }
+.feature-icon.green  { background-color: rgba(34,197,94,0.1);   box-shadow: 0 0 1.5rem rgba(34,197,94,0.06); }
+.feature-icon.purple { background-color: rgba(139,92,246,0.1);  box-shadow: 0 0 1.5rem rgba(139,92,246,0.06); }
+
+.feature h3 {
+  font-size: 0.85rem;
+  font-weight: 600;
+  margin-block-end: 0.5rem;
+  letter-spacing: -0.01em;
+}
+
+.feature p {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  line-height: 1.6;
+}
+
+.trust {
+  position: relative;
+  z-index: 10;
+  text-align: center;
+  max-inline-size: 32.5rem;
+  margin-inline: auto;
+  margin-block-start: 2rem;
+  padding: 0.75rem;
+}
+
+.trust-items {
+  display: flex;
+  justify-content: center;
+  gap: 0.4rem;
+  flex-wrap: wrap;
+  flex-direction: column;
+  align-items: center;
+}
+
+.trust-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.85rem;
+  color: var(--text-dim);
+}
+
+.about {
+  position: absolute;
+  inline-size: 1px;
+  block-size: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* Tablet (420px+) */
+@media screen and (min-width: 420px) {
+  .features { grid-template-columns: repeat(2, 1fr); max-inline-size: none; }
+}
+
+/* Desktop (640px+) */
+@media screen and (min-width: 640px) {
+  h1 { font-size: 2.25rem; }
+  .subtitle { font-size: 0.95rem; }
+
+  .hero {
+    padding-block: 5rem 2.5rem;
+    padding-inline: 2rem;
+  }
+
+  form {
+    flex-direction: row;
+    gap: 0;
+    padding: 0.3rem;
+  }
+
+  button:not(.hamburger):not(.btn-bulk) { inline-size: auto; min-inline-size: 7.5rem; }
+
+  .cta-row { flex-direction: row; gap: 1.5rem; }
+
+  .features {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1rem;
+    max-inline-size: 45rem;
+    padding-inline: 2rem;
+  }
+
+  .feature {
+    padding-block: 1.75rem;
+    padding-inline: 1.25rem;
+  }
+}
