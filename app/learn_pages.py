@@ -15,6 +15,19 @@ LEARN_PAGES = [
         "fix": "Add this header to your server response:\n<code>Content-Security-Policy: default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:;</code>\nStart with a report-only policy to test: <code>Content-Security-Policy-Report-Only</code>",
         "nginx": "add_header Content-Security-Policy \"default-src 'self'; script-src 'self'\" always;",
         "apache": 'Header always set Content-Security-Policy "default-src \'self\'; script-src \'self\'"',
+        "verify_cmd": "curl -sI https://yourdomain.com | grep -i content-security-policy",
+        "mistakes": [
+            "Using <code>'unsafe-inline'</code> and <code>'unsafe-eval'</code> — these defeat the purpose of CSP entirely",
+            "Setting CSP only on the homepage — it must be on every response",
+            "Forgetting the <code>always</code> keyword in nginx — without it, CSP is only sent on 200 responses",
+        ],
+        "steps": [
+            "Check if your site already has a CSP header using the curl command above",
+            "Start with <code>Content-Security-Policy-Report-Only</code> to test without breaking anything",
+            "Monitor browser console for CSP violations and adjust your policy",
+            "Once clean, switch from Report-Only to enforcing mode",
+            "Run a ContrastScan to verify the header is present and properly configured",
+        ],
     },
     {
         "slug": "missing-strict-transport-security",
@@ -26,6 +39,19 @@ LEARN_PAGES = [
         "fix": "Add this header:\n<code>Strict-Transport-Security: max-age=63072000; includeSubDomains; preload</code>\nThe max-age is 2 years in seconds. Start with a shorter value (86400 = 1 day) and increase once confirmed working.",
         "nginx": 'add_header Strict-Transport-Security "max-age=63072000; includeSubDomains; preload" always;',
         "apache": 'Header always set Strict-Transport-Security "max-age=63072000; includeSubDomains; preload"',
+        "verify_cmd": "curl -sI https://yourdomain.com | grep -i strict-transport",
+        "mistakes": [
+            "Setting max-age to 0 — this disables HSTS entirely",
+            "Adding <code>preload</code> before testing — preload list is permanent, very hard to remove",
+            "Not including <code>includeSubDomains</code> — subdomains remain vulnerable",
+        ],
+        "steps": [
+            "Verify your site works correctly on HTTPS first",
+            "Add HSTS with a short max-age (86400 = 1 day) to test",
+            "Check for mixed content issues that might break under HSTS",
+            "Gradually increase max-age to 63072000 (2 years)",
+            "Only add <code>preload</code> after thorough testing, then submit to hstspreload.org",
+        ],
     },
     {
         "slug": "missing-x-content-type-options",
@@ -37,6 +63,16 @@ LEARN_PAGES = [
         "fix": "Add this header:\n<code>X-Content-Type-Options: nosniff</code>\nThis is a one-line fix with no side effects.",
         "nginx": "add_header X-Content-Type-Options nosniff always;",
         "apache": "Header always set X-Content-Type-Options nosniff",
+        "verify_cmd": "curl -sI https://yourdomain.com | grep -i x-content-type",
+        "mistakes": [
+            "Misspelling the header name — it must be exactly <code>X-Content-Type-Options</code>",
+            "Using any value other than <code>nosniff</code> — there is only one valid value",
+        ],
+        "steps": [
+            "Add the header to your server config — this is the simplest security header to implement",
+            "No testing needed — <code>nosniff</code> has no side effects on properly configured sites",
+            "Verify with curl or run a scan to confirm",
+        ],
     },
     {
         "slug": "missing-x-frame-options",
@@ -48,6 +84,16 @@ LEARN_PAGES = [
         "fix": "Add this header:\n<code>X-Frame-Options: DENY</code>\nUse <code>SAMEORIGIN</code> if you need to embed your own site in iframes.",
         "nginx": "add_header X-Frame-Options DENY always;",
         "apache": "Header always set X-Frame-Options DENY",
+        "verify_cmd": "curl -sI https://yourdomain.com | grep -i x-frame",
+        "mistakes": [
+            "Using <code>ALLOW-FROM</code> — it's deprecated and not supported by modern browsers",
+            "Using <code>SAMEORIGIN</code> when you don't need iframes — <code>DENY</code> is safer",
+        ],
+        "steps": [
+            "Check if your site uses iframes for legitimate purposes (embedded content, payment forms)",
+            "If no iframes needed, use <code>DENY</code>. If you embed your own pages, use <code>SAMEORIGIN</code>",
+            "Add the header and verify no legitimate functionality is broken",
+        ],
     },
     {
         "slug": "missing-referrer-policy",
@@ -59,6 +105,16 @@ LEARN_PAGES = [
         "fix": "Add this header:\n<code>Referrer-Policy: strict-origin-when-cross-origin</code>",
         "nginx": "add_header Referrer-Policy strict-origin-when-cross-origin always;",
         "apache": "Header always set Referrer-Policy strict-origin-when-cross-origin",
+        "verify_cmd": "curl -sI https://yourdomain.com | grep -i referrer-policy",
+        "mistakes": [
+            "Using <code>no-referrer</code> — this breaks analytics and some authentication flows",
+            "Using <code>unsafe-url</code> — this sends the full URL including query params to all destinations",
+        ],
+        "steps": [
+            "Add <code>strict-origin-when-cross-origin</code> — this is the recommended default",
+            "Verify your analytics still receive referrer data from same-origin navigation",
+            "Check that no third-party integrations depend on receiving your full URL as referrer",
+        ],
     },
     {
         "slug": "missing-permissions-policy",
@@ -70,6 +126,17 @@ LEARN_PAGES = [
         "fix": "Add this header:\n<code>Permissions-Policy: geolocation=(), microphone=(), camera=(), payment=()</code>",
         "nginx": 'add_header Permissions-Policy "geolocation=(), microphone=(), camera=()" always;',
         "apache": 'Header always set Permissions-Policy "geolocation=(), microphone=(), camera=()"',
+        "verify_cmd": "curl -sI https://yourdomain.com | grep -i permissions-policy",
+        "mistakes": [
+            "Blocking features your site actually needs — check before adding",
+            "Not including <code>payment=()</code> if you don't use the Payment Request API",
+        ],
+        "steps": [
+            "List which browser APIs your site actually uses (camera, mic, geolocation, etc.)",
+            "Block everything you don't need with <code>featurename=()</code>",
+            "For features you use, restrict to self: <code>geolocation=(self)</code>",
+            "Verify your site's features still work after adding the header",
+        ],
     },
     # === SSL ===
     {
@@ -82,6 +149,19 @@ LEARN_PAGES = [
         "fix": "Disable TLS 1.0 and 1.1 on your server. Enable only TLS 1.2 and TLS 1.3.",
         "nginx": "ssl_protocols TLSv1.2 TLSv1.3;",
         "apache": "SSLProtocol all -SSLv3 -TLSv1 -TLSv1.1",
+        "verify_cmd": "nmap --script ssl-enum-ciphers -p 443 yourdomain.com | grep TLSv",
+        "mistakes": [
+            "Only disabling TLS 1.0 but leaving 1.1 — both must be disabled",
+            "Not testing after the change — some old clients may break",
+            "Forgetting to restart the web server after config change",
+        ],
+        "steps": [
+            "Check current TLS versions with nmap or an online SSL test",
+            "Update your server config to only allow TLS 1.2 and 1.3",
+            "Restart your web server (nginx -s reload or systemctl restart apache2)",
+            "Test with an online SSL checker to verify old versions are disabled",
+            "Monitor logs for connection errors from legacy clients",
+        ],
     },
     {
         "slug": "expired-ssl-certificate",
@@ -93,6 +173,19 @@ LEARN_PAGES = [
         "fix": "Renew your SSL certificate. If you use Let's Encrypt, set up auto-renewal:\n<code>certbot renew --dry-run</code>\nAdd a cron job: <code>0 0 1 * * certbot renew --quiet</code>",
         "nginx": "",
         "apache": "",
+        "verify_cmd": "echo | openssl s_client -connect yourdomain.com:443 2>/dev/null | openssl x509 -noout -dates",
+        "mistakes": [
+            "Not setting up auto-renewal — certificates expire every 90 days with Let's Encrypt",
+            "Renewing the cert but forgetting to reload the web server",
+            "Having multiple certificates and renewing the wrong one",
+        ],
+        "steps": [
+            "Check your certificate expiry date with the openssl command above",
+            "Renew immediately: <code>certbot renew</code>",
+            "Reload your web server: <code>nginx -s reload</code> or <code>systemctl restart apache2</code>",
+            "Set up a cron job for automatic renewal",
+            "Test by visiting your site — the browser should show a valid certificate",
+        ],
     },
     {
         "slug": "weak-cipher-suite",
@@ -104,6 +197,17 @@ LEARN_PAGES = [
         "fix": "Configure strong ciphers only. Use Mozilla's SSL Configuration Generator for your server.",
         "nginx": "ssl_ciphers 'ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES128-GCM-SHA256:ECDHE-ECDSA-AES256-GCM-SHA384:ECDHE-RSA-AES256-GCM-SHA384';\nssl_prefer_server_ciphers on;",
         "apache": 'SSLCipherSuite ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES128-GCM-SHA256',
+        "verify_cmd": "nmap --script ssl-enum-ciphers -p 443 yourdomain.com",
+        "mistakes": [
+            "Copying cipher lists from outdated blog posts — use Mozilla SSL Config Generator",
+            "Not setting <code>ssl_prefer_server_ciphers on</code> — lets the client choose a weak cipher",
+        ],
+        "steps": [
+            "Go to Mozilla SSL Configuration Generator (ssl-config.mozilla.org)",
+            "Select your server type and version, choose 'Modern' or 'Intermediate' profile",
+            "Copy the generated cipher configuration to your server config",
+            "Restart your web server and test with nmap or SSL Labs",
+        ],
     },
     # === DNS ===
     {
@@ -116,6 +220,19 @@ LEARN_PAGES = [
         "fix": "Add a TXT record to your DNS:\n<code>v=spf1 include:_spf.google.com -all</code>\nReplace the include with your email provider. The <code>-all</code> means reject all other senders.",
         "nginx": "",
         "apache": "",
+        "verify_cmd": "dig TXT yourdomain.com +short | grep spf",
+        "mistakes": [
+            "Using <code>~all</code> (softfail) instead of <code>-all</code> (hardfail) — softfail still allows spoofed emails",
+            "Having multiple SPF records — DNS only allows one SPF record per domain",
+            "Exceeding 10 DNS lookups in SPF — this causes SPF to break silently",
+        ],
+        "steps": [
+            "Check if you already have an SPF record: <code>dig TXT yourdomain.com</code>",
+            "Identify your email provider (Google Workspace, Microsoft 365, etc.)",
+            "Add the SPF TXT record in your DNS provider's dashboard",
+            "Wait for DNS propagation (up to 48 hours, usually minutes)",
+            "Test with an email deliverability tool or send a test email to mail-tester.com",
+        ],
     },
     {
         "slug": "missing-dmarc-record",
@@ -127,6 +244,19 @@ LEARN_PAGES = [
         "fix": "Add a TXT record at <code>_dmarc.yourdomain.com</code>:\n<code>v=DMARC1; p=reject; rua=mailto:dmarc@yourdomain.com</code>\nStart with <code>p=none</code> to monitor, then move to <code>p=reject</code>.",
         "nginx": "",
         "apache": "",
+        "verify_cmd": "dig TXT _dmarc.yourdomain.com +short",
+        "mistakes": [
+            "Starting directly with <code>p=reject</code> — this may block legitimate emails if SPF/DKIM aren't perfect",
+            "Not setting up a <code>rua</code> email — you won't receive DMARC reports to debug issues",
+            "Forgetting the underscore: it's <code>_dmarc.yourdomain.com</code>, not <code>dmarc.yourdomain.com</code>",
+        ],
+        "steps": [
+            "First ensure SPF and DKIM are properly configured",
+            "Add DMARC with <code>p=none</code> to start collecting reports without blocking anything",
+            "Monitor DMARC reports for 2-4 weeks to identify legitimate senders",
+            "Gradually move to <code>p=quarantine</code> then <code>p=reject</code>",
+            "Verify with dig or an online DMARC checker",
+        ],
     },
     {
         "slug": "missing-dkim-record",
@@ -138,6 +268,19 @@ LEARN_PAGES = [
         "fix": "Configure DKIM in your email provider's settings. They will give you a TXT record to add to your DNS. The record name is usually <code>selector._domainkey.yourdomain.com</code>.",
         "nginx": "",
         "apache": "",
+        "verify_cmd": "dig TXT google._domainkey.yourdomain.com +short",
+        "mistakes": [
+            "Adding the DKIM record to the wrong domain — it goes on <code>selector._domainkey.yourdomain.com</code>",
+            "Using an RSA key shorter than 2048 bits — 1024-bit keys are considered weak",
+            "Not enabling DKIM signing in your email provider — the DNS record alone does nothing",
+        ],
+        "steps": [
+            "Log in to your email provider (Google Workspace, Microsoft 365, etc.)",
+            "Find the DKIM settings and generate a key pair",
+            "Copy the provided TXT record and add it to your DNS",
+            "Enable DKIM signing in the email provider settings",
+            "Send a test email and check the headers for <code>dkim=pass</code>",
+        ],
     },
     # === REDIRECT ===
     {
@@ -150,6 +293,19 @@ LEARN_PAGES = [
         "fix": "Add a redirect in your web server configuration.",
         "nginx": "server {\n    listen 80;\n    server_name yourdomain.com;\n    return 301 https://$host$request_uri;\n}",
         "apache": "RewriteEngine On\nRewriteCond %{HTTPS} off\nRewriteRule ^(.*)$ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]",
+        "verify_cmd": "curl -sI http://yourdomain.com | head -5",
+        "mistakes": [
+            "Using 302 (temporary) instead of 301 (permanent) — 301 is cached by browsers and better for SEO",
+            "Redirecting only the homepage — all HTTP URLs must redirect",
+            "Creating a redirect loop (HTTP → HTTPS → HTTP) — check your proxy/CDN config",
+        ],
+        "steps": [
+            "Check current behavior: <code>curl -sI http://yourdomain.com</code>",
+            "Add the redirect to your web server config",
+            "Restart the web server",
+            "Test that <code>http://yourdomain.com</code> returns 301 to <code>https://</code>",
+            "Test subpages too: <code>curl -sI http://yourdomain.com/about</code>",
+        ],
     },
     # === DISCLOSURE ===
     {
@@ -162,6 +318,17 @@ LEARN_PAGES = [
         "fix": "Remove or minimize the Server header.",
         "nginx": "server_tokens off;",
         "apache": "ServerTokens Prod\nServerSignature Off",
+        "verify_cmd": "curl -sI https://yourdomain.com | grep -i server",
+        "mistakes": [
+            "Only hiding the version but keeping the server name — ideally remove the entire header",
+            "Setting <code>server_tokens off</code> in the wrong context — it must be in the http or server block",
+        ],
+        "steps": [
+            "Check what your server currently reveals: <code>curl -sI https://yourdomain.com</code>",
+            "Add the appropriate config to hide version information",
+            "Restart the web server",
+            "Verify the Server header no longer shows version numbers",
+        ],
     },
     {
         "slug": "x-powered-by-exposed",
@@ -173,6 +340,18 @@ LEARN_PAGES = [
         "fix": "Remove the X-Powered-By header.",
         "nginx": "proxy_hide_header X-Powered-By;",
         "apache": "Header always unset X-Powered-By",
+        "verify_cmd": "curl -sI https://yourdomain.com | grep -i x-powered-by",
+        "mistakes": [
+            "Setting a fake X-Powered-By value — just remove it entirely",
+            "Only removing it from one virtual host — remove it globally",
+        ],
+        "steps": [
+            "Check if the header is present: <code>curl -sI https://yourdomain.com</code>",
+            "For PHP: set <code>expose_php = Off</code> in php.ini",
+            "For Express: <code>app.disable('x-powered-by')</code>",
+            "For nginx reverse proxy: <code>proxy_hide_header X-Powered-By;</code>",
+            "Restart and verify the header is gone",
+        ],
     },
     # === COOKIES ===
     {
@@ -185,6 +364,19 @@ LEARN_PAGES = [
         "fix": "Set all three flags on every cookie:\n<code>Set-Cookie: session=abc123; Secure; HttpOnly; SameSite=Lax</code>",
         "nginx": "",
         "apache": "",
+        "verify_cmd": "curl -sI https://yourdomain.com | grep -i set-cookie",
+        "mistakes": [
+            "Setting <code>SameSite=None</code> without <code>Secure</code> — browsers reject this combination",
+            "Using <code>SameSite=Strict</code> for login cookies — this breaks OAuth and external links",
+            "Only securing session cookies — all cookies should have these flags",
+        ],
+        "steps": [
+            "List all cookies your site sets: check browser DevTools → Application → Cookies",
+            "Update your application code to include Secure, HttpOnly, and SameSite on every Set-Cookie",
+            "Use <code>SameSite=Lax</code> as the default — it's the best balance of security and compatibility",
+            "Test login flows, OAuth callbacks, and cross-site integrations after the change",
+            "Verify with curl or browser DevTools that all flags are present",
+        ],
     },
     # === DNSSEC ===
     {
@@ -197,6 +389,18 @@ LEARN_PAGES = [
         "fix": "Enable DNSSEC at your domain registrar. Most registrars (Cloudflare, Namecheap, GoDaddy) offer one-click DNSSEC activation.",
         "nginx": "",
         "apache": "",
+        "verify_cmd": "dig +dnssec yourdomain.com | grep RRSIG",
+        "mistakes": [
+            "Enabling DNSSEC at the registrar but not at the DNS provider — both must support it",
+            "Transferring a domain without disabling DNSSEC first — this can break DNS resolution",
+        ],
+        "steps": [
+            "Check if DNSSEC is already enabled: <code>dig +dnssec yourdomain.com</code>",
+            "Log in to your DNS provider (Cloudflare, Route53, etc.) and enable DNSSEC",
+            "Copy the DS record from your DNS provider",
+            "Add the DS record at your domain registrar",
+            "Wait for propagation and verify with dnsviz.net",
+        ],
     },
     # === METHODS ===
     {
@@ -209,6 +413,17 @@ LEARN_PAGES = [
         "fix": "Disable TRACE in your web server configuration.",
         "nginx": "# nginx doesn't support TRACE by default — no action needed unless proxying",
         "apache": "TraceEnable Off",
+        "verify_cmd": "curl -sI -X TRACE https://yourdomain.com | head -1",
+        "mistakes": [
+            "Assuming nginx blocks TRACE — if you're proxying to a backend, the backend may still respond",
+            "Only blocking TRACE on port 443 — also check port 80",
+        ],
+        "steps": [
+            "Test if TRACE is enabled: <code>curl -X TRACE https://yourdomain.com</code>",
+            "If it returns 200 with your request echoed back, it's vulnerable",
+            "Add the appropriate config to disable TRACE",
+            "Restart and verify TRACE returns 405 Method Not Allowed",
+        ],
     },
     # === CORS ===
     {
@@ -221,6 +436,18 @@ LEARN_PAGES = [
         "fix": "Replace the wildcard with specific trusted origins:\n<code>Access-Control-Allow-Origin: https://yourdomain.com</code>",
         "nginx": 'add_header Access-Control-Allow-Origin "https://yourdomain.com" always;',
         "apache": 'Header always set Access-Control-Allow-Origin "https://yourdomain.com"',
+        "verify_cmd": "curl -sI -H 'Origin: https://evil.com' https://yourdomain.com | grep -i access-control",
+        "mistakes": [
+            "Using wildcard (*) with <code>Access-Control-Allow-Credentials: true</code> — browsers block this, but your config is wrong",
+            "Reflecting the Origin header back without validation — this is worse than wildcard",
+        ],
+        "steps": [
+            "Test your CORS config: send a request with a fake Origin header",
+            "List all legitimate origins that need access to your API",
+            "Replace the wildcard with a whitelist of trusted origins",
+            "If you need a public API, keep the wildcard but never combine it with credentials",
+            "Verify by testing with a different Origin header",
+        ],
     },
     # === HTML ===
     {
@@ -233,6 +460,19 @@ LEARN_PAGES = [
         "fix": "Change all resource URLs from <code>http://</code> to <code>https://</code>. Use protocol-relative URLs or relative paths where possible.",
         "nginx": "",
         "apache": "",
+        "verify_cmd": "Open browser DevTools → Console → look for 'Mixed Content' warnings",
+        "mistakes": [
+            "Using protocol-relative URLs (<code>//example.com</code>) — these still load HTTP on HTTP pages",
+            "Only fixing scripts but not images/fonts — all resources should be HTTPS",
+            "Hardcoding HTTP URLs in database content (blog posts, CMS) — search and replace needed",
+        ],
+        "steps": [
+            "Open your site in Chrome and check DevTools Console for mixed content warnings",
+            "Search your codebase for <code>http://</code> URLs in HTML, CSS, and JS files",
+            "Replace all <code>http://</code> with <code>https://</code> or use relative paths",
+            "For CMS/database content, run a search-and-replace in the database",
+            "Add <code>Content-Security-Policy: upgrade-insecure-requests</code> as a safety net",
+        ],
     },
     # === CSP DEEP ===
     {
@@ -245,6 +485,20 @@ LEARN_PAGES = [
         "fix": "Remove <code>'unsafe-inline'</code> and use nonces or hashes instead:\n<code>script-src 'nonce-randomvalue123';</code>\nAdd the same nonce to your script tags: <code>&lt;script nonce=\"randomvalue123\"&gt;</code>",
         "nginx": "",
         "apache": "",
+        "verify_cmd": "curl -sI https://yourdomain.com | grep -i content-security-policy | grep unsafe-inline",
+        "mistakes": [
+            "Using the same nonce for every request — nonces must be unique per response",
+            "Adding <code>'unsafe-inline'</code> as a quick fix for CSP errors — find the real source",
+            "Forgetting to add nonces to dynamically generated script tags",
+        ],
+        "steps": [
+            "Identify all inline scripts in your HTML",
+            "Move large scripts to external .js files",
+            "For small inline scripts that must stay, implement nonce-based CSP",
+            "Generate a unique nonce per request on the server side",
+            "Add the nonce to both the CSP header and each script tag",
+            "Test thoroughly — CSP violations appear in browser DevTools Console",
+        ],
     },
     {
         "slug": "csp-unsafe-eval",
@@ -256,8 +510,20 @@ LEARN_PAGES = [
         "fix": "Remove <code>'unsafe-eval'</code> from your CSP. Refactor code that uses eval(), Function(), setTimeout(string), or setInterval(string).",
         "nginx": "",
         "apache": "",
+        "verify_cmd": "curl -sI https://yourdomain.com | grep -i content-security-policy | grep unsafe-eval",
+        "mistakes": [
+            "Adding <code>'unsafe-eval'</code> because a library requires it — find an alternative library or a workaround",
+            "Using <code>setTimeout('code string')</code> instead of <code>setTimeout(function)</code>",
+        ],
+        "steps": [
+            "Search your codebase for eval(), new Function(), setTimeout(string), setInterval(string)",
+            "Refactor each usage to avoid dynamic code execution",
+            "Check third-party libraries — some older versions require eval",
+            "Update libraries to versions that work without unsafe-eval",
+            "Remove <code>'unsafe-eval'</code> from CSP and test all functionality",
+        ],
     },
-    # === HTML ===
+    # === HTML (continued) ===
     {
         "slug": "excessive-inline-javascript",
         "title": "Excessive Inline JavaScript",
@@ -268,6 +534,18 @@ LEARN_PAGES = [
         "fix": "Move inline scripts to external .js files and reference them with <code>&lt;script src=\"app.js\"&gt;</code>. Then use CSP nonces:\n<code>Content-Security-Policy: script-src 'nonce-abc123';</code>\n<code>&lt;script nonce=\"abc123\" src=\"app.js\"&gt;&lt;/script&gt;</code>",
         "nginx": "",
         "apache": "",
+        "verify_cmd": "View page source and count &lt;script&gt; tags without src attribute",
+        "mistakes": [
+            "Moving scripts to external files but keeping <code>'unsafe-inline'</code> in CSP — remove it",
+            "Inlining event handlers (onclick, onload) — these also require unsafe-inline",
+        ],
+        "steps": [
+            "View your page source and identify all inline script blocks",
+            "Create external .js files and move the code there",
+            "Replace inline event handlers (onclick) with addEventListener() in external JS",
+            "Update your CSP to remove 'unsafe-inline' and add nonces if needed",
+            "Test all interactive features after the migration",
+        ],
     },
     {
         "slug": "external-scripts-without-sri",
@@ -279,6 +557,18 @@ LEARN_PAGES = [
         "fix": "Add <code>integrity</code> and <code>crossorigin</code> attributes to external script tags:\n<code>&lt;script src=\"https://cdn.example.com/lib.js\" integrity=\"sha384-abc123...\" crossorigin=\"anonymous\"&gt;&lt;/script&gt;</code>\nGenerate hashes at <code>https://www.srihash.org/</code>",
         "nginx": "",
         "apache": "",
+        "verify_cmd": "View page source and look for script tags without integrity attribute",
+        "mistakes": [
+            "Not updating SRI hashes when the CDN library is updated — this will break your site",
+            "Forgetting <code>crossorigin=\"anonymous\"</code> — SRI won't work without it for cross-origin scripts",
+        ],
+        "steps": [
+            "List all external scripts in your HTML (CDN-hosted libraries, analytics, etc.)",
+            "Go to srihash.org and paste each script URL to generate the hash",
+            "Add integrity and crossorigin attributes to each script tag",
+            "Test your site — if any hash doesn't match, the script will be blocked",
+            "Set up a process to update hashes when you upgrade library versions",
+        ],
     },
     {
         "slug": "forms-submit-to-http",
@@ -290,6 +580,17 @@ LEARN_PAGES = [
         "fix": "Change all form action URLs from <code>http://</code> to <code>https://</code>. Use relative URLs where possible:\n<code>&lt;form action=\"/submit\" method=\"POST\"&gt;</code>",
         "nginx": "",
         "apache": "",
+        "verify_cmd": "View page source and search for: form action=\"http://",
+        "mistakes": [
+            "Hardcoding the full URL in form actions — use relative paths instead",
+            "Only fixing visible forms — check dynamically generated forms in JavaScript too",
+        ],
+        "steps": [
+            "Search your HTML for <code>action=\"http://</code>",
+            "Replace with relative paths (<code>/submit</code>) or HTTPS URLs",
+            "Check JavaScript code that dynamically creates forms",
+            "Test all form submissions to ensure they still work",
+        ],
     },
     {
         "slug": "cookies-set-via-meta-tag",
@@ -301,6 +602,18 @@ LEARN_PAGES = [
         "fix": "Remove <code>&lt;meta http-equiv=\"Set-Cookie\"&gt;</code> tags. Set cookies via HTTP response headers instead:\n<code>Set-Cookie: session=abc; Secure; HttpOnly; SameSite=Lax</code>",
         "nginx": "",
         "apache": "",
+        "verify_cmd": "View page source and search for: meta http-equiv=\"Set-Cookie\"",
+        "mistakes": [
+            "Keeping the meta tag as a fallback — remove it completely",
+            "Setting cookies in JavaScript as an alternative — use server-side Set-Cookie headers",
+        ],
+        "steps": [
+            "Search your HTML for <code>meta http-equiv=\"Set-Cookie\"</code>",
+            "Move cookie-setting logic to your server-side code",
+            "Use proper Set-Cookie headers with Secure, HttpOnly, and SameSite flags",
+            "Remove all meta Set-Cookie tags from your HTML",
+            "Verify cookies are now set via headers: check browser DevTools → Network → Response Headers",
+        ],
     },
     {
         "slug": "meta-refresh-to-http",
@@ -312,6 +625,17 @@ LEARN_PAGES = [
         "fix": "Change the meta refresh URL to HTTPS, or better yet, use server-side 301 redirects instead of meta refresh.",
         "nginx": "",
         "apache": "",
+        "verify_cmd": "View page source and search for: meta http-equiv=\"refresh\"",
+        "mistakes": [
+            "Using meta refresh for redirects at all — server-side 301 redirects are faster and better for SEO",
+            "Only changing to HTTPS in the meta tag but not fixing the underlying redirect logic",
+        ],
+        "steps": [
+            "Search your HTML for <code>meta http-equiv=\"refresh\"</code> tags",
+            "Replace with server-side 301 redirects where possible",
+            "If meta refresh is required, ensure the URL uses HTTPS",
+            "Test that the redirect works correctly",
+        ],
     },
     {
         "slug": "csp-wildcard-source",
@@ -323,6 +647,18 @@ LEARN_PAGES = [
         "fix": "Replace wildcard sources with specific trusted domains:\n<code>script-src 'self' https://cdn.example.com;</code>\nList only the domains you actually use.",
         "nginx": "",
         "apache": "",
+        "verify_cmd": "curl -sI https://yourdomain.com | grep -i content-security-policy",
+        "mistakes": [
+            "Using wildcard in <code>default-src</code> — this applies to all resource types",
+            "Adding wildcard to fix a CSP error — find the specific domain and add only that",
+        ],
+        "steps": [
+            "Check your current CSP header for wildcard (*) sources",
+            "Use browser DevTools Console to see which domains your page actually loads resources from",
+            "Replace each wildcard with the specific domains you need",
+            "Test thoroughly — missing a domain will cause resources to be blocked",
+            "Use CSP Report-Only first to find issues without breaking the site",
+        ],
     },
     {
         "slug": "csp-allows-data-uris",
@@ -334,6 +670,18 @@ LEARN_PAGES = [
         "fix": "Remove <code>data:</code> from CSP source lists. If needed for images only, restrict it:\n<code>img-src 'self' data:; script-src 'self';</code>\nNever allow data: in script-src or default-src.",
         "nginx": "",
         "apache": "",
+        "verify_cmd": "curl -sI https://yourdomain.com | grep -i content-security-policy | grep 'data:'",
+        "mistakes": [
+            "Allowing data: in <code>default-src</code> — this enables it for scripts too",
+            "Allowing data: in <code>script-src</code> — this is the most dangerous usage",
+        ],
+        "steps": [
+            "Check your CSP for <code>data:</code> in source lists",
+            "If data: is in default-src or script-src, find what requires it",
+            "Move data: to only <code>img-src</code> if needed for inline images (base64)",
+            "Convert base64 images to actual files where possible",
+            "Remove data: from all other directives",
+        ],
     },
     {
         "slug": "dangerous-http-methods",
@@ -345,6 +693,18 @@ LEARN_PAGES = [
         "fix": "Disable PUT and DELETE methods unless explicitly required by your application.",
         "nginx": "if ($request_method !~ ^(GET|HEAD|POST|OPTIONS)$) {\n    return 405;\n}",
         "apache": "<LimitExcept GET HEAD POST OPTIONS>\n    Require all denied\n</LimitExcept>",
+        "verify_cmd": "curl -sI -X DELETE https://yourdomain.com | head -1\ncurl -sI -X PUT https://yourdomain.com | head -1",
+        "mistakes": [
+            "Blocking methods at the web server but not at the application layer — defense in depth",
+            "Forgetting to allow OPTIONS — this is needed for CORS preflight requests",
+            "Blocking HEAD — this is safe and used by monitoring tools",
+        ],
+        "steps": [
+            "Test which methods your server accepts: try DELETE, PUT, PATCH, TRACE",
+            "Determine which methods your application actually needs",
+            "Block unnecessary methods in your web server config",
+            "Restart and verify dangerous methods return 405 Method Not Allowed",
+        ],
     },
     {
         "slug": "cors-reflects-origin",
@@ -356,6 +716,18 @@ LEARN_PAGES = [
         "fix": "Never reflect the Origin header directly. Whitelist specific trusted origins:\n<code>if ($http_origin ~* \"^https://(example\\.com|app\\.example\\.com)$\") { ... }</code>",
         "nginx": "",
         "apache": "",
+        "verify_cmd": "curl -sI -H 'Origin: https://evil.com' https://yourdomain.com | grep -i access-control-allow-origin",
+        "mistakes": [
+            "Using a regex that's too permissive — <code>example.com</code> matches <code>evilexample.com</code> too",
+            "Reflecting origin in error responses — CORS headers should only appear on successful responses",
+        ],
+        "steps": [
+            "Test: send a request with <code>Origin: https://evil.com</code> and check if it's reflected back",
+            "If reflected, you're vulnerable — replace reflection with a whitelist",
+            "Create an explicit list of trusted origins",
+            "Validate the Origin header against your whitelist before setting CORS headers",
+            "Test with both valid and invalid origins to verify the fix",
+        ],
     },
     {
         "slug": "invalid-certificate-chain",
@@ -367,5 +739,18 @@ LEARN_PAGES = [
         "fix": "Install a valid SSL certificate from a trusted CA. Use Let's Encrypt for free certificates:\n<code>certbot --nginx -d yourdomain.com</code>\nMake sure intermediate certificates are included in your chain.",
         "nginx": "ssl_certificate /etc/letsencrypt/live/yourdomain.com/fullchain.pem;\nssl_certificate_key /etc/letsencrypt/live/yourdomain.com/privkey.pem;",
         "apache": "SSLCertificateFile /etc/letsencrypt/live/yourdomain.com/fullchain.pem\nSSLCertificateKeyFile /etc/letsencrypt/live/yourdomain.com/privkey.pem",
+        "verify_cmd": "echo | openssl s_client -connect yourdomain.com:443 2>&1 | grep 'Verify return code'",
+        "mistakes": [
+            "Using the cert.pem instead of fullchain.pem — this misses intermediate certificates",
+            "Having the wrong domain in the certificate — check the CN and SAN fields",
+            "Certificate is valid but for a different domain — common after server migration",
+        ],
+        "steps": [
+            "Check your certificate: <code>openssl s_client -connect yourdomain.com:443</code>",
+            "If self-signed, replace with Let's Encrypt: <code>certbot --nginx -d yourdomain.com</code>",
+            "If expired, renew: <code>certbot renew</code>",
+            "Ensure you're using <code>fullchain.pem</code> (not just cert.pem) for the certificate file",
+            "Restart the web server and verify with SSL Labs (ssllabs.com/ssltest)",
+        ],
     },
 ]

@@ -108,6 +108,12 @@
     .related h3 { font-size: 1rem; color: var(--text-dim); margin-block-end: 12px; }
     .related a { display: block; color: var(--primary); text-decoration: none; margin-block-end: 8px; font-size: 0.95rem; }
     .related a:hover { text-decoration: underline; }
+    .steps { color: var(--text-muted); line-height: 1.8; padding-inline-start: 20px; margin-block-end: 16px; }
+    .steps li { margin-block-end: 8px; }
+    .steps li code { background: var(--bg-card-solid); padding: 2px 8px; border-radius: 4px; font-family: var(--font-mono); font-size: 0.9em; color: var(--primary); }
+    .mistakes { color: var(--text-muted); line-height: 1.8; padding-inline-start: 20px; margin-block-end: 16px; list-style: none; }
+    .mistakes li { margin-block-end: 8px; position: relative; padding-inline-start: 8px; }
+    .mistakes li::before { content: "✗"; color: var(--red); position: absolute; inset-inline-start: -16px; font-weight: 600; }
     .faq { margin-block-end: 16px; }
     .faq details { background: var(--bg-card); border: 1px solid var(--border-dim); border-radius: 8px; margin-block-end: 8px; overflow: hidden; }
     .faq summary { padding: 12px 16px; cursor: pointer; color: var(--text); font-weight: 500; font-size: 0.9rem; transition: background var(--speed) var(--ease); }
@@ -141,8 +147,16 @@
     <h2>Why does it matter?</h2>
     <p>{{ page.why }}</p>
 
-    <h2>How to fix it</h2>
+    <h2>Step-by-step fix</h2>
+    {% if page.steps %}
+    <ol class="steps">
+      {% for step in page.steps %}
+      <li>{{ step }}</li>
+      {% endfor %}
+    </ol>
+    {% else %}
     <p>{{ page.fix }}</p>
+    {% endif %}
 
     {% if page.nginx %}
     <div class="config-label">nginx</div>
@@ -152,6 +166,21 @@
     {% if page.apache %}
     <div class="config-label">Apache</div>
     <pre><code>{{ page.apache }}</code></pre>
+    {% endif %}
+
+    {% if page.verify_cmd %}
+    <h2>Verify your fix</h2>
+    <p>Run this command to check if the issue is resolved:</p>
+    <pre><code>{{ page.verify_cmd }}</code></pre>
+    {% endif %}
+
+    {% if page.mistakes %}
+    <h2>Common mistakes</h2>
+    <ul class="mistakes">
+      {% for m in page.mistakes %}
+      <li>{{ m }}</li>
+      {% endfor %}
+    </ul>
     {% endif %}
 
     <h2>Frequently Asked Questions</h2>
