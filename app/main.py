@@ -14,7 +14,7 @@ Routes only — business logic split into modules:
 import json
 import logging
 from contextlib import asynccontextmanager
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
 from blog_posts import BLOG_POSTS, _blog_by_slug
@@ -503,11 +503,12 @@ def sitemap_xml():
 
 @app.get("/.well-known/security.txt", include_in_schema=False)
 def security_txt():
+    expires = (datetime.now(UTC) + timedelta(days=365)).strftime("%Y-%m-%dT00:00:00.000Z")
     return PlainTextResponse(
-        "Contact: mailto:contact@contrastcyber.com\n"
-        "Expires: 2027-04-02T00:00:00.000Z\n"
-        "Preferred-Languages: en, tr\n"
-        "Canonical: https://contrastcyber.com/.well-known/security.txt\n"
+        f"Contact: mailto:contact@contrastcyber.com\n"
+        f"Expires: {expires}\n"
+        f"Preferred-Languages: en, tr\n"
+        f"Canonical: https://contrastcyber.com/.well-known/security.txt\n"
     )
 
 
