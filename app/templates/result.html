@@ -714,7 +714,7 @@
           </div>
           <div class="finding-desc">{{ f.description }}</div>
           <div class="finding-fix"><strong>Fix:</strong> {{ f.remediation }}</div>
-          {% set desc_lower = f.description|lower %}
+          {% set desc_lower = (f.description ~ ' ' ~ f.remediation ~ ' ' ~ f.attack_vector)|lower %}
           {% if 'content-security-policy' in desc_lower or 'no csp' in desc_lower %}
           <a href="/learn/missing-content-security-policy" class="learn-link">Learn how to fix →</a>
           {% elif 'strict-transport' in desc_lower or 'hsts' in desc_lower %}
