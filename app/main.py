@@ -17,6 +17,7 @@ from contextlib import asynccontextmanager
 from datetime import UTC, datetime
 from pathlib import Path
 
+from blog_posts import BLOG_POSTS, _blog_by_slug
 from config import (
     BADGE_CACHE_MAX_AGE,
     BADGE_GRADE_WIDTH,
@@ -32,6 +33,7 @@ from fastapi import FastAPI, Form, HTTPException, Request
 from fastapi.responses import HTMLResponse, JSONResponse, PlainTextResponse, RedirectResponse, Response
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
+from learn_pages import LEARN_PAGES
 from report import generate_report, report_response
 from starlette.concurrency import run_in_threadpool
 from validation import SCAN_ID_PATTERN, check_csrf, clean_domain, get_client_ip
@@ -395,8 +397,6 @@ def pricing_page(request: Request):
 # === Learn (Programmatic SEO) ===
 
 
-from learn_pages import LEARN_PAGES
-
 _learn_by_slug = {p["slug"]: p for p in LEARN_PAGES}
 
 
@@ -412,6 +412,23 @@ def learn_page(request: Request, slug: str):
         return templates.TemplateResponse(request, "error.html", status_code=404)
     related = [p for p in LEARN_PAGES if p["category"] == page["category"] and p["slug"] != slug][:3]
     return templates.TemplateResponse(request, "learn.html", {"page": page, "related": related})
+
+
+# === Blog ===
+
+
+@app.get("/blog", response_class=HTMLResponse, include_in_schema=False)
+def blog_index(request: Request):
+    posts = sorted(BLOG_POSTS, key=lambda p: p["date"], reverse=True)
+    return templates.TemplateResponse(request, "blog_index.html", {"posts": posts})
+
+
+@app.get("/blog/{slug}", response_class=HTMLResponse, include_in_schema=False)
+def blog_post(request: Request, slug: str):
+    post = _blog_by_slug.get(slug)
+    if not post:
+        return templates.TemplateResponse(request, "error.html", status_code=404)
+    return templates.TemplateResponse(request, "blog.html", {"post": post})
 
 
 # === SEO ===
@@ -464,8 +481,12 @@ def robots_txt():
 def sitemap_xml():
     today = datetime.now(UTC).strftime("%Y-%m-%d")
     learn_urls = "\n".join(
-        f'  <url><loc>https://contrastcyber.com/learn/{p["slug"]}</loc><changefreq>monthly</changefreq><priority>0.6</priority></url>'
+        f"  <url><loc>https://contrastcyber.com/learn/{p['slug']}</loc><changefreq>monthly</changefreq><priority>0.6</priority></url>"
         for p in LEARN_PAGES
+    )
+    blog_urls = "\n".join(
+        f"  <url><loc>https://contrastcyber.com/blog/{p['slug']}</loc><lastmod>{p['date']}</lastmod><changefreq>monthly</changefreq><priority>0.7</priority></url>"
+        for p in BLOG_POSTS
     )
     xml = f"""<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
@@ -473,7 +494,9 @@ def sitemap_xml():
   <url><loc>https://contrastcyber.com/api</loc><lastmod>2026-03-25</lastmod><changefreq>monthly</changefreq><priority>0.7</priority></url>
   <url><loc>https://contrastcyber.com/stats</loc><lastmod>{today}</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
   <url><loc>https://contrastcyber.com/learn</loc><lastmod>{today}</lastmod><changefreq>weekly</changefreq><priority>0.8</priority></url>
+  <url><loc>https://contrastcyber.com/blog</loc><lastmod>{today}</lastmod><changefreq>weekly</changefreq><priority>0.8</priority></url>
 {learn_urls}
+{blog_urls}
 </urlset>"""
     return Response(content=xml, media_type="application/xml")
 

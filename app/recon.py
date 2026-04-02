@@ -769,6 +769,7 @@ def check_subdomain_takeover(subdomains: list[str]) -> dict:
                 nxdomain = True
                 if _attempt == 0:
                     import time
+
                     time.sleep(0.5)
 
         # Match against known vulnerable services
