@@ -109,24 +109,24 @@
 
     {% for block in post.content %}
       {% if block.type == "intro" %}
-        <p class="intro">{{ block.text }}</p>
+        <p class="intro">{{ block.text | safe }}</p>
       {% elif block.type == "heading" %}
         <h2>{{ block.text }}</h2>
       {% elif block.type == "subheading" %}
         <h3>{{ block.text }}</h3>
       {% elif block.type == "paragraph" %}
-        <p>{{ block.text }}</p>
+        <p>{{ block.text | safe }}</p>
       {% elif block.type == "code" %}
         {% if block.lang %}
         <div class="code-label">{{ block.lang }}</div>
         {% endif %}
         <pre><code>{{ block.text }}</code></pre>
       {% elif block.type == "tip" %}
-        <div class="tip">{{ block.text }}</div>
+        <div class="tip">{{ block.text | safe }}</div>
       {% elif block.type == "list" %}
         <ul>
           {% for item in block.entries %}
-          <li>{{ item }}</li>
+          <li>{{ item | safe }}</li>
           {% endfor %}
         </ul>
       {% elif block.type == "cta" %}
