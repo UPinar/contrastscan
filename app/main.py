@@ -501,6 +501,16 @@ def sitemap_xml():
     return Response(content=xml, media_type="application/xml")
 
 
+@app.get("/.well-known/security.txt", include_in_schema=False)
+def security_txt():
+    return PlainTextResponse(
+        "Contact: mailto:contact@contrastcyber.com\n"
+        "Expires: 2027-04-02T00:00:00.000Z\n"
+        "Preferred-Languages: en, tr\n"
+        "Canonical: https://contrastcyber.com/.well-known/security.txt\n"
+    )
+
+
 @app.get("/.well-known/ai-plugin.json", include_in_schema=False)
 def ai_plugin():
     return JSONResponse(

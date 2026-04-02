@@ -403,11 +403,13 @@ def fetch_robots(domain: str) -> dict:
         resp = _no_redirect_opener.open(req, timeout=RECON_TIMEOUT)
         text = resp.read(32768).decode("utf-8", errors="ignore")
         lines = text.strip().split("\n")
-        disallowed = [
-            line.split(":", 1)[1].strip()
-            for line in lines
-            if line.lower().startswith("disallow:") and line.split(":", 1)[1].strip()
-        ]
+        disallowed = list(
+            dict.fromkeys(
+                line.split(":", 1)[1].strip()
+                for line in lines
+                if line.lower().startswith("disallow:") and line.split(":", 1)[1].strip()
+            )
+        )
         sitemaps = [line.split(":", 1)[1].strip() for line in lines if line.lower().startswith("sitemap:")]
         return {
             "exists": True,
@@ -477,7 +479,9 @@ def reverse_dns_lookup(domain: str, resolved_ip: str | None = None) -> dict:
         if ip:
             try:
                 hostname, _, _ = socket.gethostbyaddr(ip)
-                ptr = hostname
+                # Ignore meaningless PTR values from CDN/proxy IPs
+                if hostname and hostname not in ("localhost", "localhost.localdomain", ""):
+                    ptr = hostname
             except socket.herror:
                 pass
 
