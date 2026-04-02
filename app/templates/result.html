@@ -759,6 +759,26 @@
           <a href="/learn/csp-unsafe-inline" class="learn-link">Learn how to fix →</a>
           {% elif 'unsafe-eval' in desc_lower %}
           <a href="/learn/csp-unsafe-eval" class="learn-link">Learn how to fix →</a>
+          {% elif 'inline script' in desc_lower or 'inline javascript' in desc_lower %}
+          <a href="/learn/excessive-inline-javascript" class="learn-link">Learn how to fix →</a>
+          {% elif 'sri' in desc_lower or 'subresource integrity' in desc_lower %}
+          <a href="/learn/external-scripts-without-sri" class="learn-link">Learn how to fix →</a>
+          {% elif 'forms submit to http' in desc_lower or 'forms_http' in desc_lower %}
+          <a href="/learn/forms-submit-to-http" class="learn-link">Learn how to fix →</a>
+          {% elif 'meta http-equiv' in desc_lower or 'meta.*set-cookie' in desc_lower %}
+          <a href="/learn/cookies-set-via-meta-tag" class="learn-link">Learn how to fix →</a>
+          {% elif 'meta refresh' in desc_lower %}
+          <a href="/learn/meta-refresh-to-http" class="learn-link">Learn how to fix →</a>
+          {% elif 'wildcard source' in desc_lower or "csp has wildcard" in desc_lower %}
+          <a href="/learn/csp-wildcard-source" class="learn-link">Learn how to fix →</a>
+          {% elif 'data: uri' in desc_lower or 'data: scheme' in desc_lower %}
+          <a href="/learn/csp-allows-data-uris" class="learn-link">Learn how to fix →</a>
+          {% elif 'dangerous http method' in desc_lower or ('delete' in desc_lower and 'put' in desc_lower) %}
+          <a href="/learn/dangerous-http-methods" class="learn-link">Learn how to fix →</a>
+          {% elif 'cors reflects' in desc_lower or 'reflects arbitrary origin' in desc_lower %}
+          <a href="/learn/cors-reflects-origin" class="learn-link">Learn how to fix →</a>
+          {% elif 'chain is not trusted' in desc_lower or 'self-signed' in desc_lower %}
+          <a href="/learn/invalid-certificate-chain" class="learn-link">Learn how to fix →</a>
           {% endif %}
         </div>
         {% endfor %}
