@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Security Guides — How to Fix Common Vulnerabilities | ContrastScan</title>
+  <meta name="description" content="Learn how to fix common website security issues: missing headers, SSL problems, DNS misconfigurations, and more. Free guides with nginx and Apache examples.">
+  <meta name="theme-color" content="#09090b">
+  <link rel="canonical" href="https://contrastcyber.com/learn">
+  <meta property="og:title" content="Security Guides — ContrastScan">
+  <meta property="og:description" content="Learn how to fix common website security issues. Free guides with server configuration examples.">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://contrastcyber.com/learn">
+  <meta property="og:site_name" content="ContrastScan">
+  <meta name="twitter:card" content="summary">
+  <meta name="twitter:title" content="Security Guides — ContrastScan">
+  <meta name="twitter:description" content="Learn how to fix common website security issues. Free guides with server configuration examples.">
+  <link rel="icon" type="image/svg+xml" href="/static/favicon.svg">
+  <link rel="stylesheet" href="/static/css/base.css?v=13">
+  <style>
+    .learn-list { max-inline-size: 720px; margin: 60px auto; padding: 0 24px; }
+    .learn-list h1 { font-size: 1.8rem; margin-block-end: 8px; }
+    .learn-list .subtitle { color: var(--text-muted); margin-block-end: 32px; }
+    .guide-card { display: block; background: var(--bg-card); border: 1px solid var(--border-dim); border-radius: 8px; padding: 20px; margin-block-end: 12px; text-decoration: none; transition: border-color var(--speed) var(--ease); }
+    .guide-card:hover { border-color: var(--primary); }
+    .guide-card h3 { color: var(--text); font-size: 1rem; margin: 0 0 6px; }
+    .guide-card .meta { font-size: 0.85rem; color: var(--text-dim); }
+    .guide-card .meta .sev { margin-inline-end: 12px; }
+    .sev-high { color: var(--red); }
+    .sev-medium { color: var(--yellow); }
+    .sev-low { color: var(--primary); }
+    .sev-critical { color: var(--red); }
+    .category-group { margin-block-start: 28px; margin-block-end: 12px; color: var(--text-dim); font-size: 0.9rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; }
+  </style>
+</head>
+<body>
+  <nav>
+    <a href="/" class="logo">Contrast<span>Scan</span></a>
+    <button class="hamburger" aria-label="Menu" aria-expanded="false"><span class="hamburger__lines" aria-hidden="true"></span></button>
+    <div class="nav-links">
+      <a href="/stats">Stats</a>
+      <a href="https://api.contrastcyber.com">API</a>
+      <a href="/pricing">Pricing</a>
+    </div>
+  </nav>
+
+  <div class="learn-list">
+    <h1>Security Guides</h1>
+    <p class="subtitle">Learn how to fix common website security issues. Each guide includes what the issue is, why it matters, and how to fix it with real server configuration examples.</p>
+
+    {% set ns = namespace(current_cat="") %}
+    {% for page in pages %}
+      {% if page.category != ns.current_cat %}
+        {% set ns.current_cat = page.category %}
+        <div class="category-group">{{ page.category }}</div>
+      {% endif %}
+      <a href="/learn/{{ page.slug }}" class="guide-card">
+        <h3>{{ page.title }}</h3>
+        <div class="meta">
+          <span class="sev sev-{{ page.severity }}">{{ page.severity }}</span>
+          <span>{{ page.category }}</span>
+        </div>
+      </a>
+    {% endfor %}
+  </div>
+
+  <script src="/static/js/nav.js"></script>
+  <footer>
+    <div class="footer-links">
+      <a href="/terms">Terms</a>
+      <a href="/privacy">Privacy</a>
+      <a href="mailto:contact@contrastcyber.com">Contact</a>
+      <a href="https://github.com/UPinar/contrastscan">GitHub</a>
+    </div>
+    <p>&copy; 2026 ContrastScan</p>
+  </footer>
+</body>
+</html>

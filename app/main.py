@@ -392,6 +392,28 @@ def pricing_page(request: Request):
     return templates.TemplateResponse(request, "pricing.html")
 
 
+# === Learn (Programmatic SEO) ===
+
+
+from learn_pages import LEARN_PAGES
+
+_learn_by_slug = {p["slug"]: p for p in LEARN_PAGES}
+
+
+@app.get("/learn", response_class=HTMLResponse, include_in_schema=False)
+def learn_index(request: Request):
+    return templates.TemplateResponse(request, "learn_index.html", {"pages": LEARN_PAGES})
+
+
+@app.get("/learn/{slug}", response_class=HTMLResponse, include_in_schema=False)
+def learn_page(request: Request, slug: str):
+    page = _learn_by_slug.get(slug)
+    if not page:
+        return templates.TemplateResponse(request, "error.html", status_code=404)
+    related = [p for p in LEARN_PAGES if p["category"] == page["category"] and p["slug"] != slug][:3]
+    return templates.TemplateResponse(request, "learn.html", {"page": page, "related": related})
+
+
 # === SEO ===
 
 
@@ -411,11 +433,17 @@ def robots_txt():
 @app.get("/sitemap.xml", include_in_schema=False)
 def sitemap_xml():
     today = datetime.now(UTC).strftime("%Y-%m-%d")
+    learn_urls = "\n".join(
+        f'  <url><loc>https://contrastcyber.com/learn/{p["slug"]}</loc><changefreq>monthly</changefreq><priority>0.6</priority></url>'
+        for p in LEARN_PAGES
+    )
     xml = f"""<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url><loc>https://contrastcyber.com/</loc><lastmod>{today}</lastmod><changefreq>weekly</changefreq><priority>1.0</priority></url>
   <url><loc>https://contrastcyber.com/api</loc><lastmod>2026-03-25</lastmod><changefreq>monthly</changefreq><priority>0.7</priority></url>
   <url><loc>https://contrastcyber.com/stats</loc><lastmod>{today}</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
+  <url><loc>https://contrastcyber.com/learn</loc><lastmod>{today}</lastmod><changefreq>weekly</changefreq><priority>0.8</priority></url>
+{learn_urls}
 </urlset>"""
     return Response(content=xml, media_type="application/xml")
 

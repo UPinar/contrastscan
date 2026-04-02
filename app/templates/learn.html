@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{{ page.title }} — How to Fix | ContrastScan</title>
+  <meta name="description" content="{{ page.what[:155] }}">
+  <meta name="theme-color" content="#09090b">
+  <link rel="canonical" href="https://contrastcyber.com/learn/{{ page.slug }}">
+  <!-- Open Graph -->
+  <meta property="og:title" content="{{ page.title }} — How to Fix">
+  <meta property="og:description" content="{{ page.what[:155] }}">
+  <meta property="og:type" content="article">
+  <meta property="og:url" content="https://contrastcyber.com/learn/{{ page.slug }}">
+  <meta property="og:site_name" content="ContrastScan">
+  <!-- Twitter Card -->
+  <meta name="twitter:card" content="summary">
+  <meta name="twitter:title" content="{{ page.title }} — How to Fix">
+  <meta name="twitter:description" content="{{ page.what[:155] }}">
+  <!-- JSON-LD -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "HowTo",
+    "name": "How to Fix: {{ page.title }}",
+    "description": "{{ page.what[:200] }}",
+    "step": [
+      {
+        "@type": "HowToStep",
+        "name": "Understand the issue",
+        "text": "{{ page.what[:200] }}"
+      },
+      {
+        "@type": "HowToStep",
+        "name": "Apply the fix",
+        "text": "{{ page.fix[:200] }}"
+      },
+      {
+        "@type": "HowToStep",
+        "name": "Verify with a scan",
+        "text": "Run a free security scan to verify the fix is applied correctly."
+      }
+    ],
+    "tool": {
+      "@type": "HowToTool",
+      "name": "ContrastScan",
+      "url": "https://contrastcyber.com"
+    }
+  }
+  </script>
+  <link rel="icon" type="image/svg+xml" href="/static/favicon.svg">
+  <link rel="stylesheet" href="/static/css/base.css?v=13">
+  <style>
+    .learn { max-inline-size: 720px; margin: 60px auto; padding: 0 24px; }
+    .learn h1 { font-size: 1.8rem; margin-block-end: 0.5rem; }
+    .learn .severity { display: inline-block; padding: 4px 12px; border-radius: 4px; font-size: 0.85rem; font-weight: 600; text-transform: uppercase; margin-block-end: 24px; }
+    .severity.high { background: rgba(239,68,68,0.12); color: var(--red); border: 1px solid rgba(239,68,68,0.25); }
+    .severity.medium { background: rgba(234,179,8,0.12); color: var(--yellow); border: 1px solid rgba(234,179,8,0.25); }
+    .severity.low { background: rgba(59,130,246,0.12); color: var(--primary); border: 1px solid rgba(59,130,246,0.25); }
+    .severity.critical { background: rgba(239,68,68,0.25); color: var(--red); border: 1px solid var(--red); }
+    .learn .category { color: var(--text-dim); font-size: 0.9rem; margin-block-end: 8px; }
+    .learn h2 { font-size: 1.2rem; margin-block-start: 32px; margin-block-end: 12px; color: var(--text); }
+    .learn p { color: var(--text-muted); line-height: 1.7; margin-block-end: 16px; }
+    .learn code { background: var(--bg-card-solid); padding: 2px 8px; border-radius: 4px; font-family: var(--font-mono); font-size: 0.9em; color: var(--primary); }
+    .learn pre { background: var(--bg); border: 1px solid var(--border); border-radius: 8px; padding: 16px; overflow-x: auto; margin: 16px 0; }
+    .learn pre code { background: none; padding: 0; font-size: 0.85rem; color: var(--text); }
+    .learn .config-label { color: var(--text-dim); font-size: 0.8rem; margin-block-end: 4px; font-weight: 600; }
+    .cta { background: var(--bg-card-solid); border: 1px solid var(--border); border-radius: 12px; padding: 32px; text-align: center; margin-block-start: 40px; }
+    .cta p { color: var(--text-muted); margin-block-end: 16px; }
+    .cta a { display: inline-block; background: var(--primary); color: var(--bg); padding: 12px 32px; border-radius: 8px; font-weight: 600; text-decoration: none; transition: background var(--speed) var(--ease); }
+    .cta a:hover { background: var(--primary-hover); }
+    .breadcrumb { color: var(--text-dim); font-size: 0.85rem; margin-block-end: 16px; }
+    .breadcrumb a { color: var(--text-muted); text-decoration: none; }
+    .breadcrumb a:hover { color: var(--primary); }
+    .related { margin-block-start: 40px; padding-block-start: 24px; border-block-start: 1px solid var(--border-dim); }
+    .related h3 { font-size: 1rem; color: var(--text-dim); margin-block-end: 12px; }
+    .related a { display: block; color: var(--primary); text-decoration: none; margin-block-end: 8px; font-size: 0.95rem; }
+    .related a:hover { text-decoration: underline; }
+  </style>
+</head>
+<body>
+  <nav>
+    <a href="/" class="logo">Contrast<span>Scan</span></a>
+    <button class="hamburger" aria-label="Menu" aria-expanded="false"><span class="hamburger__lines" aria-hidden="true"></span></button>
+    <div class="nav-links">
+      <a href="/stats">Stats</a>
+      <a href="https://api.contrastcyber.com">API</a>
+      <a href="/pricing">Pricing</a>
+    </div>
+  </nav>
+
+  <div class="learn">
+    <div class="breadcrumb">
+      <a href="/">Home</a> &rsaquo; <a href="/learn">Security Guides</a> &rsaquo; {{ page.category }}
+    </div>
+
+    <h1>{{ page.title }}</h1>
+    <span class="severity {{ page.severity }}">{{ page.severity }}</span>
+
+    <h2>What is this?</h2>
+    <p>{{ page.what }}</p>
+
+    <h2>Why does it matter?</h2>
+    <p>{{ page.why }}</p>
+
+    <h2>How to fix it</h2>
+    <p>{{ page.fix }}</p>
+
+    {% if page.nginx %}
+    <div class="config-label">nginx</div>
+    <pre><code>{{ page.nginx }}</code></pre>
+    {% endif %}
+
+    {% if page.apache %}
+    <div class="config-label">Apache</div>
+    <pre><code>{{ page.apache }}</code></pre>
+    {% endif %}
+
+    <div class="cta">
+      <p>Check if your site has this issue</p>
+      <a href="/">Scan Your Website Free</a>
+    </div>
+
+    {% if related %}
+    <div class="related">
+      <h3>Related Security Guides</h3>
+      {% for r in related %}
+      <a href="/learn/{{ r.slug }}">{{ r.title }}</a>
+      {% endfor %}
+    </div>
+    {% endif %}
+  </div>
+
+  <script src="/static/js/nav.js"></script>
+  <footer>
+    <div class="footer-links">
+      <a href="/terms">Terms</a>
+      <a href="/privacy">Privacy</a>
+      <a href="mailto:contact@contrastcyber.com">Contact</a>
+      <a href="https://github.com/UPinar/contrastscan">GitHub</a>
+    </div>
+    <p>&copy; 2026 ContrastScan</p>
+  </footer>
+</body>
+</html>
