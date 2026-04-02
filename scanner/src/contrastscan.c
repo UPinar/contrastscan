@@ -175,6 +175,7 @@ static int cors_credentials = 0;
 
 /* HTML body storage */
 #define HTML_BODY_MAX (256 * 1024)
+#define MAX_REDIRECTS 5
 static char html_body[HTML_BODY_MAX];
 static size_t html_body_len = 0;
 
@@ -322,6 +323,8 @@ static cJSON *scan_headers(const char *domain)
     curl_easy_setopt(curl, CURLOPT_NOBODY, 1L);
     curl_easy_setopt(curl, CURLOPT_HEADERFUNCTION, header_callback);
     curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1L);
+    curl_easy_setopt(curl, CURLOPT_MAXREDIRS, (long)MAX_REDIRECTS);
+    curl_easy_setopt(curl, CURLOPT_REDIR_PROTOCOLS_STR, "https");
     curl_easy_setopt(curl, CURLOPT_CONNECTTIMEOUT, 5L);
     curl_easy_setopt(curl, CURLOPT_TIMEOUT, (long)HTTP_TIMEOUT);
     curl_easy_setopt(curl, CURLOPT_USERAGENT, "contrastscan/1.0");
@@ -395,7 +398,7 @@ static cJSON *scan_redirect(const char *domain)
       char *redirect_url = NULL;
       curl_easy_getinfo(curl, CURLINFO_REDIRECT_URL, &redirect_url);
 
-      if ((http_code == 301 || http_code == 302 || http_code == 308) &&
+      if ((http_code == 301 || http_code == 302 || http_code == 307 || http_code == 308) &&
           redirect_url && strncasecmp(redirect_url, "https://", 8) == 0)
       {
         redirects_to_https = 1;
@@ -817,6 +820,7 @@ static const struct mx_dkim_map mx_dkim_table[] = {
  * Infomaniak, Google Workspace use date-based selectors
  */
 #define MAX_DATE_SELECTORS 30
+#define DKIM_MAX_QUERIES 40
 static char date_sel_buf[MAX_DATE_SELECTORS][32];
 static const char *date_selectors[MAX_DATE_SELECTORS + 1];
 
@@ -1005,6 +1009,8 @@ static int find_dkim_by_mx(const char *domain, const char *mx_host,
                            char *selector_found, size_t sel_sz,
                            char *buf, size_t bufsz)
 {
+  int queries = 0;
+
   for (int m = 0; mx_dkim_table[m].mx_pattern != NULL; m++)
   {
     if (!strstr(mx_host, mx_dkim_table[m].mx_pattern))
@@ -1013,6 +1019,7 @@ static int find_dkim_by_mx(const char *domain, const char *mx_host,
     /* matched provider — try provider-specific selectors */
     for (int s = 0; mx_dkim_table[m].selectors[s] != NULL; s++)
     {
+      if (++queries > DKIM_MAX_QUERIES) return 0;
       char dkim_domain[DNS_DOMAIN_SIZE];
       snprintf(dkim_domain, sizeof(dkim_domain),
                "%s._domainkey.%s", mx_dkim_table[m].selectors[s], domain);
@@ -1023,12 +1030,10 @@ static int find_dkim_by_mx(const char *domain, const char *mx_host,
       }
     }
 
-    /* provider matched but no selector found — smart date search:
-     * 1) try last 90 days (daily)
-     * 2) try 1st of each month for last 5 years (~60 queries)
-     *    if month matches, try all days in that month */
+    /* provider matched but no selector found — try date-based selectors */
     for (int i = 0; date_selectors[i] != NULL; i++)
     {
+      if (++queries > DKIM_MAX_QUERIES) return 0;
       char dkim_domain[DNS_DOMAIN_SIZE];
       snprintf(dkim_domain, sizeof(dkim_domain),
                "%s._domainkey.%s", date_selectors[i], domain);
@@ -1039,7 +1044,7 @@ static int find_dkim_by_mx(const char *domain, const char *mx_host,
       }
     }
 
-    /* monthly probe for last 5 years — if 1st hits, done; if not, try all days */
+    /* monthly probe for last 5 years — 1st and 15th of each month */
     {
       time_t now = time(NULL);
       struct tm *cur = gmtime(&now);
@@ -1050,12 +1055,13 @@ static int find_dkim_by_mx(const char *domain, const char *mx_host,
       for (int offset = 3; offset < 60; offset++)
       {
         int y = start_year;
-        int m = start_mon - offset;
-        while (m <= 0) { m += 12; y--; }
+        int mo = start_mon - offset;
+        while (mo <= 0) { mo += 12; y--; }
 
         /* try 1st of month */
+        if (++queries > DKIM_MAX_QUERIES) return 0;
         char sel[32];
-        snprintf(sel, sizeof(sel), "%04d%02d01", y, m);
+        snprintf(sel, sizeof(sel), "%04d%02d01", y, mo);
         char dkim_domain[DNS_DOMAIN_SIZE];
         snprintf(dkim_domain, sizeof(dkim_domain),
                  "%s._domainkey.%s", sel, domain);
@@ -1066,7 +1072,8 @@ static int find_dkim_by_mx(const char *domain, const char *mx_host,
         }
 
         /* try 15th as mid-month probe */
-        snprintf(sel, sizeof(sel), "%04d%02d15", y, m);
+        if (++queries > DKIM_MAX_QUERIES) return 0;
+        snprintf(sel, sizeof(sel), "%04d%02d15", y, mo);
         snprintf(dkim_domain, sizeof(dkim_domain),
                  "%s._domainkey.%s", sel, domain);
         if (query_txt(dkim_domain, NULL, buf, bufsz))
@@ -1533,6 +1540,8 @@ static cJSON *scan_html(const char *domain)
     curl_easy_setopt(curl, CURLOPT_URL, url);
     curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, body_callback);
     curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1L);
+    curl_easy_setopt(curl, CURLOPT_MAXREDIRS, (long)MAX_REDIRECTS);
+    curl_easy_setopt(curl, CURLOPT_REDIR_PROTOCOLS_STR, "https");
     curl_easy_setopt(curl, CURLOPT_CONNECTTIMEOUT, 5L);
     curl_easy_setopt(curl, CURLOPT_TIMEOUT, (long)HTTP_TIMEOUT);
     curl_easy_setopt(curl, CURLOPT_USERAGENT, "contrastscan/1.0");

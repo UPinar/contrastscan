@@ -380,8 +380,16 @@ class TestEnrichSslError:
         ssl_findings = [f for f in enriched["findings"] if f["category"] == "ssl"]
         assert len(ssl_findings) >= 1
 
+    def test_ssl_error_network_is_info(self):
+        """Network errors (refused, timeout) should be info, not medium."""
+        for error in ("connection refused", "timed out", "host unreachable"):
+            result = make_scan_result(ssl_error=error)
+            enriched = enrich_with_findings(result)
+            ssl_findings = [f for f in enriched["findings"] if f["category"] == "ssl"]
+            assert ssl_findings[0]["severity"] == "info", f"Expected info for '{error}'"
+
     def test_ssl_error_medium(self):
-        result = make_scan_result(ssl_error="connection refused")
+        result = make_scan_result(ssl_error="unknown TLS error")
         enriched = enrich_with_findings(result)
         ssl_findings = [f for f in enriched["findings"] if f["category"] == "ssl"]
         assert ssl_findings[0]["severity"] == "medium"

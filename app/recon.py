@@ -600,7 +600,7 @@ def _crtsh_subdomains(domain: str, data: list | None = None) -> list:
             n = n.strip().lower()
             if n.endswith(f".{domain}") and "*" not in n:
                 subs.add(n)
-    return list(subs)[:50]
+    return sorted(subs)[:50]
 
 
 # === Group D: External ===
@@ -758,12 +758,18 @@ def check_subdomain_takeover(subdomains: list[str]) -> dict:
         except Exception:
             return None
 
-        # Check if CNAME target resolves
+        # Check if CNAME target resolves (retry once to avoid transient DNS failures)
         nxdomain = False
-        try:
-            socket.gethostbyname(cname_target)
-        except socket.gaierror:
-            nxdomain = True
+        for _attempt in range(2):
+            try:
+                socket.gethostbyname(cname_target)
+                nxdomain = False
+                break
+            except socket.gaierror:
+                nxdomain = True
+                if _attempt == 0:
+                    import time
+                    time.sleep(0.5)
 
         # Match against known vulnerable services
         matched_service = None

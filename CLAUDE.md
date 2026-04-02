@@ -9,7 +9,7 @@ Live: contrastcyber.com | GitHub: UPinar/contrastscan
 - **Build C:** `cd scanner && make` (on server: `gcc -Wall -Wextra -O2 -o scanner/contrastscan scanner/src/contrastscan.c -lcurl -lssl -lcrypto -lresolv -lcjson`)
 - **Deploy:** git clone + venv + pip + gcc (on server, ARM aarch64)
 - **Server path:** `/opt/contrastscan/`
-- **DB:** `/var/lib/contrastcyber/scans.db`
+- **DB:** `/var/lib/contrastscan/scans.db`
 - **Config overrides (server only):** SCAN_CONCURRENCY=8 in config.py
 - **Lint:** `ruff check app/ && ruff format --check app/`
 - **1071 tests (194 C + 877 Python)**

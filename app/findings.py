@@ -137,6 +137,17 @@ def _ssl_findings(result: dict) -> list:
                     "reference": "https://letsencrypt.org/",
                 }
             )
+        elif any(kw in ssl_error.lower() for kw in ("timeout", "timed out", "unreachable", "refused")):
+            findings.append(
+                {
+                    "category": "ssl",
+                    "severity": "info",
+                    "attack_vector": "Network connectivity",
+                    "description": f"TLS handshake failed due to network issue: {ssl_error}.",
+                    "remediation": "Verify the server is reachable and accepts TLS connections on port 443.",
+                    "reference": "https://letsencrypt.org/",
+                }
+            )
         elif "certificate" in ssl_error.lower() or "verify" in ssl_error.lower():
             findings.append(
                 {
