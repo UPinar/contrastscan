@@ -714,6 +714,52 @@
           </div>
           <div class="finding-desc">{{ f.description }}</div>
           <div class="finding-fix"><strong>Fix:</strong> {{ f.remediation }}</div>
+          {% set desc_lower = f.description|lower %}
+          {% if 'content-security-policy' in desc_lower or 'no csp' in desc_lower %}
+          <a href="/learn/missing-content-security-policy" class="learn-link">Learn how to fix →</a>
+          {% elif 'strict-transport' in desc_lower or 'hsts' in desc_lower %}
+          <a href="/learn/missing-strict-transport-security" class="learn-link">Learn how to fix →</a>
+          {% elif 'x-content-type' in desc_lower %}
+          <a href="/learn/missing-x-content-type-options" class="learn-link">Learn how to fix →</a>
+          {% elif 'x-frame' in desc_lower or 'clickjacking' in desc_lower %}
+          <a href="/learn/missing-x-frame-options" class="learn-link">Learn how to fix →</a>
+          {% elif 'referrer-policy' in desc_lower %}
+          <a href="/learn/missing-referrer-policy" class="learn-link">Learn how to fix →</a>
+          {% elif 'permissions-policy' in desc_lower %}
+          <a href="/learn/missing-permissions-policy" class="learn-link">Learn how to fix →</a>
+          {% elif 'tls 1.0' in desc_lower or 'tls 1.1' in desc_lower or 'deprecated' in desc_lower %}
+          <a href="/learn/deprecated-tls-version" class="learn-link">Learn how to fix →</a>
+          {% elif 'expired' in desc_lower or 'expiring' in desc_lower %}
+          <a href="/learn/expired-ssl-certificate" class="learn-link">Learn how to fix →</a>
+          {% elif 'weak cipher' in desc_lower %}
+          <a href="/learn/weak-cipher-suite" class="learn-link">Learn how to fix →</a>
+          {% elif 'spf' in desc_lower %}
+          <a href="/learn/missing-spf-record" class="learn-link">Learn how to fix →</a>
+          {% elif 'dmarc' in desc_lower %}
+          <a href="/learn/missing-dmarc-record" class="learn-link">Learn how to fix →</a>
+          {% elif 'dkim' in desc_lower %}
+          <a href="/learn/missing-dkim-record" class="learn-link">Learn how to fix →</a>
+          {% elif 'not redirect' in desc_lower or 'http does not' in desc_lower %}
+          <a href="/learn/no-https-redirect" class="learn-link">Learn how to fix →</a>
+          {% elif 'server header' in desc_lower %}
+          <a href="/learn/server-header-exposed" class="learn-link">Learn how to fix →</a>
+          {% elif 'x-powered-by' in desc_lower %}
+          <a href="/learn/x-powered-by-exposed" class="learn-link">Learn how to fix →</a>
+          {% elif 'cookie' in desc_lower and ('secure' in desc_lower or 'httponly' in desc_lower or 'samesite' in desc_lower) %}
+          <a href="/learn/missing-cookie-security-flags" class="learn-link">Learn how to fix →</a>
+          {% elif 'dnssec' in desc_lower %}
+          <a href="/learn/dnssec-not-enabled" class="learn-link">Learn how to fix →</a>
+          {% elif 'trace' in desc_lower %}
+          <a href="/learn/trace-method-enabled" class="learn-link">Learn how to fix →</a>
+          {% elif 'cors' in desc_lower and 'wildcard' in desc_lower %}
+          <a href="/learn/cors-wildcard-origin" class="learn-link">Learn how to fix →</a>
+          {% elif 'mixed content' in desc_lower or 'mixed_active' in desc_lower %}
+          <a href="/learn/mixed-content" class="learn-link">Learn how to fix →</a>
+          {% elif 'unsafe-inline' in desc_lower %}
+          <a href="/learn/csp-unsafe-inline" class="learn-link">Learn how to fix →</a>
+          {% elif 'unsafe-eval' in desc_lower %}
+          <a href="/learn/csp-unsafe-eval" class="learn-link">Learn how to fix →</a>
+          {% endif %}
         </div>
         {% endfor %}
       </div>

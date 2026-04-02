@@ -426,7 +426,37 @@ def llms_txt():
 @app.get("/robots.txt", include_in_schema=False)
 def robots_txt():
     return PlainTextResponse(
-        "User-agent: *\nAllow: /\nDisallow: /result/\nSitemap: https://contrastcyber.com/sitemap.xml\n"
+        "User-agent: *\n"
+        "Allow: /\n"
+        "Disallow: /result/\n"
+        "\n"
+        "# AI search bots — allowed\n"
+        "User-agent: OAI-SearchBot\n"
+        "Allow: /\n"
+        "\n"
+        "User-agent: Applebot-Extended\n"
+        "Allow: /\n"
+        "\n"
+        "User-agent: PerplexityBot\n"
+        "Allow: /\n"
+        "\n"
+        "# AI training scrapers — blocked\n"
+        "User-agent: GPTBot\n"
+        "Disallow: /\n"
+        "\n"
+        "User-agent: CCBot\n"
+        "Disallow: /\n"
+        "\n"
+        "User-agent: Google-Extended\n"
+        "Disallow: /\n"
+        "\n"
+        "User-agent: anthropic-ai\n"
+        "Disallow: /\n"
+        "\n"
+        "User-agent: ClaudeBot\n"
+        "Disallow: /\n"
+        "\n"
+        "Sitemap: https://contrastcyber.com/sitemap.xml\n"
     )
 
 
