@@ -88,6 +88,62 @@
 
     <pre>curl "https://contrastcyber.com/api/report?domain=example.com" -o report.txt</pre>
 
+    <!-- BULK SCAN (PRO) -->
+    <h2>3. Bulk Scan <span class="pro-badge">PRO</span></h2>
+    <div class="endpoint">
+      <span class="method post">POST</span>
+      <span class="url">/api/v1/bulk</span>
+      <p class="desc">Scan up to 50 domains in a single request. Requires a Pro API key.</p>
+    </div>
+
+    <pre>POST /api/v1/bulk HTTP/1.1
+Host: contrastcyber.com
+X-API-Key: &lt;your-pro-key&gt;
+Content-Type: application/json
+
+{"domains": ["example.com", "google.com"]}</pre>
+
+    <h2>Response</h2>
+    <pre>{
+  <span class="key">"results"</span>: [
+    {
+      <span class="key">"domain"</span>: <span class="str">"example.com"</span>,
+      <span class="key">"scan_id"</span>: <span class="str">"a1b2c3..."</span>,
+      <span class="key">"grade"</span>: <span class="str">"A"</span>,
+      <span class="key">"score"</span>: <span class="num">92</span>,
+      <span class="key">"result"</span>: { ... }
+    },
+    {
+      <span class="key">"domain"</span>: <span class="str">"google.com"</span>,
+      <span class="key">"scan_id"</span>: <span class="str">"d4e5f6..."</span>,
+      <span class="key">"grade"</span>: <span class="str">"D"</span>,
+      <span class="key">"score"</span>: <span class="num">55</span>,
+      <span class="key">"result"</span>: { ... }
+    }
+  ],
+  <span class="key">"total"</span>: <span class="num">2</span>,
+  <span class="key">"successful"</span>: <span class="num">2</span>
+}</pre>
+
+    <div class="endpoint">
+      <div class="param">
+        <span class="param-name">Header</span>
+        <span class="param-desc"><code>X-API-Key</code> — your Pro API key</span>
+      </div>
+      <div class="param">
+        <span class="param-name">Body</span>
+        <span class="param-desc"><code>{"domains": [...]}</code> — max 50 domains per request</span>
+      </div>
+      <div class="param">
+        <span class="param-name">Limit</span>
+        <span class="param-desc">1,000 scans/hour per key</span>
+      </div>
+      <div class="param">
+        <span class="param-name">Note</span>
+        <span class="param-desc">Duplicate domains are automatically deduplicated. Failed domains don't block others.</span>
+      </div>
+    </div>
+
     <!-- OTHER ENDPOINTS -->
     <h2>Other Endpoints</h2>
     <div class="endpoint">
@@ -113,28 +169,29 @@
     <h2>Rate Limits</h2>
     <div class="endpoint">
       <div class="param">
-        <span class="param-name">API</span>
-        <span class="param-desc">100 requests/hour per IP</span>
+        <span class="param-name">Free</span>
+        <span class="param-desc">100 scans/hour per IP — no signup needed</span>
+      </div>
+      <div class="param">
+        <span class="param-name">Pro</span>
+        <span class="param-desc">1,000 scans/hour per key + bulk scan (up to 50 domains/request)</span>
       </div>
       <div class="param">
         <span class="param-name">Per domain</span>
-        <span class="param-desc">10 scans/hour (all IPs combined)</span>
+        <span class="param-desc">10 scans/hour (all users combined)</span>
       </div>
     </div>
 
-    <!-- API PLATFORM -->
-    <h2>Need More?</h2>
-    <div class="limit-box">
-      Looking for CVE intelligence, domain reconnaissance, or code security verification?
-      Visit <a href="https://api.contrastcyber.com" style="color:#22c55e;">api.contrastcyber.com</a> for our full API platform with higher rate limits.
-    </div>
-
-    <!-- ERROR CODES -->
+    <!-- ERROR CODES (moved before Pro CTA) -->
     <h2>Error Codes</h2>
     <div class="endpoint">
       <div class="param">
         <span class="param-name">400</span>
         <span class="param-desc">Invalid domain format</span>
+      </div>
+      <div class="param">
+        <span class="param-name">401</span>
+        <span class="param-desc">Missing or invalid API key (bulk scan)</span>
       </div>
       <div class="param">
         <span class="param-name">429</span>
@@ -149,6 +206,21 @@
         <span class="param-desc">Scan timed out</span>
       </div>
     </div>
+
+    <!-- PRO CTA -->
+    <h2>Get Pro</h2>
+    <div class="limit-box pro-cta">
+      Upgrade to Pro for bulk scanning, higher rate limits, and API key authentication.
+      <a href="/pricing" style="color:var(--green);">View pricing →</a>
+    </div>
+
+    <!-- API PLATFORM -->
+    <h2>Full API Platform</h2>
+    <div class="limit-box">
+      Looking for CVE intelligence, domain reconnaissance, or code security verification?
+      Visit <a href="https://api.contrastcyber.com" style="color:var(--green);">api.contrastcyber.com</a> for 30+ security endpoints.
+    </div>
+
   </div>
 
   <script src="/static/js/nav.js"></script>

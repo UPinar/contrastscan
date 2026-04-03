@@ -53,6 +53,24 @@ h3 {
 .get  { background-color: rgba(34,197,94,0.1); color: var(--green); }
 .post { background-color: rgba(59,130,246,0.1); color: var(--focus); }
 
+.pro-badge {
+  display: inline-block;
+  padding: 0.2rem 0.5rem;
+  border-radius: 0.25rem;
+  font-size: 0.7rem;
+  font-weight: 500;
+  background-color: rgba(234,179,8,0.1);
+  color: var(--yellow);
+  vertical-align: middle;
+  text-transform: none;
+  letter-spacing: 0.05em;
+}
+
+.limit-box.pro-cta {
+  background-color: rgba(34,197,94,0.04);
+  border-color: rgba(34,197,94,0.12);
+}
+
 .url { font-size: 0.85rem; color: #e5e5e5; }
 
 .desc {
