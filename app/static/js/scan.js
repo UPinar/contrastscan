@@ -3,7 +3,6 @@ document.addEventListener('DOMContentLoaded', function() {
   var scanBtn = document.getElementById('scanBtn');
   var bulkFile = document.getElementById('bulkFile');
   var bulkBtn = document.querySelector('.btn-bulk');
-  var testUsLink = document.querySelector('.test-us');
 
   if (scanForm) {
     scanForm.addEventListener('submit', function() {
@@ -14,6 +13,14 @@ document.addEventListener('DOMContentLoaded', function() {
 
   window.addEventListener('pageshow', function() {
     if (scanBtn) { scanBtn.disabled = false; scanBtn.textContent = 'Scan Now'; }
+  });
+
+  document.querySelectorAll('.try-btn').forEach(function(btn) {
+    btn.addEventListener('click', function() {
+      var domain = btn.getAttribute('data-domain');
+      document.querySelector('input[name=domain]').value = domain;
+      scanForm.requestSubmit();
+    });
   });
 
   if (bulkBtn) {
@@ -32,14 +39,6 @@ document.addEventListener('DOMContentLoaded', function() {
         window.location.href = '/bulk';
       };
       reader.readAsText(file);
-    });
-  }
-
-  if (testUsLink) {
-    testUsLink.addEventListener('click', function(e) {
-      e.preventDefault();
-      document.querySelector('input[name=domain]').value = 'contrastcyber.com';
-      scanForm.submit();
     });
   }
 });

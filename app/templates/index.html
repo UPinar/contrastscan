@@ -24,7 +24,7 @@
   <link rel="icon" type="image/svg+xml" href="/static/favicon.svg">
   <style>body{background:#09090b;color:#fafafa;font-family:'Geist Mono',monospace;margin:0}</style>
   <link rel="stylesheet" href="/static/css/base.css?v=13">
-  <link rel="stylesheet" href="/static/css/index.css?v=16">
+  <link rel="stylesheet" href="/static/css/index.css?v=17">
   <script type="application/ld+json">
   {
     "@context": "https://schema.org",
@@ -57,26 +57,28 @@
     <div class="pill">FREE &middot; NO SIGNUP &middot; OPEN SOURCE</div>
     <h1>Know your website's<br><span class="gradient">security score</span></h1>
     <p class="subtitle">
-      Scan any domain in seconds. Get an A-F security grade covering 11 security checks.
-      Results are based on publicly available data (DNS records, HTTP headers, SSL certificates). No intrusive testing is performed.
+      11 security checks, 100-point score, A-F grade. Takes 3 seconds.
     </p>
 
     <form action="/scan" method="post" id="scanForm">
       <input type="text" name="domain" placeholder="example.com" required autofocus>
       <button type="submit" id="scanBtn" class="btn">Scan Now</button>
     </form>
+
+    <div class="try-examples">
+      <span class="try-label">Try it:</span>
+      <button type="button" class="try-btn" data-domain="contrastcyber.com"><span class="grade-a">A</span> contrastcyber.com</button>
+      <button type="button" class="try-btn" data-domain="google.com">google.com</button>
+      <button type="button" class="try-btn" data-domain="github.com">github.com</button>
+    </div>
+
+    {% if total_scans > 0 %}
+    <div class="scan-count"><strong>{{ "{:,}".format(total_scans) }}</strong> scans completed</div>
+    {% endif %}
+
     <input type="file" id="bulkFile" accept=".csv,.txt" hidden>
     <div class="bulk-row">
       <button type="button" class="btn-bulk">Bulk Scan — upload CSV/TXT (max 10)</button>
-    </div>
-
-    <div class="cta-row">
-      <a href="#" class="test-us">
-        We score <span class="grade-a">A</span> — try scanning us
-      </a>
-      {% if total_scans > 0 %}
-      <span class="scan-count"><strong>{{ "{:,}".format(total_scans) }}</strong> scan{{ "s" if total_scans != 1 else "" }} completed</span>
-      {% endif %}
     </div>
 
   </div>
