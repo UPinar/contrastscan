@@ -639,6 +639,7 @@ static cJSON *scan_ssl(const char *domain)
   /* Require pinned IP to prevent DNS rebinding TOCTOU — never fall back to domain */
   if (!g_resolved_ip || g_resolved_ip[0] == '\0')
   {
+    SSL_CTX_free(ctx);
     cJSON_AddStringToObject(obj, "error", "No resolved IP provided — DNS rebinding risk");
     return obj;
   }
@@ -674,6 +675,7 @@ static cJSON *scan_ssl(const char *domain)
   /* verify hostname matches certificate CN/SAN */
   SSL_set1_host(ssl, domain);
 
+  ERR_clear_error(); /* clear stale errors from prior scans */
   if (SSL_connect(ssl) <= 0)
   {
     int ssl_err = SSL_get_error(ssl, 0);
