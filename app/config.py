@@ -24,6 +24,8 @@ HOURLY_LIMIT = 100  # 100/hour per IP
 DOMAIN_LIMIT = 10  # per-domain: 10/hour (all users)
 
 SCAN_CONCURRENCY = 5
+PRO_HOURLY_LIMIT = 1000  # Pro API key holders
+BULK_MAX_DOMAINS = 50  # max domains per bulk scan request
 SCAN_TIMEOUT = 30  # seconds
 RECON_TIMEOUT = 5  # seconds per recon network operation
 CRTSH_TIMEOUT = 30  # crt.sh can be slow for large domains (runs in parallel)

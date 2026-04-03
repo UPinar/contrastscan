@@ -17,12 +17,14 @@ from contextlib import asynccontextmanager
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
+from auth import require_api_key
 from blog_posts import BLOG_POSTS, _blog_by_slug
 from config import (
     BADGE_CACHE_MAX_AGE,
     BADGE_GRADE_WIDTH,
     BADGE_LABEL_WIDTH,
     BASE_DIR,
+    BULK_MAX_DOMAINS,
     ERROR_MESSAGES,
     GRADE_COLORS,
     HOURLY_LIMIT,
@@ -34,21 +36,35 @@ from fastapi.responses import HTMLResponse, JSONResponse, PlainTextResponse, Red
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from learn_pages import LEARN_PAGES
+from pydantic import BaseModel, field_validator
 from report import generate_report, report_response
 from starlette.concurrency import run_in_threadpool
 from validation import SCAN_ID_PATTERN, check_csrf, clean_domain, get_client_ip
 
-from scanner import perform_scan
+from scanner import perform_bulk_scan, perform_scan
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
 logger = logging.getLogger("contrastscan")
+
+
+class BulkScanRequest(BaseModel):
+    domains: list[str]
+
+    @field_validator("domains")
+    @classmethod
+    def validate_domains(cls, v):
+        if not v:
+            raise ValueError("domains list cannot be empty")
+        if len(v) > BULK_MAX_DOMAINS:
+            raise ValueError(f"Maximum {BULK_MAX_DOMAINS} domains per request")
+        return v
 
 
 @asynccontextmanager
 async def lifespan(app):
     import asyncio
 
-    from db import cleanup_ip_limits, purge_old_client_hashes
+    from db import cleanup_api_usage, cleanup_ip_limits, purge_old_client_hashes
 
     init_db()
 
@@ -63,6 +79,12 @@ async def lifespan(app):
                     logger.info("IP limits cleanup: %d stale rows removed", deleted)
             except Exception as e:
                 logger.warning("IP limits cleanup failed: %s", e)
+            try:
+                deleted = cleanup_api_usage()
+                if deleted:
+                    logger.info("API usage cleanup: %d stale rows removed", deleted)
+            except Exception as e:
+                logger.warning("API usage cleanup failed: %s", e)
             # Purge old client hashes daily (every 24 cycles)
             if cycles % 24 == 0:
                 try:
@@ -250,6 +272,27 @@ def api_usage(request: Request):
     ip = get_client_ip(request)
     usage = get_ip_usage(ip)
     return {"usage": usage, "limit": HOURLY_LIMIT, "remaining": max(0, HOURLY_LIMIT - usage)}
+
+
+# === Bulk Scan (Pro) ===
+
+
+@app.post(
+    "/api/v1/bulk",
+    tags=["pro"],
+    summary="Bulk scan multiple domains (Pro)",
+    description="Scan up to 50 domains in a single request. Requires a Pro API key via X-API-Key header. 1000 scans/hour limit.",
+    operation_id="bulk_scan",
+)
+async def api_bulk_scan(request: Request, body: BulkScanRequest):
+    """Pro bulk scan — API key required, up to 50 domains per request."""
+    # Dedup before rate limit so we only reserve quota for unique domains
+    unique_domains = list(dict.fromkeys(c for d in body.domains if (c := clean_domain(d))))
+    if not unique_domains:
+        raise HTTPException(status_code=400, detail="No valid domains provided")
+    key_data = require_api_key(request, scan_count=len(unique_domains))
+    results = await run_in_threadpool(perform_bulk_scan, unique_domains, key_data["id"])
+    return {"results": results, "total": len(results), "successful": sum(1 for r in results if "error" not in r)}
 
 
 # === Reports ===

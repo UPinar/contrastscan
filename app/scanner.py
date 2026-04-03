@@ -6,7 +6,7 @@ import secrets
 import subprocess
 import threading
 
-from config import HOURLY_LIMIT, SCAN_CONCURRENCY, SCAN_TIMEOUT, SCANNER_PATH
+from config import BULK_MAX_DOMAINS, HOURLY_LIMIT, SCAN_CONCURRENCY, SCAN_TIMEOUT, SCANNER_PATH
 from db import check_and_increment_ip, hash_client_ip, save_scan
 from fastapi import HTTPException
 from findings import enrich_with_findings
@@ -106,3 +106,49 @@ def perform_scan(domain: str, client_ip: str, dnt: bool = False) -> tuple[str, d
     start_recon(scan_id, domain, result)
 
     return scan_id, result
+
+
+def perform_bulk_scan(domains: list[str], key_id: int) -> list[dict]:
+    """Scan multiple domains for Pro users. Skips failures, returns results list.
+    Expects pre-cleaned, deduplicated domains (endpoint handles dedup + quota).
+    Domain rate limit still applies. No background recon (resource conservation)."""
+    if len(domains) > BULK_MAX_DOMAINS:
+        raise HTTPException(status_code=400, detail=f"Maximum {BULK_MAX_DOMAINS} domains per request")
+
+    results = []
+    for domain in domains:
+        try:
+            resolved_ip = validate_domain(domain)
+
+            if domain in _SELF_DOMAINS and resolved_ip:
+                resolved_ip = "127.0.0.1"
+            if not resolved_ip:
+                results.append({"domain": domain, "error": "Could not resolve domain"})
+                continue
+
+            if not check_domain_limit(domain):
+                results.append({"domain": domain, "error": "Domain rate limit reached (10/hour)"})
+                continue
+
+            result = run_scan(domain, resolved_ip)
+            result = enrich_with_findings(result)
+            scan_id = make_scan_id()
+
+            save_scan(scan_id, domain, result, result.get("grade", "F"), result.get("total_score", 0))
+
+            results.append(
+                {
+                    "domain": domain,
+                    "scan_id": scan_id,
+                    "grade": result.get("grade", "F"),
+                    "score": result.get("total_score", 0),
+                    "result": result,
+                }
+            )
+        except HTTPException as e:
+            results.append({"domain": domain, "error": e.detail})
+        except Exception as e:
+            logger.warning("Bulk scan error for %s: %s", domain, e)
+            results.append({"domain": domain, "error": "Scan failed"})
+
+    return results

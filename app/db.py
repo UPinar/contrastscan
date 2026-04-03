@@ -9,12 +9,14 @@ import threading
 from contextlib import contextmanager
 from datetime import UTC, datetime, timedelta
 
-from config import DB_PATH, HASH_SECRET
+from config import DB_PATH, HASH_SECRET, PRO_HOURLY_LIMIT
 
 logger = logging.getLogger("contrastscan")
 
-# Resolve HMAC key once at import time (config.py guarantees HASH_SECRET is never empty)
-_hmac_key = HASH_SECRET.encode()
+# Derive separate HMAC keys for different purposes (key separation best practice)
+_raw_key = HASH_SECRET.encode()
+_ip_hmac_key = hmac.new(_raw_key, b"ip-hash", hashlib.sha256).digest()
+_apikey_hmac_key = hmac.new(_raw_key, b"api-key-hash", hashlib.sha256).digest()
 
 # Thread-local connection pool — reuses connections per thread instead of
 # opening/closing on every request. SQLite in WAL mode supports concurrent reads.
@@ -105,11 +107,34 @@ def init_db():
                 window_start TEXT NOT NULL
             )
         """)
+        con.execute("""
+            CREATE TABLE IF NOT EXISTS api_keys (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                key_prefix TEXT NOT NULL,
+                key_hash TEXT NOT NULL UNIQUE,
+                email TEXT NOT NULL,
+                tier TEXT NOT NULL DEFAULT 'pro',
+                created_at TEXT NOT NULL,
+                last_used_at TEXT,
+                revoked INTEGER NOT NULL DEFAULT 0
+            )
+        """)
+        con.execute("""
+            CREATE TABLE IF NOT EXISTS api_usage (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                key_id INTEGER NOT NULL,
+                endpoint TEXT NOT NULL,
+                domain TEXT,
+                created_at TEXT NOT NULL
+            )
+        """)
+        con.execute("CREATE INDEX IF NOT EXISTS idx_usage_key ON api_usage(key_id)")
+        con.execute("CREATE INDEX IF NOT EXISTS idx_usage_time ON api_usage(created_at)")
 
 
 def hash_client_ip(ip: str) -> str:
     """Hash a client IP with HMAC for privacy-safe analytics. Returns 32-char hex digest."""
-    return hmac.new(_hmac_key, ip.encode(), hashlib.sha256).hexdigest()[:32]
+    return hmac.new(_ip_hmac_key, ip.encode(), hashlib.sha256).hexdigest()[:32]
 
 
 def save_scan(
@@ -238,6 +263,15 @@ def cleanup_ip_limits() -> int:
         return cur.rowcount
 
 
+def cleanup_api_usage() -> int:
+    """Delete api_usage rows older than current hour. Returns number of rows deleted."""
+    now = datetime.now(UTC)
+    window_start_str = now.replace(minute=0, second=0, microsecond=0).isoformat()
+    with get_db() as con:
+        cur = con.execute("DELETE FROM api_usage WHERE created_at < ?", (window_start_str,))
+        return cur.rowcount
+
+
 def create_recon(scan_id: str, domain: str) -> None:
     now = datetime.now(UTC).isoformat()
     with get_db() as con:
@@ -299,3 +333,100 @@ def purge_old_client_hashes(days: int = 90) -> int:
     with get_db() as con:
         cur = con.execute("UPDATE scans SET client_hash = '' WHERE client_hash != '' AND created_at < ?", (cutoff_str,))
         return cur.rowcount
+
+
+# === API Keys ===
+
+
+def _hash_api_key(raw_key: str) -> str:
+    """HMAC-SHA256 hash for API key storage."""
+    return hmac.new(_apikey_hmac_key, raw_key.encode(), hashlib.sha256).hexdigest()
+
+
+def create_api_key(email: str, tier: str = "pro") -> str:
+    """Create a new API key. Returns the raw key (only shown once)."""
+    import secrets
+
+    raw_key = "cs_" + secrets.token_hex(24)  # cs_ + 48 hex chars
+    key_hash = _hash_api_key(raw_key)
+    key_prefix = raw_key[:10]  # cs_XXXXXXX for identification
+    now = datetime.now(UTC).isoformat()
+
+    with get_db() as con:
+        con.execute(
+            "INSERT INTO api_keys (key_prefix, key_hash, email, tier, created_at) VALUES (?, ?, ?, ?, ?)",
+            (key_prefix, key_hash, email, tier, now),
+        )
+    return raw_key
+
+
+def validate_api_key(raw_key: str) -> dict | None:
+    """Validate an API key. Returns key info dict or None if invalid/revoked."""
+    key_hash = _hash_api_key(raw_key)
+    now = datetime.now(UTC).isoformat()
+
+    with get_db() as con:
+        cur = con.cursor()
+        cur.row_factory = sqlite3.Row
+        row = cur.execute("SELECT * FROM api_keys WHERE key_hash = ? AND revoked = 0", (key_hash,)).fetchone()
+        if not row:
+            return None
+        con.execute("UPDATE api_keys SET last_used_at = ? WHERE id = ?", (now, row["id"]))
+        return dict(row)
+
+
+def log_api_usage(key_id: int, endpoint: str, domain: str | None = None) -> None:
+    """Log an API key usage event."""
+    now = datetime.now(UTC).isoformat()
+    with get_db() as con:
+        con.execute(
+            "INSERT INTO api_usage (key_id, endpoint, domain, created_at) VALUES (?, ?, ?, ?)",
+            (key_id, endpoint, domain, now),
+        )
+
+
+def check_pro_rate_limit(key_id: int, count: int = 1) -> tuple[bool, int]:
+    """Check Pro API key hourly rate limit and reserve quota atomically.
+    Uses BEGIN IMMEDIATE to acquire write lock before SELECT, preventing
+    TOCTOU race where two threads read the same usage count.
+    count: number of scans to reserve (e.g. len(unique_domains) for bulk).
+    Returns (allowed, current_usage). If allowed, `count` usage rows are inserted."""
+    now = datetime.now(UTC)
+    window_start = now.replace(minute=0, second=0, microsecond=0).isoformat()
+    now_str = now.isoformat()
+
+    con = _get_thread_conn()
+    try:
+        con.execute("BEGIN IMMEDIATE")
+        row = con.execute(
+            "SELECT COUNT(*) FROM api_usage WHERE key_id = ? AND created_at >= ?",
+            (key_id, window_start),
+        ).fetchone()
+        usage = row[0]
+        if usage + count > PRO_HOURLY_LIMIT:
+            con.execute("ROLLBACK")
+            return False, usage
+        con.executemany(
+            "INSERT INTO api_usage (key_id, endpoint, domain, created_at) VALUES (?, ?, ?, ?)",
+            [(key_id, "_reserve", None, now_str)] * count,
+        )
+        con.execute("COMMIT")
+        return True, usage
+    except Exception:
+        try:
+            con.execute("ROLLBACK")
+        except Exception:
+            # Connection is broken — discard it so next request gets a fresh one
+            try:
+                con.close()
+            except Exception:
+                pass
+            _local.conn = None
+        raise
+
+
+def revoke_api_key(key_id: int) -> bool:
+    """Revoke an API key. Returns True if found and revoked."""
+    with get_db() as con:
+        cur = con.execute("UPDATE api_keys SET revoked = 1 WHERE id = ? AND revoked = 0", (key_id,))
+        return cur.rowcount > 0
