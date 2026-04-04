@@ -259,6 +259,9 @@ document.addEventListener('DOMContentLoaded', function() {
         d.asn.ipv4_prefixes.slice(0, 5).forEach(function(p) { asnRows.push(row('IPv4', p.prefix)); });
         if (d.asn.ipv4_prefixes.length > 5) asnRows.push(row('', '+' + (d.asn.ipv4_prefixes.length - 5) + ' more IPv4 prefixes'));
       }
+      if (d.asn.ipv6_prefixes && d.asn.ipv6_prefixes.length > 0 && d.asn.ipv4_prefixes && d.asn.ipv4_prefixes.length > 0) {
+        asnRows.push(row('', ''));
+      }
       if (d.asn.ipv6_prefixes && d.asn.ipv6_prefixes.length > 0) {
         d.asn.ipv6_prefixes.slice(0, 3).forEach(function(p) { asnRows.push(row('IPv6', p.prefix)); });
         if (d.asn.ipv6_prefixes.length > 3) asnRows.push(row('', '+' + (d.asn.ipv6_prefixes.length - 3) + ' more IPv6 prefixes'));
