@@ -367,7 +367,7 @@ def fetch_asn_info(ip: str) -> dict:
                 headers={"User-Agent": "contrastscan/1.0"},
             )
             resp3 = _no_redirect_opener.open(req3, timeout=5)
-            data3 = json.loads(resp3.read(131072))
+            data3 = json.loads(resp3.read(524288))
             for p in data3.get("data", {}).get("prefixes", []):
                 prefix = p.get("prefix", "")
                 if not prefix:
