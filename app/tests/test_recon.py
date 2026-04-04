@@ -509,6 +509,47 @@ class TestEnumerateSubdomains:
         assert r["count"] == 0
         assert r["subdomains"] == []
 
+    @patch("recon._crtsh_subdomains", return_value=[])
+    @patch("recon.socket.getaddrinfo")
+    def test_wildcard_dns_filters_false_positives(self, mock_dns, mock_crt):
+        """All subdomains resolve to wildcard IP — none should be reported."""
+        # Every FQDN (including the random wildcard probe) resolves to same IP
+        mock_dns.return_value = [
+            (socket.AF_INET, socket.SOCK_STREAM, 0, "", ("5.5.5.5", 0))
+        ]
+        r = enumerate_subdomains("example.com")
+        assert r["count"] == 0
+        assert r["subdomains"] == []
+
+    @patch("recon._crtsh_subdomains", return_value=[])
+    @patch("recon.socket.getaddrinfo")
+    def test_wildcard_dns_keeps_different_ip(self, mock_dns, mock_crt):
+        """Subdomain with a different IP than wildcard should be kept."""
+        wildcard_ip = "5.5.5.5"
+        real_ip = "9.9.9.9"
+
+        def side_effect(fqdn, port, **kwargs):
+            # www.example.com has its own IP, everything else hits wildcard
+            if fqdn == "www.example.com":
+                return [(socket.AF_INET, socket.SOCK_STREAM, 0, "", (real_ip, 0))]
+            return [(socket.AF_INET, socket.SOCK_STREAM, 0, "", (wildcard_ip, 0))]
+
+        mock_dns.side_effect = side_effect
+        r = enumerate_subdomains("example.com")
+        assert "www.example.com" in r["subdomains"]
+        assert r["count"] == 1
+
+    @patch("recon._crtsh_subdomains", return_value=["api.example.com"])
+    @patch("recon.socket.getaddrinfo")
+    def test_wildcard_dns_crtsh_still_merged(self, mock_dns, mock_crt):
+        """crt.sh results should still be included even with wildcard DNS."""
+        mock_dns.return_value = [
+            (socket.AF_INET, socket.SOCK_STREAM, 0, "", ("5.5.5.5", 0))
+        ]
+        r = enumerate_subdomains("example.com")
+        assert "api.example.com" in r["subdomains"]
+        assert r["count"] == 1
+
 
 # ============================================================
 # Group C — crt.sh helper

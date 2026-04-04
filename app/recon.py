@@ -7,6 +7,7 @@ import socket
 import ssl
 import subprocess
 import threading
+import uuid
 from urllib.request import HTTPRedirectHandler, Request, build_opener
 
 import dns.resolver
@@ -557,8 +558,24 @@ def check_zone_transfer(domain: str) -> dict:
         return {"vulnerable": False, "error": "check failed"}
 
 
+def _detect_wildcard_ip(domain: str) -> set[str]:
+    """Probe a random subdomain to detect wildcard DNS records.
+
+    Returns the set of IPs the wildcard resolves to (empty if no wildcard).
+    """
+    random_sub = f"{uuid.uuid4().hex[:16]}.{domain}"
+    try:
+        results = socket.getaddrinfo(random_sub, None, type=socket.SOCK_STREAM)
+        return {sa[0] for _, _, _, _, sa in results}
+    except (socket.gaierror, OSError):
+        return set()
+
+
 def enumerate_subdomains(domain: str, crtsh_data: list | None = None) -> dict:
     found = []
+
+    # Detect wildcard DNS — if *.domain resolves, note its IPs to filter false positives
+    wildcard_ips = _detect_wildcard_ip(domain)
 
     # Method 1: DNS brute force common subdomains (skip private IPs — SSRF defense)
     for sub in COMMON_SUBDOMAINS:
@@ -567,18 +584,25 @@ def enumerate_subdomains(domain: str, crtsh_data: list | None = None) -> dict:
             results = socket.getaddrinfo(fqdn, None, type=socket.SOCK_STREAM)
             # Check ALL resolved IPs (IPv4 + IPv6) for private addresses
             all_public = results and all(not is_private_ip(sa[0]) for _, _, _, _, sa in results)
-            if all_public:
-                found.append(fqdn)
-        except socket.gaierror:
+            if not all_public:
+                continue
+            # Skip if ALL resolved IPs match wildcard (not a real subdomain)
+            resolved_ips = {sa[0] for _, _, _, _, sa in results}
+            if wildcard_ips and resolved_ips.issubset(wildcard_ips):
+                continue
+            found.append(fqdn)
+        except (socket.gaierror, OSError):
             pass
 
     # Method 2: crt.sh certificate transparency (use cached data if available)
+    # No wildcard filtering — CT entries are certificate-backed, so they represent real services
     ct_subs = _crtsh_subdomains(domain, crtsh_data)
     for s in ct_subs:
         if s not in found:
             found.append(s)
 
-    return {"subdomains": sorted(set(found)), "count": len(set(found))}
+    deduped = sorted(set(found))
+    return {"subdomains": deduped, "count": len(deduped)}
 
 
 def _fetch_crtsh(query: str) -> list:
