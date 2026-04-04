@@ -455,7 +455,7 @@ static cJSON *scan_disclosure(void)
     lower[slen] = '\0';
 
     for (int i = 0; cdn_names[i]; i++)
-      if (strstr(lower, cdn_names[i]))
+      if (strstr(lower, cdn_names[i]) && !strchr(lower, '/'))
         { server_is_cdn = 1; break; }
   }
 

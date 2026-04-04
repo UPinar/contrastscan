@@ -716,7 +716,7 @@ static int is_cdn_name(const char *server_value)
   lower[slen] = '\0';
 
   for (int i = 0; cdn_names[i]; i++)
-    if (strstr(lower, cdn_names[i]))
+    if (strstr(lower, cdn_names[i]) && !strchr(lower, '/'))
       return 1;
   return 0;
 }
@@ -782,14 +782,14 @@ void test_cdn_name_matching(void)
   TEST("cdn_match: NGINX (upper) → yes");
   ASSERT_INT_EQ(is_cdn_name("NGINX"), 1); PASS();
 
-  TEST("cdn_match: nginx/1.28.2 (with version) → yes");
-  ASSERT_INT_EQ(is_cdn_name("nginx/1.28.2"), 1); PASS();
+  TEST("cdn_match: nginx/1.28.2 (with version) → no (version exposed)");
+  ASSERT_INT_EQ(is_cdn_name("nginx/1.28.2"), 0); PASS();
 
   TEST("cdn_match: apache → yes");
   ASSERT_INT_EQ(is_cdn_name("apache"), 1); PASS();
 
-  TEST("cdn_match: Apache/2.4.57 (with version) → yes");
-  ASSERT_INT_EQ(is_cdn_name("Apache/2.4.57"), 1); PASS();
+  TEST("cdn_match: Apache/2.4.57 (with version) → no (version exposed)");
+  ASSERT_INT_EQ(is_cdn_name("Apache/2.4.57"), 0); PASS();
 
   TEST("cdn_match: lighttpd → yes");
   ASSERT_INT_EQ(is_cdn_name("lighttpd"), 1); PASS();
@@ -821,9 +821,9 @@ void test_cdn_name_matching(void)
   int cdn = is_cdn_name("nginx");
   ASSERT_INT_EQ(calc_disclosure_score(1, cdn, 0), 5); PASS();
 
-  TEST("disclosure+cdn: Apache/2.4 exposed → 5 (no penalty)");
+  TEST("disclosure+cdn: Apache/2.4 exposed → 2 (version penalty)");
   cdn = is_cdn_name("Apache/2.4.57");
-  ASSERT_INT_EQ(calc_disclosure_score(1, cdn, 0), 5); PASS();
+  ASSERT_INT_EQ(calc_disclosure_score(1, cdn, 0), 2); PASS();
 
   TEST("disclosure+cdn: gunicorn exposed → 2 (penalty)");
   cdn = is_cdn_name("gunicorn");
