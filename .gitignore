@@ -30,3 +30,5 @@ blog_*.md
 IMPROVEMENTS.md
 scan_top_sites.sh
 analyze_results.py
+scan_*_top*.py
+*_top*_results.json
