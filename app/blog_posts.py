@@ -198,7 +198,7 @@ add_header X-XSS-Protection "1; mode=block" always;""",
     {
         "slug": "best-website-security-scanners-2026",
         "title": "Best Free Website Security Scanners in 2026: Honest Comparison",
-        "description": "We tested 8 free website security scanners. Here's what each one actually checks, misses, and how they compare.",
+        "description": "We compared 5 popular free website security scanners. Here's what each one checks, misses, and how they stack up.",
         "date": "2026-04-02",
         "category": "Comparison",
         "tags": ["security-scanner", "tools", "comparison"],
@@ -206,7 +206,7 @@ add_header X-XSS-Protection "1; mode=block" always;""",
         "content": [
             {
                 "type": "intro",
-                "text": "There are dozens of free website security scanners. Most check different things, and none of them catch everything. We ran 8 popular scanners against the same set of websites and compared what they found.",
+                "text": "There are dozens of free website security scanners. Most check different things, and none of them catch everything. We compared 5 popular scanners to see what each one covers and where they fall short.",
             },
             {
                 "type": "heading",
@@ -214,7 +214,7 @@ add_header X-XSS-Protection "1; mode=block" always;""",
             },
             {
                 "type": "paragraph",
-                "text": "We scanned 20 websites across different industries using each tool. We compared: what security checks each tool performs, how they present results, scan speed, and whether they offer an API.",
+                "text": "We compared what security checks each tool performs, how they present results, scan speed, and whether they offer an API.",
             },
             {
                 "type": "heading",
@@ -230,7 +230,7 @@ add_header X-XSS-Protection "1; mode=block" always;""",
             },
             {
                 "type": "paragraph",
-                "text": "<strong>Strengths:</strong> Most comprehensive free scan — covers headers, SSL, DNS, and HTML in one pass. Open source. API available. Fast (under 30 seconds).",
+                "text": "<strong>Strengths:</strong> Covers headers, SSL, DNS, and HTML in one pass. Open source. API available. Fast (under 30 seconds).",
             },
             {
                 "type": "paragraph",
@@ -250,7 +250,7 @@ add_header X-XSS-Protection "1; mode=block" always;""",
             },
             {
                 "type": "paragraph",
-                "text": "<strong>Limitations:</strong> Headers only — no SSL, no DNS, no cookie checks. Doesn't validate header values, just presence.",
+                "text": "<strong>Limitations:</strong> Headers only — no SSL, no DNS, no cookie checks.",
             },
             {
                 "type": "subheading",
