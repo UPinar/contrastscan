@@ -571,6 +571,18 @@ def _detect_wildcard_ip(domain: str) -> set[str]:
         return set()
 
 
+def _resolve_public(fqdn: str, wildcard_ips: set[str]) -> bool:
+    """DNS-resolve fqdn and return True if it points to public, non-wildcard IPs."""
+    try:
+        results = socket.getaddrinfo(fqdn, None, type=socket.SOCK_STREAM)
+        if not results or not all(not is_private_ip(sa[0]) for _, _, _, _, sa in results):
+            return False
+        resolved_ips = {sa[0] for _, _, _, _, sa in results}
+        return not (wildcard_ips and resolved_ips.issubset(wildcard_ips))
+    except (socket.gaierror, OSError):
+        return False
+
+
 def enumerate_subdomains(domain: str, crtsh_data: list | None = None) -> dict:
     found = []
 
@@ -580,25 +592,14 @@ def enumerate_subdomains(domain: str, crtsh_data: list | None = None) -> dict:
     # Method 1: DNS brute force common subdomains (skip private IPs — SSRF defense)
     for sub in COMMON_SUBDOMAINS:
         fqdn = f"{sub}.{domain}"
-        try:
-            results = socket.getaddrinfo(fqdn, None, type=socket.SOCK_STREAM)
-            # Check ALL resolved IPs (IPv4 + IPv6) for private addresses
-            all_public = results and all(not is_private_ip(sa[0]) for _, _, _, _, sa in results)
-            if not all_public:
-                continue
-            # Skip if ALL resolved IPs match wildcard (not a real subdomain)
-            resolved_ips = {sa[0] for _, _, _, _, sa in results}
-            if wildcard_ips and resolved_ips.issubset(wildcard_ips):
-                continue
+        if _resolve_public(fqdn, wildcard_ips):
             found.append(fqdn)
-        except (socket.gaierror, OSError):
-            pass
 
     # Method 2: crt.sh certificate transparency (use cached data if available)
-    # No wildcard filtering — CT entries are certificate-backed, so they represent real services
+    # CT logs show historically issued certs — DNS-verify each to confirm it still resolves
     ct_subs = _crtsh_subdomains(domain, crtsh_data)
     for s in ct_subs:
-        if s not in found:
+        if s not in found and _resolve_public(s, wildcard_ips):
             found.append(s)
 
     deduped = sorted(set(found))

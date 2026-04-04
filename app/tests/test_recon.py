@@ -489,11 +489,32 @@ class TestEnumerateSubdomains:
         assert r["count"] == 2
 
     @patch("recon._crtsh_subdomains", return_value=["api.example.com", "cdn.example.com"])
-    @patch("recon.socket.getaddrinfo", side_effect=socket.gaierror("NXDOMAIN"))
-    def test_crtsh_results_merged(self, mock_dns, mock_crt):
+    @patch("recon.socket.getaddrinfo")
+    def test_crtsh_results_merged_when_resolvable(self, mock_dns, mock_crt):
+        """CT subdomains that DNS-resolve to public IPs are included."""
+        mock_dns.side_effect = _mock_getaddrinfo({"api.example.com", "cdn.example.com"})
         r = enumerate_subdomains("example.com")
         assert "api.example.com" in r["subdomains"]
         assert "cdn.example.com" in r["subdomains"]
+
+    @patch("recon._crtsh_subdomains", return_value=["api.example.com", "cdn.example.com"])
+    @patch("recon.socket.getaddrinfo", side_effect=socket.gaierror("NXDOMAIN"))
+    def test_crtsh_results_filtered_when_nxdomain(self, mock_dns, mock_crt):
+        """CT subdomains that don't DNS-resolve are excluded."""
+        r = enumerate_subdomains("example.com")
+        assert "api.example.com" not in r["subdomains"]
+        assert "cdn.example.com" not in r["subdomains"]
+        assert r["count"] == 0
+
+    @patch("recon._crtsh_subdomains", return_value=["internal.example.com"])
+    @patch("recon.socket.getaddrinfo")
+    def test_crtsh_results_filtered_when_private_ip(self, mock_dns, mock_crt):
+        """CT subdomains resolving to private IPs are excluded."""
+        mock_dns.side_effect = lambda fqdn, port, **kw: [
+            (socket.AF_INET, socket.SOCK_STREAM, 0, "", ("192.168.1.1", 0))
+        ]
+        r = enumerate_subdomains("example.com")
+        assert "internal.example.com" not in r["subdomains"]
 
     @patch("recon._crtsh_subdomains", return_value=["www.example.com"])
     @patch("recon.socket.getaddrinfo")
@@ -539,12 +560,28 @@ class TestEnumerateSubdomains:
 
     @patch("recon._crtsh_subdomains", return_value=["api.example.com"])
     @patch("recon.socket.getaddrinfo")
-    def test_wildcard_dns_crtsh_still_merged(self, mock_dns, mock_crt):
-        """crt.sh results should still be included even with wildcard DNS."""
+    def test_wildcard_dns_crtsh_filtered_by_wildcard(self, mock_dns, mock_crt):
+        """CT subdomains resolving to wildcard IP are filtered out."""
         mock_dns.return_value = [(socket.AF_INET, socket.SOCK_STREAM, 0, "", ("5.5.5.5", 0))]
         r = enumerate_subdomains("example.com")
+        assert "api.example.com" not in r["subdomains"]
+        assert r["count"] == 0
+
+    @patch("recon._crtsh_subdomains", return_value=["api.example.com"])
+    @patch("recon.socket.getaddrinfo")
+    def test_wildcard_dns_crtsh_kept_when_different_ip(self, mock_dns, mock_crt):
+        """CT subdomain with different IP than wildcard should be kept."""
+        wildcard_ip = "5.5.5.5"
+        real_ip = "9.9.9.9"
+
+        def side_effect(fqdn, port, **kwargs):
+            if fqdn == "api.example.com":
+                return [(socket.AF_INET, socket.SOCK_STREAM, 0, "", (real_ip, 0))]
+            return [(socket.AF_INET, socket.SOCK_STREAM, 0, "", (wildcard_ip, 0))]
+
+        mock_dns.side_effect = side_effect
+        r = enumerate_subdomains("example.com")
         assert "api.example.com" in r["subdomains"]
-        assert r["count"] == 1
 
 
 # ============================================================
@@ -1422,9 +1459,10 @@ class TestCheckCtLogsPreFetched:
 
 
 class TestEnumerateSubdomainsPreFetched:
-    @patch("recon.socket.gethostbyname", side_effect=socket.gaierror("NXDOMAIN"))
+    @patch("recon.socket.getaddrinfo")
     def test_uses_cached_crtsh_data(self, mock_dns):
         """When crtsh_data is passed to enumerate_subdomains, it feeds _crtsh_subdomains."""
+        mock_dns.side_effect = _mock_getaddrinfo({"api.example.com", "cdn.example.com"})
         crtsh_data = [
             {"name_value": "api.example.com"},
             {"name_value": "cdn.example.com"},
