@@ -514,9 +514,7 @@ class TestEnumerateSubdomains:
     def test_wildcard_dns_filters_false_positives(self, mock_dns, mock_crt):
         """All subdomains resolve to wildcard IP — none should be reported."""
         # Every FQDN (including the random wildcard probe) resolves to same IP
-        mock_dns.return_value = [
-            (socket.AF_INET, socket.SOCK_STREAM, 0, "", ("5.5.5.5", 0))
-        ]
+        mock_dns.return_value = [(socket.AF_INET, socket.SOCK_STREAM, 0, "", ("5.5.5.5", 0))]
         r = enumerate_subdomains("example.com")
         assert r["count"] == 0
         assert r["subdomains"] == []
@@ -543,9 +541,7 @@ class TestEnumerateSubdomains:
     @patch("recon.socket.getaddrinfo")
     def test_wildcard_dns_crtsh_still_merged(self, mock_dns, mock_crt):
         """crt.sh results should still be included even with wildcard DNS."""
-        mock_dns.return_value = [
-            (socket.AF_INET, socket.SOCK_STREAM, 0, "", ("5.5.5.5", 0))
-        ]
+        mock_dns.return_value = [(socket.AF_INET, socket.SOCK_STREAM, 0, "", ("5.5.5.5", 0))]
         r = enumerate_subdomains("example.com")
         assert "api.example.com" in r["subdomains"]
         assert r["count"] == 1
