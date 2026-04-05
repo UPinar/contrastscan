@@ -4,22 +4,21 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Stats | ContrastScan</title>
-  <meta name="description" content="Aggregate security scan statistics from ContrastScan. View grade distribution, average scores, and unique domains scanned.">
+  <meta name="description" content="Security scan grade distribution from ContrastScan.">
   <meta name="theme-color" content="#09090b">
   <meta property="og:title" content="Stats | ContrastScan">
-  <meta property="og:description" content="Aggregate security scan statistics. View grade distribution, average scores, and unique domains scanned.">
+  <meta property="og:description" content="Security scan grade distribution from ContrastScan.">
   <meta property="og:type" content="website">
   <meta property="og:url" content="https://contrastcyber.com/stats">
   <meta property="og:image" content="https://contrastcyber.com/static/og-image.png">
   <meta property="og:site_name" content="ContrastScan">
-  <!-- Twitter Card -->
   <meta name="twitter:card" content="summary">
   <meta name="twitter:title" content="Stats | ContrastScan">
-  <meta name="twitter:description" content="Aggregate security scan statistics. View grade distribution, average scores, and unique domains scanned.">
+  <meta name="twitter:description" content="Security scan grade distribution from ContrastScan.">
   <link rel="canonical" href="https://contrastcyber.com/stats">
   <link rel="icon" type="image/svg+xml" href="/static/favicon.svg">
   <link rel="stylesheet" href="/static/css/base.css?v=13">
-  <link rel="stylesheet" href="/static/css/stats.css?v=2">
+  <link rel="stylesheet" href="/static/css/stats.css?v=3">
 </head>
 <body>
   <nav>
@@ -35,25 +34,13 @@
 
   <div class="content">
     <h1>Scan Statistics</h1>
-    <p class="subtitle">Aggregate data from all scans performed on ContrastScan.</p>
 
-    {% if total_scans > 0 %}
-    <div class="stat-grid">
-      <div class="stat-card">
-        <div class="stat-value">{{ "{:,}".format(total_scans) }}</div>
-        <div class="stat-label">Total Scans</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-value">{{ unique_domains }}</div>
-        <div class="stat-label">Unique Domains</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-value" style="color: {{ '#22c55e' if avg_score >= 75 else '#eab308' if avg_score >= 50 else '#ef4444' }}">{{ avg_score }}</div>
-        <div class="stat-label">Avg Score / 100</div>
-      </div>
+    {% if grades %}
+    <div class="avg-score">
+      <div class="avg-value" style="color: {{ '#22c55e' if avg_score >= 75 else '#eab308' if avg_score >= 50 else '#ef4444' }}">{{ avg_score }}</div>
+      <div class="avg-label">Average Score / 100</div>
     </div>
 
-    <h2>Grade Distribution</h2>
     <div class="grade-bars">
     {% for g in grades %}
     <div class="grade-bar">
@@ -61,7 +48,7 @@
       <div class="bar-bg">
         <div class="bar-fill" style="width: {{ g.pct }}%; background: {{ g.color }};"></div>
       </div>
-      <span class="bar-count">{{ g.count }} ({{ g.pct }}%)</span>
+      <span class="bar-pct">{{ g.pct }}%</span>
     </div>
     {% endfor %}
     </div>

@@ -2,51 +2,26 @@
 
 h1 {
   font-size: 1.5rem;
-  margin-block-end: 0.5rem;
+  margin-block-end: 2rem;
 }
 
-.subtitle {
-  font-size: 0.85rem;
-  margin-block-end: 2.5rem;
-}
-
-.stat-grid {
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: 1rem;
-  margin-block-end: 2.5rem;
-}
-
-.stat-card {
-  background-color: var(--bg-card);
-  border: 1px solid var(--border-dim);
-  border-radius: 0.75rem;
-  padding: 1.5rem;
+.avg-score {
   text-align: center;
-  transition: border-color 0.2s;
+  margin-block-end: 2rem;
 }
 
-.stat-card:hover { border-color: var(--border); }
-
-.stat-value {
-  font-size: 1.75rem;
+.avg-value {
+  font-size: 2.5rem;
   font-weight: 800;
-  margin-block-end: 0.35rem;
   letter-spacing: -0.02em;
+  margin-block-end: 0.25rem;
 }
 
-.stat-label {
+.avg-label {
   font-size: 0.7rem;
   color: var(--text-dim);
   text-transform: uppercase;
   letter-spacing: 0.05em;
-}
-
-h2 {
-  font-size: 0.95rem;
-  font-weight: 600;
-  margin-block-end: 1rem;
-  letter-spacing: -0.01em;
 }
 
 .grade-bars {
@@ -75,10 +50,10 @@ h2 {
 
 .bar-bg { flex: 1; block-size: 0.375rem; }
 
-.bar-count {
+.bar-pct {
   font-size: 0.75rem;
   color: var(--text-dim);
-  min-inline-size: 3.75rem;
+  min-inline-size: 2.5rem;
   text-align: end;
 }
 
@@ -103,5 +78,5 @@ footer { max-inline-size: 50rem; }
 /* Desktop (640px+) */
 @media screen and (min-width: 640px) {
   h1 { font-size: 1.75rem; }
-  .stat-grid { grid-template-columns: repeat(3, 1fr); }
+  .avg-value { font-size: 3rem; }
 }
