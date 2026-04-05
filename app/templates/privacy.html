@@ -21,71 +21,105 @@
   </nav>
 <div class="legal">
   <h1>Privacy Policy</h1>
-  <p class="updated">Last updated: March 30, 2026</p>
+  <p class="updated">Last updated: April 6, 2026</p>
 
   <h2>1. Introduction</h2>
-  <p>ContrastCyber ("we", "us") operates ContrastScan at contrastcyber.com and the ContrastAPI at api.contrastcyber.com. This Privacy Policy explains what data we collect and how we use it.</p>
+  <p>ContrastCyber ("we", "us") operates ContrastScan at contrastcyber.com and ContrastAPI at api.contrastcyber.com. This Privacy Policy covers both services and explains what data we collect, how we use it, and your rights.</p>
 
   <h2>2. Data We Collect</h2>
 
-  <h3>2.1 Scan Data</h3>
+  <h3>2.1 Scan Data (ContrastScan)</h3>
   <ul>
     <li><strong>Domain names</strong> submitted for scanning</li>
     <li><strong>Scan results</strong> (security scores, grades, findings)</li>
     <li><strong>Passive recon data</strong> (DNS records, WHOIS, certificate transparency logs) — all from public sources</li>
   </ul>
 
-  <h3>2.2 Technical Data</h3>
+  <h3>2.2 API Usage Data (ContrastAPI)</h3>
   <ul>
-    <li><strong>Hashed IP addresses</strong> — a truncated SHA-256 hash of your IP is stored for aggregate analytics (new vs. returning users). No raw IP address is ever stored in the database.</li>
-    <li><strong>Rate limiting</strong> — raw IP addresses are stored temporarily in a local database for rate limiting, purged hourly, and never shared.</li>
+    <li><strong>API request logs</strong> — endpoint called, timestamp, and hashed API key (for Pro users). Used for usage analytics and rate limit enforcement.</li>
+    <li><strong>Query parameters</strong> — domain names, IP addresses, CVE IDs, email addresses, phone numbers, or usernames submitted to API endpoints. These are processed in real-time to generate results but are <strong>not stored</strong> beyond the request log entry (which only records the endpoint path, not the full query).</li>
+    <li><strong>Hashed API keys</strong> — Pro API keys are stored as SHA-256 hashes. We never store your raw API key after initial generation.</li>
   </ul>
 
-  <h3>2.3 What We Do NOT Collect</h3>
+  <h3>2.3 Technical Data (Both Services)</h3>
   <ul>
-    <li>No personal information (name, email, phone) — no signup required, no accounts</li>
-    <li>No tracking cookies</li>
+    <li><strong>Hashed IP addresses</strong> — a SHA-256 hash of your IP (with random salt) is stored for aggregate analytics. No raw IP address is ever stored in the application database.</li>
+    <li><strong>Rate limiting</strong> — raw IP addresses are stored temporarily in a local database for rate limiting and purged automatically. Never shared.</li>
+    <li><strong>Server logs</strong> — standard nginx access logs retained for up to 14 days containing: IP address, timestamp, HTTP method, request path, status code, response size, referrer URL, and user-agent string.</li>
+    <li><strong>Geographic analysis</strong> — a local GeoIP database (MaxMind GeoLite2) maps IP addresses to <strong>country-level location only</strong>. No city, region, or precise location data is derived. No individual user is identified or profiled.</li>
+  </ul>
+
+  <h3>2.4 What We Do NOT Collect</h3>
+  <ul>
+    <li>No personal information (name, email, phone) — no signup required, no user accounts</li>
+    <li>No tracking cookies or session cookies</li>
     <li>No third-party analytics (no Google Analytics, no Facebook Pixel, no fingerprinting)</li>
     <li>No advertising data</li>
     <li>We do not sell, rent, or share any data with third parties</li>
     <li>We do not track users across sites</li>
+    <li>We do not store the content of API query results</li>
   </ul>
 
   <h2>3. DNT &amp; Global Privacy Control</h2>
-  <p>We respect the <strong>Do Not Track</strong> (DNT) and <strong>Global Privacy Control</strong> (Sec-GPC) headers. If your browser sends either signal, we do not store any hashed IP data with your scan. The scan still works normally — we simply skip the analytics hash.</p>
+  <p>We respect the <strong>Do Not Track</strong> (DNT) and <strong>Global Privacy Control</strong> (Sec-GPC) headers. If your browser sends either signal, we do not store any hashed IP data with your request. The service still works normally — we simply skip the analytics hash.</p>
 
   <h2>4. How We Use Data</h2>
   <ul>
-    <li><strong>Rate limiting:</strong> IP addresses are used in-memory to enforce fair usage limits (100/hour). This data is purged hourly.</li>
-    <li><strong>Analytics:</strong> Hashed IPs let us count new vs. returning users in aggregate. IP hashes are irreversible and cannot be traced back to individual users.</li>
-    <li><strong>Public statistics:</strong> The /stats page shows aggregate data (total scans, grade distribution). No individual scan data is publicly exposed.</li>
+    <li><strong>Rate limiting:</strong> IP addresses enforce fair usage limits (100/hour free, 1,000/hour Pro). Rate limit data is purged automatically.</li>
+    <li><strong>Analytics:</strong> Hashed IPs let us count new vs. returning users in aggregate. IP hashes are salted, irreversible, and cannot be traced back to individual users.</li>
+    <li><strong>API usage tracking:</strong> Endpoint and timestamp logs help us understand usage patterns and improve the service. Pro key hashes link usage to subscription tiers.</li>
+    <li><strong>Geographic analytics:</strong> Country-level data helps us understand aggregate traffic patterns. Never linked to individual users or shared externally.</li>
+    <li><strong>Public statistics:</strong> The /stats page shows aggregate data (total scans, grade distribution). No individual data is publicly exposed.</li>
   </ul>
 
   <h2>5. Data Retention</h2>
   <ul>
-    <li><strong>Hashed IPs:</strong> Automatically anonymized (set to empty) after 90 days. The scan result is kept, but can no longer be linked to any user.</li>
-    <li><strong>Scan results:</strong> Stored indefinitely for result lookup and historical comparison, but anonymized after 90 days.</li>
-    <li><strong>IP rate limit data:</strong> In-memory only, purged automatically every hour.</li>
+    <li><strong>Hashed IPs:</strong> Automatically anonymized after 90 days.</li>
+    <li><strong>Scan results:</strong> Stored indefinitely for historical comparison, anonymized after 90 days.</li>
+    <li><strong>API usage logs:</strong> Retained for 90 days, then anonymized.</li>
+    <li><strong>Rate limit data:</strong> Purged automatically (sliding window).</li>
     <li><strong>Server logs:</strong> Rotated and deleted after 14 days.</li>
+    <li><strong>Pro API keys:</strong> Hashed keys retained while subscription is active. Deleted upon request after cancellation.</li>
   </ul>
 
   <h2>6. Data Sharing</h2>
-  <p>We do not sell, rent, or share any data with third parties. Scan results are accessible only via the unique scan ID URL.</p>
+  <p>We do not sell, rent, or share any data with third parties. The only third-party service involved is <strong>Lemon Squeezy</strong> for Pro subscription payment processing. Lemon Squeezy receives only the payment information you provide directly to them; we do not share any usage data, IP addresses, or scan results with them. See <a href="https://www.lemonsqueezy.com/privacy" target="_blank">Lemon Squeezy's Privacy Policy</a>.</p>
 
-  <h2>7. Security</h2>
-  <p>All data is transmitted over HTTPS. The server is hardened with fail2ban, Suricata IDS, AIDE file integrity monitoring, and kernel-level security (sysctl hardening). The application is open source and available for audit.</p>
+  <h2>7. International Data Transfers</h2>
+  <p>Our server is located in Germany (Hetzner Cloud, Falkenstein). If you access the service from outside the EU, your requests are processed on this EU-based server. We do not transfer data to servers outside the EU.</p>
 
-  <h2>8. Open Source</h2>
-  <p>ContrastScan is fully open source under the MIT License. You can review exactly what data is collected by reading the source code at <a href="https://github.com/UPinar/contrastscan" target="_blank">github.com/UPinar/contrastscan</a>.</p>
+  <h2>8. GDPR (EU/EEA Users)</h2>
+  <p>If you are located in the European Union or European Economic Area:</p>
+  <ul>
+    <li><strong>Legal basis:</strong> We process data based on legitimate interest (Article 6(1)(f) GDPR) — specifically, operating and securing a public API service, preventing abuse, and understanding aggregate usage patterns.</li>
+    <li><strong>Data minimization:</strong> We collect only what is necessary. IP addresses are hashed with a random salt immediately and never stored in raw form in our database.</li>
+    <li><strong>Your rights:</strong> You have the right to access, rectification, erasure, restriction of processing, data portability, and objection. Since we do not maintain user accounts and cannot link hashed data back to individuals, most of these rights are satisfied by design.</li>
+    <li><strong>Right to erasure:</strong> To request deletion of any data associated with your IP or API key, contact us at the address below. We will process requests within 30 days.</li>
+    <li><strong>Data Protection Officer:</strong> Given our small scale and minimal data processing, we have not appointed a DPO. Contact us directly for any privacy concerns.</li>
+  </ul>
 
-  <h2>9. Your Rights</h2>
-  <p>Since we don't collect personal data, there is generally no personal data to access, correct, or delete. If you have concerns about data associated with your domain, contact us.</p>
+  <h2>9. KVKK (Turkish Users)</h2>
+  <p>If you are located in Turkey, your rights under the Personal Data Protection Law (KVKK, Law No. 6698) are respected. You have the right to learn whether your personal data is processed, request information about processing, learn the purpose and whether data is used accordingly, know third parties to whom data is transferred, request correction or deletion, and object to automated processing. Contact us at the address below to exercise these rights.</p>
 
-  <h2>10. Changes</h2>
-  <p>We may update this Privacy Policy. Changes will be posted on this page with an updated date.</p>
+  <h2>10. Security</h2>
+  <p>All data is transmitted over HTTPS. The server is hardened with fail2ban, Suricata IDS, AIDE file integrity monitoring, auditd logging, and kernel-level security. Both applications are open source and available for public audit.</p>
 
-  <h2>11. Contact</h2>
-  <p>For privacy questions: <a href="mailto:contact@contrastcyber.com">contact@contrastcyber.com</a> or visit <a href="https://contrastcyber.com">contrastcyber.com</a>.</p>
+  <h2>11. Open Source</h2>
+  <p>Both services are fully open source under the MIT License. You can review exactly what data is collected by reading the source code:</p>
+  <ul>
+    <li><a href="https://github.com/UPinar/contrastscan" target="_blank">ContrastScan</a></li>
+    <li><a href="https://github.com/UPinar/contrastapi" target="_blank">ContrastAPI</a></li>
+  </ul>
+
+  <h2>12. Children's Privacy</h2>
+  <p>Our services are not directed at children under 16. We do not knowingly collect data from children. If you believe a child has used our service, contact us and we will delete any associated data.</p>
+
+  <h2>13. Changes</h2>
+  <p>We may update this Privacy Policy. Changes will be posted on this page with an updated date. Material changes will be communicated via the website.</p>
+
+  <h2>14. Contact</h2>
+  <p>For privacy questions or to exercise your rights: <a href="mailto:contact@contrastcyber.com">contact@contrastcyber.com</a></p>
 </div>
 
   <script src="/static/js/nav.js"></script>

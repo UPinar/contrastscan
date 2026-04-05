@@ -21,49 +21,77 @@
   </nav>
 <div class="legal">
   <h1>Terms of Service</h1>
-  <p class="updated">Last updated: March 30, 2026</p>
+  <p class="updated">Last updated: April 6, 2026</p>
 
   <h2>1. Service Description</h2>
-  <p>ContrastScan ("Service") is a free website security scanning tool operated by ContrastCyber. The Service analyzes publicly accessible websites for security configurations including SSL/TLS, HTTP headers, DNS records, CORS, cookies, and other security indicators. The Service is provided as-is with no warranty.</p>
+  <p>ContrastCyber ("we", "us") operates two services:</p>
+  <ul>
+    <li><strong>ContrastScan</strong> (contrastcyber.com) — a free website security scanning tool that analyzes publicly accessible security configurations including SSL/TLS, HTTP headers, DNS records, CORS, cookies, and other security indicators.</li>
+    <li><strong>ContrastAPI</strong> (api.contrastcyber.com) — a security intelligence API providing CVE lookup, domain reconnaissance, threat intelligence, code security analysis, and OSINT capabilities.</li>
+  </ul>
+  <p>Both services are provided as-is with no warranty.</p>
 
   <h2>2. Informational Only</h2>
-  <p>Scan results are provided for informational purposes only and are <strong>not a substitute for a professional security audit</strong>. A high score does not guarantee a website is secure, and a low score does not necessarily indicate a vulnerability is exploitable. Do not rely solely on ContrastScan results for security decisions.</p>
+  <p>All results from ContrastScan and ContrastAPI are provided for informational purposes only and are <strong>not a substitute for a professional security audit</strong>. A high score does not guarantee a website is secure, and a low score does not necessarily indicate a vulnerability is exploitable. Do not rely solely on our results for security decisions.</p>
 
   <h2>3. Acceptable Use</h2>
-  <p>The Service analyzes only publicly available information (HTTP headers, DNS records, SSL certificates, WHOIS data). No exploit attempts or intrusive testing is performed. You agree not to:</p>
+  <p>Our services analyze only publicly available information (HTTP headers, DNS records, SSL certificates, WHOIS data, CVE databases). No exploit attempts or intrusive testing is performed. You agree not to:</p>
   <ul>
     <li>Use the Service for any illegal purpose</li>
     <li>Attempt to overwhelm or disrupt the Service (DDoS, excessive automated requests)</li>
-    <li>Circumvent rate limits</li>
-    <li>Resell scan results as a competing service</li>
-    <li>Use scan results to facilitate attacks against third parties</li>
+    <li>Circumvent rate limits or authentication mechanisms</li>
+    <li>Resell results as a competing service without written permission</li>
+    <li>Use results to facilitate attacks against third parties</li>
+    <li>Share, transfer, or publish your Pro API key</li>
+    <li>Use the Service to harass, stalk, or collect personal data on individuals</li>
   </ul>
 
-  <h2>4. Rate Limits</h2>
-  <p>100 requests per hour per IP address across both ContrastScan and ContrastAPI (1,000/hour with Pro key). Rate limits may be adjusted without notice to ensure fair usage.</p>
+  <h2>4. Free &amp; Pro Plans</h2>
+  <h3>4.1 Free Tier</h3>
+  <p>No API key required. Rate limited to 100 requests per hour per IP address. Available for personal and commercial use.</p>
+  <h3>4.2 Pro Plan</h3>
+  <p>Pro API keys provide 1,000 requests per hour. Subscriptions are billed monthly at the current rate via our payment processor (Lemon Squeezy). By subscribing you agree to:</p>
+  <ul>
+    <li>Recurring monthly billing until cancelled</li>
+    <li>Keep your API key confidential — you are responsible for all usage under your key</li>
+    <li>Not share your key with third parties or embed it in client-side code</li>
+  </ul>
+  <p>We may revoke API keys that violate these terms without refund. Pricing and rate limits may be adjusted with 30 days notice to existing subscribers.</p>
 
-  <h2>5. Abusive Usage</h2>
-  <p>We reserve the right to block, throttle, or ban any IP address or user engaging in abusive usage, including but not limited to: automated scraping beyond rate limits, or any activity that degrades the Service for other users.</p>
+  <h2>5. Rate Limits</h2>
+  <p>Free: 100 requests/hour per IP. Pro: 1,000 requests/hour per key. Rate limits may be adjusted without notice for the free tier. Pro subscribers will receive 30 days notice before rate limit changes.</p>
 
-  <h2>6. Service Availability</h2>
-  <p>The Service may change, be interrupted, or be discontinued without notice. We do not guarantee uptime or availability. Features may be added, modified, or removed at any time.</p>
+  <h2>6. Abusive Usage</h2>
+  <p>We reserve the right to block, throttle, or ban any IP address, API key, or user engaging in abusive usage, including but not limited to: automated scraping beyond rate limits, credential stuffing, or any activity that degrades the Service for other users.</p>
 
-  <h2>7. Data Collection</h2>
-  <p>The Service stores domain names, scan results, and hashed IP addresses. No raw IP addresses are stored permanently. See our <a href="/privacy">Privacy Policy</a> for full details.</p>
+  <h2>7. Service Availability</h2>
+  <p>The Service may change, be interrupted, or be discontinued without notice. We do not guarantee uptime, availability, or any service level agreement (SLA). Features may be added, modified, or removed at any time.</p>
 
-  <h2>8. Intellectual Property</h2>
-  <p>ContrastScan is open source software licensed under the MIT License. Source code is available at <a href="https://github.com/UPinar/contrastscan" target="_blank">github.com/UPinar/contrastscan</a>.</p>
+  <h2>8. Data Collection</h2>
+  <p>The Service stores domain names, scan results, API usage logs (endpoint, timestamp, hashed API key), and hashed IP addresses. No raw IP addresses are stored permanently in the database. See our <a href="/privacy">Privacy Policy</a> for full details.</p>
 
-  <h2>9. Disclaimer of Warranties</h2>
-  <p>THE SERVICE IS PROVIDED "AS IS" WITHOUT WARRANTIES OF ANY KIND, EXPRESS OR IMPLIED. WE DO NOT WARRANT THAT THE SERVICE WILL BE UNINTERRUPTED, ERROR-FREE, OR FREE OF HARMFUL COMPONENTS.</p>
+  <h2>9. Third-Party Data</h2>
+  <p>Some API endpoints query or analyze data about third-party domains, email addresses, phone numbers, or usernames. You are responsible for ensuring your use of these lookups complies with applicable laws in your jurisdiction. We do not verify whether you have authorization to query specific targets.</p>
 
-  <h2>10. Limitation of Liability</h2>
-  <p>IN NO EVENT SHALL CONTRASTCYBER BE LIABLE FOR ANY INDIRECT, INCIDENTAL, SPECIAL, OR CONSEQUENTIAL DAMAGES ARISING FROM YOUR USE OF THE SERVICE.</p>
+  <h2>10. Intellectual Property</h2>
+  <p>ContrastScan and ContrastAPI are open source software licensed under the MIT License. Source code is available at <a href="https://github.com/UPinar/contrastscan" target="_blank">github.com/UPinar/contrastscan</a> and <a href="https://github.com/UPinar/contrastapi" target="_blank">github.com/UPinar/contrastapi</a>.</p>
 
-  <h2>11. Changes to Terms</h2>
-  <p>We may update these Terms at any time. Continued use of the Service constitutes acceptance of the updated Terms.</p>
+  <h2>11. Disclaimer of Warranties</h2>
+  <p>THE SERVICE IS PROVIDED "AS IS" WITHOUT WARRANTIES OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, AND NON-INFRINGEMENT. WE DO NOT WARRANT THAT THE SERVICE WILL BE UNINTERRUPTED, ERROR-FREE, OR FREE OF HARMFUL COMPONENTS. WE MAKE NO GUARANTEES ABOUT THE ACCURACY, COMPLETENESS, OR RELIABILITY OF ANY RESULTS.</p>
 
-  <h2>12. Contact</h2>
+  <h2>12. Limitation of Liability</h2>
+  <p>IN NO EVENT SHALL CONTRASTCYBER BE LIABLE FOR ANY INDIRECT, INCIDENTAL, SPECIAL, CONSEQUENTIAL, OR PUNITIVE DAMAGES ARISING FROM YOUR USE OF THE SERVICE, INCLUDING BUT NOT LIMITED TO: DATA LOSS, SECURITY BREACHES RESULTING FROM RELIANCE ON SCAN RESULTS, BUSINESS INTERRUPTION, OR LOSS OF PROFITS. OUR TOTAL LIABILITY SHALL NOT EXCEED THE AMOUNT YOU PAID US IN THE 12 MONTHS PRECEDING THE CLAIM.</p>
+
+  <h2>13. Indemnification</h2>
+  <p>You agree to indemnify and hold harmless ContrastCyber from any claims, damages, or expenses arising from your use of the Service, your violation of these Terms, or your violation of any third party's rights.</p>
+
+  <h2>14. Governing Law</h2>
+  <p>These Terms are governed by the laws of the Republic of Turkey. Any disputes shall be resolved in the courts of Istanbul, Turkey.</p>
+
+  <h2>15. Changes to Terms</h2>
+  <p>We may update these Terms at any time. Continued use of the Service constitutes acceptance of the updated Terms. Material changes will be communicated via the website.</p>
+
+  <h2>16. Contact</h2>
   <p>For questions about these Terms, contact us at <a href="mailto:contact@contrastcyber.com">contact@contrastcyber.com</a>.</p>
 </div>
 
