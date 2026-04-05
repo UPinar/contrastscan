@@ -30,7 +30,7 @@ from config import (
     HOURLY_LIMIT,
     MAX_DOMAIN_LENGTH,
 )
-from db import get_domain_grade, get_ip_usage, get_recon, get_scan, get_stats_detailed, init_db
+from db import get_domain_grade, get_ip_usage, get_recon, get_scan, get_stats, get_stats_detailed, init_db
 from fastapi import FastAPI, Form, HTTPException, Request
 from fastapi.responses import HTMLResponse, JSONResponse, PlainTextResponse, RedirectResponse, Response
 from fastapi.staticfiles import StaticFiles
@@ -157,7 +157,15 @@ async def generic_error_handler(request: Request, exc: Exception):
 
 @app.get("/", response_class=HTMLResponse, include_in_schema=False)
 def index(request: Request):
-    return templates.TemplateResponse(request, "index.html")
+    total_scans, recent_scans = get_stats()
+    return templates.TemplateResponse(
+        request,
+        "index.html",
+        {
+            "total_scans": total_scans,
+            "recent_scans": recent_scans,
+        },
+    )
 
 
 @app.get("/api", response_class=HTMLResponse, include_in_schema=False)
