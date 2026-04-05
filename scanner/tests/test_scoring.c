@@ -1097,6 +1097,104 @@ void test_full_grade_11_modules(void)
 }
 
 /* ======================================
+ *  BROWSER IMPERSONATION TESTS
+ * ====================================== */
+
+#define BROWSER_UA \
+  "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 " \
+  "(KHTML, like Gecko) Chrome/116.0.0.0 Safari/537.36"
+
+static void test_browser_impersonation(void)
+{
+  /* UA contains Chrome version matching curl-impersonate target */
+  TEST("BROWSER_UA contains Chrome/116");
+  if (strstr(BROWSER_UA, "Chrome/116") != NULL) PASS();
+  else FAIL("UA missing Chrome/116");
+
+  /* UA contains Windows NT (most common OS in browser fingerprints) */
+  TEST("BROWSER_UA contains Windows NT");
+  if (strstr(BROWSER_UA, "Windows NT") != NULL) PASS();
+  else FAIL("UA missing Windows NT");
+
+  /* UA does NOT contain contrastscan (old UA leaked identity) */
+  TEST("BROWSER_UA does not contain contrastscan");
+  if (strstr(BROWSER_UA, "contrastscan") == NULL) PASS();
+  else FAIL("UA leaks scanner identity");
+
+  /* UA length is realistic (real Chrome UA is ~120 chars) */
+  TEST("BROWSER_UA length is realistic (100-150 chars)");
+  size_t len = strlen(BROWSER_UA);
+  if (len >= 100 && len <= 150) PASS();
+  else { char m[64]; snprintf(m, sizeof(m), "got %zu", len); FAIL(m); }
+}
+
+/* ======================================
+ *  BODY CALLBACK OVERFLOW TESTS
+ * ====================================== */
+
+#define TEST_BODY_MAX 32
+
+static char test_body[TEST_BODY_MAX];
+static size_t test_body_len;
+
+/* Simulated body_callback matching contrastscan.c logic */
+static size_t test_body_callback(const char *ptr, size_t total)
+{
+  size_t space = TEST_BODY_MAX - test_body_len - 1;
+  if (space == 0)
+    return total; /* buffer full — discard overflow */
+  size_t copy = total < space ? total : space;
+  memcpy(test_body + test_body_len, ptr, copy);
+  test_body_len += copy;
+  test_body[test_body_len] = '\0';
+  return total;
+}
+
+static void test_body_callback_overflow(void)
+{
+  /* Normal write fits in buffer */
+  TEST("body_callback: normal write");
+  test_body_len = 0;
+  test_body[0] = '\0';
+  size_t ret = test_body_callback("hello", 5);
+  ASSERT_INT_EQ((int)ret, 5);
+  ASSERT_INT_EQ((int)test_body_len, 5);
+  ASSERT_STR_EQ(test_body, "hello");
+  PASS();
+
+  /* Fill buffer to capacity */
+  TEST("body_callback: fill to capacity");
+  test_body_len = 0;
+  test_body[0] = '\0';
+  char fill[TEST_BODY_MAX];
+  memset(fill, 'A', TEST_BODY_MAX - 1);
+  fill[TEST_BODY_MAX - 1] = '\0';
+  ret = test_body_callback(fill, TEST_BODY_MAX - 1);
+  ASSERT_INT_EQ((int)ret, TEST_BODY_MAX - 1);
+  ASSERT_INT_EQ((int)test_body_len, TEST_BODY_MAX - 1);
+  PASS();
+
+  /* Overflow: buffer full, returns total (not 0) */
+  TEST("body_callback: overflow returns total (no abort)");
+  ret = test_body_callback("overflow data", 13);
+  ASSERT_INT_EQ((int)ret, 13);
+  ASSERT_INT_EQ((int)test_body_len, TEST_BODY_MAX - 1); /* unchanged */
+  PASS();
+
+  /* Buffer content preserved after overflow */
+  TEST("body_callback: buffer content intact after overflow");
+  for (int i = 0; i < TEST_BODY_MAX - 1; i++) {
+    if (test_body[i] != 'A') { FAIL("buffer corrupted"); return; }
+  }
+  PASS();
+
+  /* Null terminator preserved */
+  TEST("body_callback: null terminator after overflow");
+  ASSERT_INT_EQ((int)test_body[test_body_len], 0);
+  PASS();
+}
+
+/* ======================================
  *  MAIN
  * ====================================== */
 
@@ -1166,6 +1264,12 @@ int main(void)
 
   printf("\n[full_grade_11_modules]\n");
   test_full_grade_11_modules();
+
+  printf("\n[browser_impersonation]\n");
+  test_browser_impersonation();
+
+  printf("\n[body_callback_overflow]\n");
+  test_body_callback_overflow();
 
   printf("\n=== Results: %d/%d passed", tests_passed, tests_run);
   if (tests_failed > 0)

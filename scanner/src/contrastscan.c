@@ -87,6 +87,11 @@
 #define DNS_ANSWER_SIZE  4096
 #define DNS_DOMAIN_SIZE  512
 
+/* Browser impersonation — Chrome 116 (matches curl-impersonate target) */
+#define BROWSER_UA \
+  "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 " \
+  "(KHTML, like Gecko) Chrome/116.0.0.0 Safari/537.36"
+
 /* resolved IP from Python validator (SSRF rebinding protection) */
 static const char *g_resolved_ip = NULL;
 
@@ -136,6 +141,42 @@ static struct curl_slist *make_resolve_list(const char *domain)
   list = curl_slist_append(list, entry443);
   list = curl_slist_append(list, entry80);
   return list;
+}
+
+/*
+ * make_browser_headers — realistic Chrome headers for WAF bypass
+ *
+ * Returns curl_slist with browser-like headers. Caller must free with
+ * curl_slist_free_all(). Pass existing list to append (e.g. CORS Origin).
+ */
+static struct curl_slist *make_browser_headers(struct curl_slist *base)
+{
+  struct curl_slist *h = base;
+  h = curl_slist_append(h, "Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8");
+  h = curl_slist_append(h, "Accept-Language: en-US,en;q=0.5");
+  h = curl_slist_append(h, "Sec-Fetch-Dest: document");
+  h = curl_slist_append(h, "Sec-Fetch-Mode: navigate");
+  h = curl_slist_append(h, "Sec-Fetch-Site: none");
+  h = curl_slist_append(h, "Sec-Fetch-User: ?1");
+  h = curl_slist_append(h, "Upgrade-Insecure-Requests: 1");
+  return h;
+}
+
+/*
+ * setup_curl_browser — apply browser impersonation to a curl handle
+ *
+ * Sets User-Agent, browser headers, HTTP/2, and auto-decompression.
+ * For curl-impersonate builds, also applies Chrome TLS fingerprint.
+ */
+static void setup_curl_browser(CURL *curl, struct curl_slist *headers)
+{
+  curl_easy_setopt(curl, CURLOPT_USERAGENT, BROWSER_UA);
+  curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers);
+  curl_easy_setopt(curl, CURLOPT_ACCEPT_ENCODING, "");
+  curl_easy_setopt(curl, CURLOPT_HTTP_VERSION, CURL_HTTP_VERSION_2TLS);
+#ifdef HAVE_CURL_IMPERSONATE
+  curl_easy_impersonate(curl, "chrome116", 0);
+#endif
 }
 
 /* ============================
@@ -316,6 +357,7 @@ static cJSON *scan_headers(const char *domain)
 
   CURL *curl = curl_easy_init();
   struct curl_slist *resolve_list = make_resolve_list(domain);
+  struct curl_slist *browser_hdrs = make_browser_headers(NULL);
   int ok = 0;
   if (curl)
   {
@@ -327,13 +369,14 @@ static cJSON *scan_headers(const char *domain)
     curl_easy_setopt(curl, CURLOPT_REDIR_PROTOCOLS_STR, "https");
     curl_easy_setopt(curl, CURLOPT_CONNECTTIMEOUT, 5L);
     curl_easy_setopt(curl, CURLOPT_TIMEOUT, (long)HTTP_TIMEOUT);
-    curl_easy_setopt(curl, CURLOPT_USERAGENT, "contrastscan/1.0");
+    setup_curl_browser(curl, browser_hdrs);
     if (resolve_list)
       curl_easy_setopt(curl, CURLOPT_RESOLVE, resolve_list);
     ok = (curl_easy_perform(curl) == CURLE_OK);
     curl_easy_cleanup(curl);
   }
   if (resolve_list) curl_slist_free_all(resolve_list);
+  if (browser_hdrs) curl_slist_free_all(browser_hdrs);
 
   int found_count = 0;
   for (int i = 0; i < NUM_HEADERS; i++)
@@ -379,6 +422,7 @@ static cJSON *scan_redirect(const char *domain)
   int redirects_to_https = 0;
   CURL *curl = curl_easy_init();
   struct curl_slist *resolve_list = make_resolve_list(domain);
+  struct curl_slist *browser_hdrs = make_browser_headers(NULL);
   if (curl)
   {
     curl_easy_setopt(curl, CURLOPT_URL, url);
@@ -386,7 +430,7 @@ static cJSON *scan_redirect(const char *domain)
     curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 0L);  /* don't follow */
     curl_easy_setopt(curl, CURLOPT_CONNECTTIMEOUT, 5L);
     curl_easy_setopt(curl, CURLOPT_TIMEOUT, (long)HTTP_TIMEOUT);
-    curl_easy_setopt(curl, CURLOPT_USERAGENT, "contrastscan/1.0");
+    setup_curl_browser(curl, browser_hdrs);
     if (resolve_list)
       curl_easy_setopt(curl, CURLOPT_RESOLVE, resolve_list);
 
@@ -407,6 +451,7 @@ static cJSON *scan_redirect(const char *domain)
     curl_easy_cleanup(curl);
   }
   if (resolve_list) curl_slist_free_all(resolve_list);
+  if (browser_hdrs) curl_slist_free_all(browser_hdrs);
 
   int score = redirects_to_https ? REDIRECT_MAX : 0;
 
@@ -1332,6 +1377,7 @@ static cJSON *scan_methods(const char *domain)
 
   CURL *curl = curl_easy_init();
   struct curl_slist *resolve_list = make_resolve_list(domain);
+  struct curl_slist *browser_hdrs = make_browser_headers(NULL);
   int ok = 0;
   if (curl)
   {
@@ -1341,13 +1387,14 @@ static cJSON *scan_methods(const char *domain)
     curl_easy_setopt(curl, CURLOPT_HEADERFUNCTION, methods_header_callback);
     curl_easy_setopt(curl, CURLOPT_CONNECTTIMEOUT, 5L);
     curl_easy_setopt(curl, CURLOPT_TIMEOUT, (long)HTTP_TIMEOUT);
-    curl_easy_setopt(curl, CURLOPT_USERAGENT, "contrastscan/1.0");
+    setup_curl_browser(curl, browser_hdrs);
     if (resolve_list)
       curl_easy_setopt(curl, CURLOPT_RESOLVE, resolve_list);
     ok = (curl_easy_perform(curl) == CURLE_OK);
     curl_easy_cleanup(curl);
   }
   if (resolve_list) curl_slist_free_all(resolve_list);
+  if (browser_hdrs) curl_slist_free_all(browser_hdrs);
 
   int has_trace = 0, has_delete = 0, has_put = 0;
   if (ok && allow_header[0])
@@ -1439,25 +1486,26 @@ static cJSON *scan_cors(const char *domain)
 
   CURL *curl = curl_easy_init();
   struct curl_slist *resolve_list = make_resolve_list(domain);
-  struct curl_slist *custom_headers = NULL;
-  custom_headers = curl_slist_append(custom_headers, "Origin: https://evil.contrastscan.test");
+  /* Origin header first, then append browser headers onto same list */
+  struct curl_slist *browser_hdrs = NULL;
+  browser_hdrs = curl_slist_append(browser_hdrs, "Origin: https://evil.contrastscan.test");
+  browser_hdrs = make_browser_headers(browser_hdrs);
   int ok = 0;
   if (curl)
   {
     curl_easy_setopt(curl, CURLOPT_URL, url);
     curl_easy_setopt(curl, CURLOPT_NOBODY, 1L);
     curl_easy_setopt(curl, CURLOPT_HEADERFUNCTION, cors_header_callback);
-    curl_easy_setopt(curl, CURLOPT_HTTPHEADER, custom_headers);
     curl_easy_setopt(curl, CURLOPT_CONNECTTIMEOUT, 5L);
     curl_easy_setopt(curl, CURLOPT_TIMEOUT, (long)HTTP_TIMEOUT);
-    curl_easy_setopt(curl, CURLOPT_USERAGENT, "contrastscan/1.0");
+    setup_curl_browser(curl, browser_hdrs);
     if (resolve_list)
       curl_easy_setopt(curl, CURLOPT_RESOLVE, resolve_list);
     ok = (curl_easy_perform(curl) == CURLE_OK);
     curl_easy_cleanup(curl);
   }
   if (resolve_list) curl_slist_free_all(resolve_list);
-  if (custom_headers) curl_slist_free_all(custom_headers);
+  if (browser_hdrs) curl_slist_free_all(browser_hdrs);
 
   int wildcard = 0, reflects_origin = 0;
   if (ok && cors_acao[0])
@@ -1499,13 +1547,12 @@ static size_t body_callback(char *ptr, size_t size, size_t nmemb, void *userdata
   (void)userdata;
   size_t total = size * nmemb;
   size_t space = HTML_BODY_MAX - html_body_len - 1;
+  if (space == 0)
+    return total; /* buffer full — discard overflow, keep transfer "successful" */
   size_t copy = total < space ? total : space;
-  if (copy > 0)
-  {
-    memcpy(html_body + html_body_len, ptr, copy);
-    html_body_len += copy;
-    html_body[html_body_len] = '\0';
-  }
+  memcpy(html_body + html_body_len, ptr, copy);
+  html_body_len += copy;
+  html_body[html_body_len] = '\0';
   return total;
 }
 
@@ -1536,6 +1583,7 @@ static cJSON *scan_html(const char *domain)
 
   CURL *curl = curl_easy_init();
   struct curl_slist *resolve_list = make_resolve_list(domain);
+  struct curl_slist *browser_hdrs = make_browser_headers(NULL);
   int ok = 0;
   if (curl)
   {
@@ -1546,7 +1594,7 @@ static cJSON *scan_html(const char *domain)
     curl_easy_setopt(curl, CURLOPT_REDIR_PROTOCOLS_STR, "https");
     curl_easy_setopt(curl, CURLOPT_CONNECTTIMEOUT, 5L);
     curl_easy_setopt(curl, CURLOPT_TIMEOUT, (long)HTTP_TIMEOUT);
-    curl_easy_setopt(curl, CURLOPT_USERAGENT, "contrastscan/1.0");
+    setup_curl_browser(curl, browser_hdrs);
     curl_easy_setopt(curl, CURLOPT_MAXFILESIZE, (long)HTML_BODY_MAX);
     if (resolve_list)
       curl_easy_setopt(curl, CURLOPT_RESOLVE, resolve_list);
@@ -1554,6 +1602,7 @@ static cJSON *scan_html(const char *domain)
     curl_easy_cleanup(curl);
   }
   if (resolve_list) curl_slist_free_all(resolve_list);
+  if (browser_hdrs) curl_slist_free_all(browser_hdrs);
 
   /* sub-checks */
   int mixed_active = 0, mixed_passive = 0;

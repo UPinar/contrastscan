@@ -84,6 +84,9 @@ int main(int argc, char **argv)
   curl_easy_setopt(curl, CURLOPT_HEADERFUNCTION, header_callback); // attach callback
   curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1L);   // follow redirects
   curl_easy_setopt(curl, CURLOPT_TIMEOUT, 10L);         // 10 second timeout
+  curl_easy_setopt(curl, CURLOPT_USERAGENT,
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
+    "(KHTML, like Gecko) Chrome/116.0.0.0 Safari/537.36");
 
   // send request
   CURLcode res = curl_easy_perform(curl);

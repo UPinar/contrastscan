@@ -1,6 +1,17 @@
 CC = gcc
 CFLAGS = -Wall -Wextra -O2
-LIBS = -lcurl -lssl -lcrypto -lresolv -lcjson
+# Use curl-impersonate-chrome if available, fall back to standard libcurl
+CURL_IMP := $(shell pkg-config --exists libcurl-impersonate-chrome 2>/dev/null && echo yes)
+ifeq ($(CURL_IMP),yes)
+  CURL_LIB = $(shell pkg-config --libs libcurl-impersonate-chrome)
+  CFLAGS += -DHAVE_CURL_IMPERSONATE
+else ifneq ($(wildcard /usr/local/lib/libcurl-impersonate-chrome.so),)
+  CURL_LIB = -lcurl-impersonate-chrome
+  CFLAGS += -DHAVE_CURL_IMPERSONATE
+else
+  CURL_LIB = -lcurl
+endif
+LIBS = $(CURL_LIB) -lssl -lcrypto -lresolv -lcjson
 
 all: contrastscan
 
