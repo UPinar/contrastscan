@@ -38,7 +38,7 @@
   <h3>2.2 API Usage Data (ContrastAPI)</h3>
   <ul>
     <li><strong>API request logs</strong> — endpoint called, timestamp, and hashed API key (for Pro users). Used for usage analytics and rate limit enforcement.</li>
-    <li><strong>Query parameters</strong> — domain names, IP addresses, CVE IDs, email addresses, phone numbers, or usernames submitted to API endpoints. These are processed in real-time to generate results but are <strong>not stored</strong> beyond the request log entry (which only records the endpoint path, not the full query).</li>
+    <li><strong>Query parameters</strong> — domain names, IP addresses, CVE IDs, email addresses, phone numbers, or usernames submitted to API endpoints. Domain and IP lookup results are temporarily cached (up to 1 hour) to improve performance. Other query types are processed in real-time and not stored. The API usage log records only the endpoint path, not the full query parameters.</li>
     <li><strong>Hashed API keys</strong> — Pro API keys are stored as SHA-256 hashes. We never store your raw API key after initial generation.</li>
   </ul>
 
@@ -78,6 +78,7 @@
     <li><strong>Hashed IPs:</strong> Automatically anonymized after 90 days.</li>
     <li><strong>Scan results:</strong> Stored indefinitely for historical comparison, anonymized after 90 days.</li>
     <li><strong>API usage logs:</strong> Retained for 90 days, then anonymized.</li>
+    <li><strong>API query caches:</strong> Domain and IP lookup results are cached for up to 1 hour to improve response times, then automatically expired and purged.</li>
     <li><strong>Rate limit data:</strong> Purged automatically (sliding window).</li>
     <li><strong>Server logs:</strong> Rotated and deleted after 14 days.</li>
     <li><strong>Pro API keys:</strong> Hashed keys retained while subscription is active. Deleted upon request after cancellation.</li>
