@@ -175,6 +175,7 @@ static void setup_curl_browser(CURL *curl, struct curl_slist *headers)
   curl_easy_setopt(curl, CURLOPT_ACCEPT_ENCODING, "");
   curl_easy_setopt(curl, CURLOPT_HTTP_VERSION, CURL_HTTP_VERSION_2TLS);
 #ifdef HAVE_CURL_IMPERSONATE
+  extern CURLcode curl_easy_impersonate(CURL *curl, const char *target, int default_headers);
   curl_easy_impersonate(curl, "chrome116", 0);
 #endif
 }
