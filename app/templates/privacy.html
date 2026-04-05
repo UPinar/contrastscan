@@ -39,13 +39,13 @@
   <ul>
     <li><strong>API request logs</strong> — endpoint called, timestamp, and hashed API key (for Pro users). Used for usage analytics and rate limit enforcement.</li>
     <li><strong>Query parameters</strong> — domain names, IP addresses, CVE IDs, email addresses, phone numbers, or usernames submitted to API endpoints. Domain and IP lookup results are temporarily cached (up to 1 hour) to improve performance. Other query types are processed in real-time and not stored. The API usage log records only the endpoint path, not the full query parameters.</li>
-    <li><strong>Hashed API keys</strong> — Pro API keys are stored as SHA-256 hashes. We never store your raw API key after initial generation.</li>
+    <li><strong>Hashed API keys</strong> — Pro API keys are stored as irreversible cryptographic hashes. We never store your raw API key after initial generation.</li>
   </ul>
 
   <h3>2.3 Technical Data (Both Services)</h3>
   <ul>
-    <li><strong>Hashed IP addresses</strong> — a SHA-256 hash of your IP (with random salt) is stored for aggregate analytics. No raw IP address is ever stored in the application database.</li>
-    <li><strong>Rate limiting</strong> — raw IP addresses are stored temporarily in a local database for rate limiting and purged automatically. Never shared.</li>
+    <li><strong>Hashed IP addresses</strong> — a one-way cryptographic hash of your IP (with a unique salt) is stored for aggregate analytics. No raw IP address is ever stored in the application database.</li>
+    <li><strong>Rate limiting</strong> — raw IP addresses are stored temporarily for rate limiting and purged automatically. Never shared.</li>
     <li><strong>Server logs</strong> — standard nginx access logs retained for up to 14 days containing: IP address, timestamp, HTTP method, request path, status code, response size, referrer URL, and user-agent string.</li>
     <li><strong>Geographic analysis</strong> — a local GeoIP database (MaxMind GeoLite2) maps IP addresses to <strong>country-level location only</strong>. No city, region, or precise location data is derived. No individual user is identified or profiled.</li>
   </ul>
@@ -67,10 +67,8 @@
   <h2>4. How We Use Data</h2>
   <ul>
     <li><strong>Rate limiting:</strong> IP addresses enforce fair usage limits (100/hour free, 1,000/hour Pro). Rate limit data is purged automatically.</li>
-    <li><strong>Analytics:</strong> Hashed IPs let us count new vs. returning users in aggregate. IP hashes are salted, irreversible, and cannot be traced back to individual users.</li>
-    <li><strong>API usage tracking:</strong> Endpoint and timestamp logs help us understand usage patterns and improve the service. Pro key hashes link usage to subscription tiers.</li>
-    <li><strong>Geographic analytics:</strong> Country-level data helps us understand aggregate traffic patterns. Never linked to individual users or shared externally.</li>
-    <li><strong>Public statistics:</strong> The /stats page shows aggregate data (total scans, grade distribution). No individual data is publicly exposed.</li>
+    <li><strong>Analytics:</strong> Hashed IPs are salted with a random value, irreversible, and cannot be traced back to individual users.</li>
+    <li><strong>Geographic analytics:</strong> Country-level data is used for aggregate traffic analysis. Never linked to individual users or shared externally.</li>
   </ul>
 
   <h2>5. Data Retention</h2>
@@ -88,7 +86,7 @@
   <p>We do not sell, rent, or share any data with third parties. The only third-party service involved is <strong>Lemon Squeezy</strong> for Pro subscription payment processing. Lemon Squeezy receives only the payment information you provide directly to them; we do not share any usage data, IP addresses, or scan results with them. See <a href="https://www.lemonsqueezy.com/privacy" target="_blank">Lemon Squeezy's Privacy Policy</a>.</p>
 
   <h2>7. International Data Transfers</h2>
-  <p>Our server is located in Germany (Hetzner Cloud, Falkenstein). If you access the service from outside the EU, your requests are processed on this EU-based server. We do not transfer data to servers outside the EU.</p>
+  <p>Our server is located in Germany (EU). If you access the service from outside the EU, your requests are processed on this EU-based server. We do not transfer data to servers outside the EU.</p>
 
   <h2>8. GDPR (EU/EEA Users)</h2>
   <p>If you are located in the European Union or European Economic Area:</p>
@@ -104,7 +102,7 @@
   <p>If you are located in Turkey, your rights under the Personal Data Protection Law (KVKK, Law No. 6698) are respected. You have the right to learn whether your personal data is processed, request information about processing, learn the purpose and whether data is used accordingly, know third parties to whom data is transferred, request correction or deletion, and object to automated processing. Contact us at the address below to exercise these rights.</p>
 
   <h2>10. Security</h2>
-  <p>All data is transmitted over HTTPS. The server is hardened with fail2ban, Suricata IDS, AIDE file integrity monitoring, auditd logging, and kernel-level security. Both applications are open source and available for public audit.</p>
+  <p>All data is transmitted over HTTPS. We employ industry-standard server hardening, intrusion detection, file integrity monitoring, and audit logging. Both applications are open source and available for public audit.</p>
 
   <h2>11. Open Source</h2>
   <p>Both services are fully open source under the MIT License. You can review exactly what data is collected by reading the source code:</p>
