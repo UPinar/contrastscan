@@ -24,7 +24,7 @@
   <link rel="icon" type="image/svg+xml" href="/static/favicon.svg">
   <style>body{background:#09090b;color:#fafafa;font-family:'Geist Mono',monospace;margin:0}</style>
   <link rel="stylesheet" href="/static/css/base.css?v=13">
-  <link rel="stylesheet" href="/static/css/index.css?v=17">
+  <link rel="stylesheet" href="/static/css/index.css?v=23">
   <script type="application/ld+json">
   {
     "@context": "https://schema.org",
@@ -57,28 +57,24 @@
     <div class="pill">FREE &middot; NO SIGNUP &middot; OPEN SOURCE</div>
     <h1>Know your website's<br><span class="gradient">security score</span></h1>
     <p class="subtitle">
-      11 security checks, 100-point score, A-F grade. Takes 3 seconds.
+      Find vulnerabilities before hackers do. Get a clear A-F grade in 3 seconds.
     </p>
 
     <form action="/scan" method="post" id="scanForm">
-      <input type="text" name="domain" placeholder="example.com" required autofocus>
-      <button type="submit" id="scanBtn" class="btn">Scan Now</button>
+      <input type="text" name="domain" id="domainInput" placeholder="google.com" required>
+      <button type="submit" id="scanBtn" class="btn">Scan Now <span class="enter-hint">&#9166;</span></button>
     </form>
+
+    <input type="file" id="bulkFile" accept=".csv,.txt" hidden>
+    <div class="bulk-row">
+      <button type="button" class="btn-bulk">Bulk Scan — upload CSV/TXT (max 10)</button>
+    </div>
 
     <div class="try-examples">
       <span class="try-label">Try it:</span>
       <button type="button" class="try-btn" data-domain="contrastcyber.com"><span class="grade-a">A</span> contrastcyber.com</button>
       <button type="button" class="try-btn" data-domain="google.com">google.com</button>
       <button type="button" class="try-btn" data-domain="github.com">github.com</button>
-    </div>
-
-    {% if total_scans > 0 %}
-    <div class="scan-count"><strong>{{ "{:,}".format(total_scans) }}</strong> scans completed</div>
-    {% endif %}
-
-    <input type="file" id="bulkFile" accept=".csv,.txt" hidden>
-    <div class="bulk-row">
-      <button type="button" class="btn-bulk">Bulk Scan — upload CSV/TXT (max 10)</button>
     </div>
 
   </div>
@@ -167,6 +163,7 @@
 
   <script src="/static/js/nav.js"></script>
   <script src="/static/js/scan.js"></script>
+  <script src="/static/js/hero.js"></script>
   <footer>
     <div class="footer-links">
       <a href="/terms">Terms</a>

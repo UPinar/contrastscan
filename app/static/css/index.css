@@ -95,6 +95,20 @@ button:not(.hamburger) {
   inline-size: 100%;
 }
 
+.micro-copy {
+  text-align: center;
+  font-size: 0.7rem;
+  color: var(--text-dim);
+  margin-block-start: 0.6rem;
+  letter-spacing: 0.02em;
+}
+
+.enter-hint {
+  font-size: 0.75rem;
+  opacity: 0.5;
+  margin-inline-start: 0.25rem;
+}
+
 .try-examples {
   display: flex;
   align-items: center;
@@ -141,11 +155,21 @@ button:not(.hamburger) {
   font-weight: 700;
 }
 
+.try-sample {
+  border-color: var(--primary);
+  color: var(--primary);
+}
+
+.try-sample:hover {
+  background-color: rgba(59,130,246,0.1);
+}
+
 .scan-count {
   text-align: center;
   font-size: 0.8rem;
   color: var(--text-dim);
   margin-block-start: 1.25rem;
+  margin-block-end: 1rem;
 }
 
 .scan-count strong {
@@ -186,6 +210,98 @@ button:not(.hamburger) {
 
 .btn-bulk:hover { background-color: var(--primary-hover); }
 
+
+/* Result preview card */
+.result-preview {
+  max-inline-size: 30rem;
+  margin-inline: auto;
+  margin-block-start: 1.5rem;
+}
+
+.preview-label {
+  font-size: 0.7rem;
+  color: var(--text-dim);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  margin-block-end: 0.5rem;
+}
+
+.preview-card {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1rem 1.25rem;
+  border-radius: 0.75rem;
+  border: 1px solid var(--border-dim);
+  background-color: var(--bg-card);
+  cursor: pointer;
+  transition: border-color 0.2s, background-color 0.2s;
+}
+
+.preview-card:hover {
+  border-color: var(--border);
+  background-color: rgba(24,24,27,0.8);
+}
+
+.preview-grade {
+  flex-shrink: 0;
+  inline-size: 3rem;
+  block-size: 3rem;
+  border-radius: 0.625rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.5rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+
+.grade-a-bg {
+  background-color: rgba(34,197,94,0.15);
+  color: var(--green);
+}
+
+.preview-info {
+  flex: 1;
+  min-inline-size: 0;
+  text-align: start;
+}
+
+.preview-domain {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text);
+  margin-block-end: 0.15rem;
+}
+
+.preview-score {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  margin-block-end: 0.5rem;
+}
+
+.preview-checks {
+  display: flex;
+  gap: 0.35rem;
+  flex-wrap: wrap;
+}
+
+.check-pass, .check-warn {
+  font-size: 0.65rem;
+  padding: 0.15rem 0.45rem;
+  border-radius: 0.25rem;
+  font-weight: 500;
+}
+
+.check-pass {
+  background-color: rgba(34,197,94,0.1);
+  color: var(--green);
+}
+
+.check-warn {
+  background-color: rgba(251,191,36,0.1);
+  color: #fbbf24;
+}
 
 .features {
   position: relative;
