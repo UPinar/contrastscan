@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>GoL WASM Test</title>
+  <style>
+    body { margin: 0; background: #09090b; overflow: hidden; }
+    canvas { display: block; }
+    #info {
+      position: fixed; top: 10px; left: 10px;
+      color: #a1a1aa; font: 14px monospace;
+    }
+  </style>
+</head>
+<body>
+  <canvas id="c"></canvas>
+  <div id="info">Loading WASM...</div>
+  <script src="../app/static/wasm/gol.js"></script>
+  <script>
+    const canvas = document.getElementById('c');
+    const ctx = canvas.getContext('2d');
+    const info = document.getElementById('info');
+
+    // Fullscreen canvas
+    function resize() {
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+    }
+    resize();
+    window.addEventListener('resize', resize);
+
+    // Color gradient matching site theme (same as gol.c GetCellColor)
+    function cellColor(age) {
+      if (age > 60) age = 60;
+      let r, g, b;
+      if (age < 30) {
+        const t = age / 30;
+        r = 34  + t * 25;
+        g = 197 - t * 67;
+        b = 94  + t * 152;
+      } else {
+        const t = (age - 30) / 30;
+        r = 59  + t * 80;
+        g = 130 - t * 38;
+        b = 246;
+      }
+      return [r | 0, g | 0, b | 0];
+    }
+
+    GOLModule().then(function(mod) {
+      const init = mod.cwrap('gol_init', null, ['number','number','number','number']);
+      const step = mod.cwrap('gol_step', 'number', []);
+      const getCells = mod.cwrap('gol_get_cells', 'number', []);
+      const cellCount = mod.cwrap('gol_cell_count', 'number', []);
+      const setBounds = mod.cwrap('gol_set_bounds', null, ['number','number','number','number']);
+
+      // Init with hexagon at center of grid
+      init(0, 0, 6, 0.0);
+
+      // Set bounds to match canvas size
+      const PIXEL = 3;
+      function updateBounds() {
+        const halfW = Math.floor(canvas.width / PIXEL / 2);
+        const halfH = Math.floor(canvas.height / PIXEL / 2);
+        setBounds(-halfW, -halfH, halfW, halfH);
+      }
+      updateBounds();
+      window.addEventListener('resize', function() { resize(); updateBounds(); });
+
+      // PIXEL defined above with bounds
+      let lastTime = performance.now();
+      let frames = 0;
+
+      function render() {
+        const count = step();
+        const ptr = getCells();
+        // Read flat buffer: [x, y, age, x, y, age, ...]
+        const cells = new Int32Array(mod.HEAP32.buffer, ptr, count * 3);
+
+        // Clear
+        ctx.fillStyle = '#09090b';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        // Center offset
+        const cx = canvas.width / 2;
+        const cy = canvas.height / 2;
+
+        // Draw cells
+        for (let i = 0; i < count * 3; i += 3) {
+          const x = cells[i];
+          const y = cells[i + 1];
+          const age = cells[i + 2];
+          const [r, g, b] = cellColor(age);
+          ctx.fillStyle = 'rgb(' + r + ',' + g + ',' + b + ')';
+          ctx.fillRect(cx + x * PIXEL, cy + y * PIXEL, PIXEL, PIXEL);
+        }
+
+        // FPS counter
+        frames++;
+        const now = performance.now();
+        if (now - lastTime >= 1000) {
+          info.textContent = count + ' cells | ' + frames + ' fps';
+          frames = 0;
+          lastTime = now;
+        }
+
+        requestAnimationFrame(render);
+      }
+
+      info.textContent = 'Running...';
+      render();
+    });
+  </script>
+</body>
+</html>

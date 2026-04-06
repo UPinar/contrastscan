@@ -24,7 +24,8 @@
   <link rel="icon" type="image/svg+xml" href="/static/favicon.svg">
   <style>body{background:#09090b;color:#fafafa;font-family:'Geist Mono',monospace;margin:0}</style>
   <link rel="stylesheet" href="/static/css/base.css?v=13">
-  <link rel="stylesheet" href="/static/css/index.css?v=23">
+  <link rel="stylesheet" href="/static/css/index.css?v=37">
+  <link rel="preload" href="/static/wasm/gol.wasm" as="fetch" crossorigin>
   <script type="application/ld+json">
   {
     "@context": "https://schema.org",
@@ -40,8 +41,6 @@
   </script>
 </head>
 <body>
-  <div class="glow"></div>
-
   <nav>
     <a href="/" class="logo">Contrast<span>Scan</span></a>
     <button class="hamburger" aria-label="Menu" aria-expanded="false"><span class="hamburger__lines" aria-hidden="true"></span></button>
@@ -52,6 +51,20 @@
       <a href="/pricing">Pricing</a>
     </div>
   </nav>
+
+  <div class="gol-intro">
+    <canvas id="gol-canvas"></canvas>
+    <div class="scan-overlay scan-left" id="scanOverlay">
+      <span class="scan-label">Scan</span>
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12l7 7 7-7"/></svg>
+    </div>
+    <div class="scan-overlay scan-right" id="scanOverlayRight">
+      <span class="scan-label">Scan</span>
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12l7 7 7-7"/></svg>
+    </div>
+  </div>
+
+  <div class="glow"></div>
 
   <div class="hero">
     <div class="pill">FREE &middot; NO SIGNUP &middot; OPEN SOURCE</div>
@@ -164,6 +177,8 @@
   <script src="/static/js/nav.js"></script>
   <script src="/static/js/scan.js"></script>
   <script src="/static/js/hero.js"></script>
+  <script src="/static/wasm/gol.js?v=31"></script>
+  <script src="/static/js/gol-hero.js?v=41"></script>
   <footer>
     <div class="footer-links">
       <a href="/terms">Terms</a>

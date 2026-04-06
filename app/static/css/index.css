@@ -1,5 +1,61 @@
 /* === Index / Homepage === */
 
+/* --- Game of Life intro section --- */
+.gol-intro {
+  position: relative;
+  inline-size: 100%;
+  block-size: 100vh;
+  overflow: hidden;
+}
+
+#gol-canvas {
+  display: block;
+  inline-size: 100%;
+  block-size: 100%;
+}
+
+.scan-overlay {
+  position: absolute;
+  top: calc(50% - 2rem);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  cursor: pointer;
+  z-index: 2;
+  transition: opacity 0.2s;
+}
+
+.scan-overlay:hover { opacity: 0.7; }
+
+.scan-left {
+  left: 15%;
+  transform: translateY(-50%);
+}
+
+.scan-right {
+  right: 15%;
+  transform: translateY(-50%);
+}
+
+.scan-label {
+  font-size: 1rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  color: var(--text);
+  text-shadow: 0 0 20px rgba(59,130,246,0.4);
+}
+
+.scan-overlay svg {
+  color: var(--text-muted);
+  animation: bounce 2s infinite;
+}
+
+@keyframes bounce {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(6px); }
+}
+
 .glow {
   position: fixed;
   top: -12.5rem;
