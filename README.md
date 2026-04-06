@@ -121,6 +121,7 @@ curl -X POST "https://contrastcyber.com/api/bulk" \
 
 ## Web App Features
 
+- **Game of Life intro** — WASM-powered Conway's Game of Life animation on the landing page (C → Emscripten → 17KB .wasm)
 - Vulnerability findings with severity + remediation
 - Enterprise detection (Google, Facebook, etc.)
 - Bulk scan (CSV/TXT upload)
@@ -178,6 +179,11 @@ contrastscan/
 │   ├── templates/              # Jinja2 HTML (7 pages)
 │   ├── static/                 # CSS, images
 │   └── tests/                  # All tests (877 Python + shell)
+├── wasm/                       # Game of Life (C → WASM via Emscripten)
+│   ├── gol.c                   # Conway's Game of Life engine
+│   ├── hashtable.c             # Spatial hash table
+│   ├── gol.h                   # Headers + WASM exports
+│   └── Makefile                # Emscripten build
 ├── scripts/                    # Deploy, setup, status scripts
 ├── run_tests.sh                # Run all tests
 └── requirements.txt            # Python dependencies
