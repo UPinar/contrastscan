@@ -9,6 +9,18 @@
     });
   });
 
+  // Respect reduced motion preference
+  var motionQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
+  if (motionQuery.matches) return;
+  motionQuery.addEventListener('change', function (e) {
+    if (e.matches) {
+      var c = document.getElementById('gol-canvas');
+      var intro = document.querySelector('.gol-intro');
+      if (c) c.remove();
+      if (intro) intro.style.display = 'none';
+    }
+  });
+
   var canvas = document.getElementById('gol-canvas');
   if (!canvas) return;
   var ctx = canvas.getContext('2d');
@@ -36,28 +48,12 @@
     }, 150);
   });
 
-  // --- Color gradient matching gol.c GetCellColor ---
-  // age 0-30: green (#22c55e) -> blue (#3b82f6)
-  // age 30-60: blue -> purple (#8b5cf6)
-  var colorCache = new Array(61);
-  for (var a = 0; a <= 60; a++) {
-    var r, g, b;
-    if (a < 30) {
-      var t = a / 30;
-      r = 34 + t * 25;
-      g = 197 - t * 67;
-      b = 94 + t * 152;
-    } else {
-      var t2 = (a - 30) / 30;
-      r = 59 + t2 * 80;
-      g = 130 - t2 * 38;
-      b = 246;
-    }
-    colorCache[a] = 'rgb(' + (r | 0) + ',' + (g | 0) + ',' + (b | 0) + ')';
-  }
+  // --- Cell color: spawn=transparent, alive=solid green ---
+  var colorAlive = 'rgb(34,197,94)';
+  var colorSpawn = 'rgba(34,197,94,0.15)';
 
   function cellColor(age) {
-    return colorCache[age > 60 ? 60 : age];
+    return age === 0 ? colorSpawn : colorAlive;
   }
 
   var visible = true;
@@ -77,7 +73,6 @@
     var getCells = mod.cwrap('gol_get_cells', 'number', []);
     var setBounds = mod.cwrap('gol_set_bounds', null, ['number', 'number', 'number', 'number']);
 
-    // 4-gon, shifted up 2rem worth of grid cells
     var shiftY = -Math.round(32 / PIXEL);
     init(0, shiftY, 4, -Math.PI / 4);
 

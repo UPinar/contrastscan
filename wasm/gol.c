@@ -146,15 +146,9 @@ static int          g_initialized = 0;
 static int32_t      g_minX = -200, g_minY = -200;
 static int32_t      g_maxX =  200, g_maxY =  200;
 
-// Polygon configs for random selection on respawn
-static const struct { int32_t sides; double rotation; } g_polygonConfigs[] = {
-  {   4, -PI / 4.0 },
-};
-#define NUM_CONFIGS (int)(sizeof(g_polygonConfigs) / sizeof(g_polygonConfigs[0]))
-
-// Track spawn point positions (pattern changes each cycle)
+// Track spawn points with their pattern
 #define MAX_SPAWNS 4
-static struct { int32_t cx, cy; } g_spawnPositions[MAX_SPAWNS];
+static struct { int32_t cx, cy, sides; double rotation; } g_spawnPoints[MAX_SPAWNS];
 static int g_spawnCount = 0;
 
 // --- WASM Exports ---
@@ -173,7 +167,8 @@ EXPORT void gol_init(int32_t cx, int32_t cy, int32_t sides, double rotation)
 
   CreatePolygon(g_hashTable, cx, cy, sides, rotation);
   g_spawnCount = 1;
-  g_spawnPositions[0].cx = cx; g_spawnPositions[0].cy = cy;
+  g_spawnPoints[0].cx = cx; g_spawnPoints[0].cy = cy;
+  g_spawnPoints[0].sides = sides; g_spawnPoints[0].rotation = rotation;
   g_cellCount    = 0;
   g_prevSize     = 0;
   g_staleFrames  = 0;
@@ -203,11 +198,8 @@ EXPORT uint32_t gol_step(void)
   if (g_staleFrames >= 10)
   {
     for (int i = 0; i < g_spawnCount; i++)
-    {
-      int idx = rand() % NUM_CONFIGS;
-      CreatePolygon(g_hashTable, g_spawnPositions[i].cx, g_spawnPositions[i].cy,
-                    g_polygonConfigs[idx].sides, g_polygonConfigs[idx].rotation);
-    }
+      CreatePolygon(g_hashTable, g_spawnPoints[i].cx, g_spawnPoints[i].cy,
+                    g_spawnPoints[i].sides, g_spawnPoints[i].rotation);
     g_staleFrames = 0;
     g_prevSize = g_hashTable->m_size;
   }
@@ -260,8 +252,10 @@ EXPORT void gol_spawn(int32_t cx, int32_t cy, int32_t sides, double rotation)
   CreatePolygon(g_hashTable, cx, cy, sides, rotation);
   if (g_spawnCount < MAX_SPAWNS)
   {
-    g_spawnPositions[g_spawnCount].cx = cx;
-    g_spawnPositions[g_spawnCount].cy = cy;
+    g_spawnPoints[g_spawnCount].cx = cx;
+    g_spawnPoints[g_spawnCount].cy = cy;
+    g_spawnPoints[g_spawnCount].sides = sides;
+    g_spawnPoints[g_spawnCount].rotation = rotation;
     g_spawnCount++;
   }
 }
