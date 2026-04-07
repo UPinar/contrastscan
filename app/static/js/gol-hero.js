@@ -31,11 +31,14 @@
   var frameCount = 0;
   var rafId = 0;
 
-  // --- Canvas sizing (fills .gol-intro container) ---
+  // --- Canvas sizing (fills .gol-intro, sharp on HiDPI) ---
+  var dpr;
   function resize() {
+    dpr = window.devicePixelRatio || 1;
     var container = canvas.parentElement;
-    canvas.width = container.clientWidth;
-    canvas.height = container.clientHeight;
+    canvas.width = container.clientWidth * dpr;
+    canvas.height = container.clientHeight * dpr;
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
   }
   resize();
 
@@ -77,8 +80,8 @@
     init(0, shiftY, 4, -Math.PI / 4);
 
     function updateBounds() {
-      var halfW = Math.floor(canvas.width / PIXEL / 2);
-      var halfH = Math.floor(canvas.height / PIXEL / 2);
+      var halfW = Math.floor(canvas.width / dpr / PIXEL / 2);
+      var halfH = Math.floor(canvas.height / dpr / PIXEL / 2);
       setBounds(-halfW, -halfH, halfW, halfH);
     }
     updateBounds();
@@ -94,8 +97,14 @@
         return;
       }
 
+      var w = canvas.width / dpr;
+      var h = canvas.height / dpr;
       var count = step();
-      if (count <= 0) { rafId = requestAnimationFrame(render); return; }
+      if (count <= 0) {
+        ctx.clearRect(0, 0, w, h);
+        rafId = requestAnimationFrame(render);
+        return;
+      }
       var ptr = getCells();
       if (ptr <= 0 || ptr % 4 !== 0) { rafId = requestAnimationFrame(render); return; }
 
@@ -108,10 +117,10 @@
 
       var cells = new Int32Array(buf, ptr, count * 3);
 
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.clearRect(0, 0, w, h);
 
-      var cxOff = canvas.width / 2;
-      var cyOff = canvas.height / 2;
+      var cxOff = w / 2;
+      var cyOff = h / 2;
 
       for (var i = 0; i < count * 3; i += 3) {
         ctx.fillStyle = cellColor(cells[i + 2]);
