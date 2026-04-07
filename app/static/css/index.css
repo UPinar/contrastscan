@@ -489,3 +489,9 @@ button:not(.hamburger) {
     padding-inline: 1.25rem;
   }
 }
+
+/* Hide GOL animation on mobile — performance + layout issues */
+@media (max-width: 768px) {
+  .gol-intro { display: none; }
+  .glow { display: none; }
+}
