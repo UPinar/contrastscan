@@ -521,7 +521,7 @@ def robots_txt():
 def sitemap_xml():
     today = datetime.now(UTC).strftime("%Y-%m-%d")
     learn_urls = "\n".join(
-        f"  <url><loc>https://contrastcyber.com/learn/{p['slug']}</loc><changefreq>monthly</changefreq><priority>0.6</priority></url>"
+        f"  <url><loc>https://contrastcyber.com/learn/{p['slug']}</loc><lastmod>2026-03-25</lastmod><changefreq>monthly</changefreq><priority>0.6</priority></url>"
         for p in LEARN_PAGES
     )
     blog_urls = "\n".join(
