@@ -87,7 +87,7 @@ Upload a CSV or TXT file with multiple domains to scan them all at once.
 
 ## Related: ContrastAPI
 
-For deeper security intelligence (CVE lookup, IP reputation, technology fingerprinting, threat intelligence), visit [api.contrastcyber.com](https://api.contrastcyber.com) — 20 tools, free.
+For deeper security intelligence (CVE lookup, IP reputation, technology fingerprinting, threat intelligence), visit [api.contrastcyber.com](https://api.contrastcyber.com) — 25 tools, free.
 
 ## Grade Badge
 
