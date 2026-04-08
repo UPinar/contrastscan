@@ -27,8 +27,8 @@
   if (!ctx) return;
 
   var PIXEL = 4;
-  var frameSkip = 3;
-  var frameCount = 0;
+  var TICK_INTERVAL = 17; // ms between simulation steps (~60 ticks/sec)
+  var lastTick = 0;
   var rafId = 0;
 
   // --- Canvas sizing (fills .gol-intro, sharp on HiDPI) ---
@@ -87,15 +87,15 @@
     updateBounds();
     boundsUpdate = updateBounds;
 
-    // --- Render loop ---
-    function render() {
+    // --- Render loop (time-based, consistent across refresh rates) ---
+    function render(now) {
       rafId = 0;
       if (!visible) return;
-      frameCount++;
-      if (frameCount % frameSkip !== 0) {
+      if (now - lastTick < TICK_INTERVAL) {
         rafId = requestAnimationFrame(render);
         return;
       }
+      lastTick = now;
 
       var w = canvas.width / dpr;
       var h = canvas.height / dpr;
