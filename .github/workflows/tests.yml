@@ -124,9 +124,13 @@ jobs:
           curl -sf http://127.0.0.1:8001/stats > /dev/null && echo "PASS: Stats 200" || echo "FAIL: Stats"
           curl -sf http://127.0.0.1:8001/robots.txt > /dev/null && echo "PASS: robots.txt 200" || echo "FAIL: robots.txt"
 
-      - name: Integration — API rejects invalid domain
+      - name: Integration — scan rejects invalid domain
         run: |
-          STATUS=$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:8001/api/scan?domain=invalid)
+          STATUS=$(curl -s -o /dev/null -w '%{http_code}' \
+            -X POST http://127.0.0.1:8001/scan \
+            -H "Origin: https://contrastcyber.com" \
+            -H "Content-Type: application/x-www-form-urlencoded" \
+            -d "domain=invalid")
           [ "$STATUS" = "400" ] && echo "PASS: Invalid domain -> 400" || { echo "FAIL: expected 400 got $STATUS"; exit 1; }
 
       - name: Integration — scan with real binary
