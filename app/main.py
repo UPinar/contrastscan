@@ -210,7 +210,7 @@ def result(request: Request, scan_id: str):
         raise HTTPException(status_code=500, detail="Corrupted scan result") from exc
     grade = result_data.get("grade", "F")
 
-    return templates.TemplateResponse(
+    response = templates.TemplateResponse(
         request,
         "result.html",
         {
@@ -220,6 +220,8 @@ def result(request: Request, scan_id: str):
             "grade_color": GRADE_COLORS.get(grade, "#ef4444"),
         },
     )
+    response.headers["Cache-Control"] = "private, no-store"
+    return response
 
 
 # === Reports ===
