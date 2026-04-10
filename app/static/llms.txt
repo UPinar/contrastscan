@@ -60,22 +60,13 @@ After the initial scan, ContrastScan performs background reconnaissance:
 ### Web Interface
 Visit [contrastcyber.com](https://contrastcyber.com), type a domain, click "Scan Now". Results appear in under 3 seconds.
 
-### API (free, no key needed)
-```
-GET https://contrastcyber.com/api/scan?domain=example.com
-```
-Returns JSON with scores, grade, and detailed findings.
-
-```
-GET https://contrastcyber.com/api/report?domain=example.com
-```
-Returns a downloadable plain-text security report.
-
-### Bulk Scan
-Upload a CSV or TXT file with multiple domains to scan them all at once.
-
 ### Rate Limit
-100 requests per hour per IP address. No API key needed.
+100 requests per hour per IP address.
+
+## Programmatic Access
+
+For API/MCP access with 29 security tools (CVE, domain intel, IOC, code security), see:
+https://api.contrastcyber.com
 
 ## Trust & Transparency
 

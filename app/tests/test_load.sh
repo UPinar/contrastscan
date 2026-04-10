@@ -4,8 +4,6 @@
 #
 # Tests:
 #   1. 50 concurrent page loads — response time + status
-#   2. 10 concurrent API scans — all return valid JSON
-#   3. Rate limit enforcement — 429 after limit
 #
 # Usage: bash tests/test_load.sh [URL]
 #   default URL: https://contrastcyber.com
@@ -70,55 +68,6 @@ if [ "$max_time" -lt 5000 ]; then
   pass "all responses under 5s SLA (max ${max_time}ms)"
 else
   fail "SLA" "max response ${max_time}ms exceeds 5s"
-fi
-
-# === 2. Concurrent API scans ===
-echo ""
-echo "[concurrent_api] — 5 concurrent API scans"
-
-# use different domains to avoid domain rate limit
-domains=("google.com" "github.com" "cloudflare.com" "example.com" "mozilla.org")
-
-api_ok=0
-for i in $(seq 0 4); do
-  d="${domains[$i]}"
-  curl -s "$URL/api/scan?domain=$d" > "$TMPDIR/api_$i.json" 2>/dev/null &
-done
-wait
-
-for i in $(seq 0 4); do
-  if [ -f "$TMPDIR/api_$i.json" ]; then
-    if cat "$TMPDIR/api_$i.json" | python3 -c "import sys,json; d=json.load(sys.stdin); assert 'grade' in d" 2>/dev/null; then
-      api_ok=$((api_ok + 1))
-    fi
-  fi
-done
-
-if [ "$api_ok" -ge 3 ]; then
-  pass "$api_ok/5 API scans returned valid JSON"
-else
-  fail "concurrent API" "$api_ok/5 valid responses"
-fi
-
-# === 3. Rate limit enforcement ===
-echo ""
-echo "[rate_limit] — verify 429 after limit"
-
-# rapid fire same domain — should eventually get 429 or rate limited
-rate_429=0
-for i in $(seq 1 30); do
-  code=$(curl -s -o /dev/null -w "%{http_code}" "$URL/api/scan?domain=ratelimit-test-$RANDOM.com" 2>/dev/null)
-  if [ "$code" = "429" ]; then
-    rate_429=1
-    break
-  fi
-done
-
-if [ "$rate_429" -eq 1 ]; then
-  pass "rate limit triggered (429) after $i requests"
-else
-  # not necessarily a failure — limit might be high
-  echo -e "  ${YELLOW}INFO${NC}  rate limit not triggered in 30 requests (limit may be higher)"
 fi
 
 # cleanup

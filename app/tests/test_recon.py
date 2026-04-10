@@ -8,7 +8,7 @@ Covers:
   - Group D: WHOIS, CT logs (mocked socket/HTTP)
   - Orchestration: run_recon, start_recon
   - DB round-trip: create_recon, save_recon, get_recon, save_recon_error
-  - E2E: GET /api/recon/{scan_id}
+  - E2E: GET /recon/{scan_id}
 
 Run: cd app && python -m pytest tests/test_recon.py -v
 """
@@ -993,7 +993,7 @@ class TestReconDb:
 
 
 # ============================================================
-# E2E — GET /api/recon/{scan_id}
+# E2E — GET /recon/{scan_id}
 # ============================================================
 
 
@@ -1007,7 +1007,7 @@ class TestReconEndpoint:
         init_db()
 
     def test_pending_status(self):
-        r = self.client.get("/api/recon/aaaabbbbccccddddeeee111122223333")
+        r = self.client.get("/recon/aaaabbbbccccddddeeee111122223333")
         assert r.status_code == 200
         assert r.json()["status"] == "pending"
 
@@ -1015,7 +1015,7 @@ class TestReconEndpoint:
         scan_id = "aabbccdd11223344aabbccdd11223344"
         create_recon(scan_id, "example.com")
         save_recon(scan_id, {"tech_stack": {"count": 1}})
-        r = self.client.get(f"/api/recon/{scan_id}")
+        r = self.client.get(f"/recon/{scan_id}")
         assert r.status_code == 200
         body = r.json()
         assert body["status"] == "done"
@@ -1025,16 +1025,16 @@ class TestReconEndpoint:
         scan_id = "eeff00112233445566778899aabbccdd"
         create_recon(scan_id, "example.com")
         save_recon_error(scan_id, "network timeout")
-        r = self.client.get(f"/api/recon/{scan_id}")
+        r = self.client.get(f"/recon/{scan_id}")
         body = r.json()
         assert body["status"] == "error"
 
     def test_invalid_scan_id_404(self):
-        r = self.client.get("/api/recon/not-a-hex-id!")
+        r = self.client.get("/recon/not-a-hex-id!")
         assert r.status_code == 404
 
     def test_returns_json(self):
-        r = self.client.get("/api/recon/aaaabbbbccccddddeeee111122223333")
+        r = self.client.get("/recon/aaaabbbbccccddddeeee111122223333")
         assert r.headers["content-type"].startswith("application/json")
 
 

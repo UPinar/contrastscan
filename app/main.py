@@ -17,47 +17,30 @@ from contextlib import asynccontextmanager
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
-from auth import require_api_key
 from blog_posts import BLOG_POSTS, _blog_by_slug
 from config import (
     BADGE_CACHE_MAX_AGE,
     BADGE_GRADE_WIDTH,
     BADGE_LABEL_WIDTH,
     BASE_DIR,
-    BULK_MAX_DOMAINS,
     ERROR_MESSAGES,
     GRADE_COLORS,
-    HOURLY_LIMIT,
     MAX_DOMAIN_LENGTH,
 )
-from db import get_domain_grade, get_ip_usage, get_recon, get_scan, get_stats, get_stats_detailed, init_db
+from db import get_domain_grade, get_recon, get_scan, get_stats, get_stats_detailed, init_db
 from fastapi import FastAPI, Form, HTTPException, Request
 from fastapi.responses import HTMLResponse, JSONResponse, PlainTextResponse, RedirectResponse, Response
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from learn_pages import LEARN_PAGES
-from pydantic import BaseModel, field_validator
 from report import generate_report, report_response
 from starlette.concurrency import run_in_threadpool
 from validation import SCAN_ID_PATTERN, check_csrf, clean_domain, get_client_ip
 
-from scanner import perform_bulk_scan, perform_scan
+from scanner import perform_scan
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
 logger = logging.getLogger("contrastscan")
-
-
-class BulkScanRequest(BaseModel):
-    domains: list[str]
-
-    @field_validator("domains")
-    @classmethod
-    def validate_domains(cls, v):
-        if not v:
-            raise ValueError("domains list cannot be empty")
-        if len(v) > BULK_MAX_DOMAINS:
-            raise ValueError(f"Maximum {BULK_MAX_DOMAINS} domains per request")
-        return v
 
 
 @asynccontextmanager
@@ -109,7 +92,7 @@ app = FastAPI(
     version="1.0.0",
     docs_url=None,
     redoc_url=None,
-    openapi_url="/openapi.json",
+    openapi_url=None,
     lifespan=lifespan,
 )
 app.mount("/static", StaticFiles(directory=BASE_DIR / "static"), name="static")
@@ -118,7 +101,7 @@ templates = Jinja2Templates(directory=BASE_DIR / "templates")
 
 @app.exception_handler(HTTPException)
 async def custom_error_handler(request: Request, exc: HTTPException):
-    if request.url.path.startswith("/api/"):
+    if request.url.path.startswith("/recon/"):
         return JSONResponse(status_code=exc.status_code, content={"detail": exc.detail})
 
     title, message = ERROR_MESSAGES.get(exc.status_code, ("Error", "Something went wrong."))
@@ -138,7 +121,7 @@ async def custom_error_handler(request: Request, exc: HTTPException):
 async def generic_error_handler(request: Request, exc: Exception):
     """Catch-all — never leak stack traces or internal paths."""
     logger.exception("Unhandled error on %s %s", request.method, request.url.path)
-    if request.url.path.startswith("/api/"):
+    if request.url.path.startswith("/recon/"):
         return JSONResponse(status_code=500, content={"detail": "Internal server error"})
     return templates.TemplateResponse(
         request,
@@ -166,11 +149,6 @@ def index(request: Request):
             "recent_scans": recent_scans,
         },
     )
-
-
-@app.get("/api", response_class=HTMLResponse, include_in_schema=False)
-def api_docs(request: Request):
-    return templates.TemplateResponse(request, "api.html")
 
 
 @app.get("/stats", response_class=HTMLResponse, include_in_schema=False)
@@ -244,54 +222,6 @@ def result(request: Request, scan_id: str):
     )
 
 
-# === API ===
-
-
-@app.get(
-    "/api/scan",
-    tags=["scan"],
-    summary="Scan a domain for security issues",
-    description="Returns SSL/TLS, HTTP headers, DNS (SPF/DKIM/DMARC) scores and vulnerability findings. Grade A-F, max 100 points. Free: 100/hour per IP.",
-    operation_id="scan_domain",
-)
-async def api_scan(request: Request, domain: str):
-    """JSON API — IP-based rate limit (100/hour)"""
-    client_ip = get_client_ip(request)
-    dnt = _wants_dnt(request)
-    _, result = await run_in_threadpool(perform_scan, domain, client_ip, dnt=dnt)
-    return result
-
-
-@app.get(
-    "/api/usage", tags=["scan"], summary="Check your hourly usage", operation_id="get_usage", include_in_schema=False
-)
-def api_usage(request: Request):
-    ip = get_client_ip(request)
-    usage = get_ip_usage(ip)
-    return {"usage": usage, "limit": HOURLY_LIMIT, "remaining": max(0, HOURLY_LIMIT - usage)}
-
-
-# === Bulk Scan (Pro) ===
-
-
-@app.post(
-    "/api/v1/bulk",
-    tags=["pro"],
-    summary="Bulk scan multiple domains (Pro)",
-    description="Scan up to 50 domains in a single request. Requires a Pro API key via X-API-Key header. 1000 scans/hour limit.",
-    operation_id="bulk_scan",
-)
-async def api_bulk_scan(request: Request, body: BulkScanRequest):
-    """Pro bulk scan — API key required, up to 50 domains per request."""
-    # Dedup before rate limit so we only reserve quota for unique domains
-    unique_domains = list(dict.fromkeys(c for d in body.domains if (c := clean_domain(d))))
-    if not unique_domains:
-        raise HTTPException(status_code=400, detail="No valid domains provided")
-    key_data = require_api_key(request, scan_count=len(unique_domains))
-    results = await run_in_threadpool(perform_bulk_scan, unique_domains, key_data["id"])
-    return {"results": results, "total": len(results), "successful": sum(1 for r in results if "error" not in r)}
-
-
 # === Reports ===
 
 
@@ -326,37 +256,16 @@ async def report_txt(scan_id: str):
     return report_response(text, r.get("domain", "unknown"))
 
 
-@app.get(
-    "/api/report",
-    tags=["scan"],
-    summary="Get a plain-text security report",
-    description="Scans the domain and returns a human-readable plain-text security report.",
-    operation_id="get_report",
-)
-async def api_report(request: Request, domain: str):
-    """API: scan domain and return plain-text report"""
-    client_ip = get_client_ip(request)
-    dnt = _wants_dnt(request)
-    scan_id, result = await run_in_threadpool(perform_scan, domain, client_ip, dnt=dnt)
-    scan_data = get_scan(scan_id)
-    created_at = (
-        scan_data.get("created_at", datetime.now(UTC).isoformat()) if scan_data else datetime.now(UTC).isoformat()
-    )
-    recon_row = get_recon(scan_id)
-    recon = None
-    if recon_row and recon_row.get("result"):
-        try:
-            recon = json.loads(recon_row["result"])
-        except (json.JSONDecodeError, TypeError):
-            logger.warning("Invalid recon JSON for %s", scan_id)
-    text = generate_report(result, scan_id, created_at, recon=recon)
-    return report_response(text, result.get("domain", domain))
-
-
 # === Recon ===
 
 
-@app.get("/api/recon/{scan_id}", tags=["scan"], summary="Poll passive recon results", operation_id="get_recon")
+@app.get(
+    "/recon/{scan_id}",
+    tags=["scan"],
+    summary="Poll passive recon results",
+    operation_id="get_recon",
+    include_in_schema=False,
+)
 def get_recon_data(scan_id: str):
     """Poll recon results — returns status + data when ready."""
     if not SCAN_ID_PATTERN.match(scan_id):
@@ -531,7 +440,6 @@ def sitemap_xml():
     xml = f"""<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url><loc>https://contrastcyber.com/</loc><lastmod>{today}</lastmod><changefreq>weekly</changefreq><priority>1.0</priority></url>
-  <url><loc>https://contrastcyber.com/api</loc><lastmod>2026-03-25</lastmod><changefreq>monthly</changefreq><priority>0.7</priority></url>
   <url><loc>https://contrastcyber.com/stats</loc><lastmod>{today}</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
   <url><loc>https://contrastcyber.com/learn</loc><lastmod>{today}</lastmod><changefreq>weekly</changefreq><priority>0.8</priority></url>
   <url><loc>https://contrastcyber.com/blog</loc><lastmod>{today}</lastmod><changefreq>weekly</changefreq><priority>0.8</priority></url>
@@ -549,25 +457,4 @@ def security_txt():
         f"Expires: {expires}\n"
         f"Preferred-Languages: en, tr\n"
         f"Canonical: https://contrastcyber.com/.well-known/security.txt\n"
-    )
-
-
-@app.get("/.well-known/ai-plugin.json", include_in_schema=False)
-def ai_plugin():
-    return JSONResponse(
-        {
-            "schema_version": "v1",
-            "name_for_human": "ContrastScan — Free Security Scanner",
-            "name_for_model": "contrastscan",
-            "description_for_human": "Free security scanner — check SSL, headers, and DNS security for any domain.",
-            "description_for_model": "Scan any domain for security misconfigurations. Returns SSL/TLS grade, HTTP security headers, DNS email authentication (SPF/DKIM/DMARC), and vulnerability findings with severity and remediation. Use GET /api/scan?domain=example.com for JSON results.",
-            "auth": {"type": "none"},
-            "api": {
-                "type": "openapi",
-                "url": "https://contrastcyber.com/openapi.json",
-            },
-            "logo_url": "https://contrastcyber.com/static/og-image.png",
-            "contact_email": "contact@contrastcyber.com",
-            "legal_info_url": "https://contrastcyber.com",
-        }
     )

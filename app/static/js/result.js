@@ -121,7 +121,7 @@ document.addEventListener('DOMContentLoaded', function() {
   }
 
   function pollRecon() {
-    fetch('/api/recon/' + scanId)
+    fetch('/recon/' + scanId)
       .then(function(r) { return r.json(); })
       .then(function(resp) {
         if ((resp.status === 'done' || resp.status === 'partial') && resp.data) {

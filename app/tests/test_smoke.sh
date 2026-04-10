@@ -140,16 +140,6 @@ check_response_time "$BASE_URL/" 3000 "Homepage < 3s"
 check_response_time "$BASE_URL/stats" 3000 "Stats < 3s"
 check_response_time "$BASE_URL/robots.txt" 1000 "robots.txt < 1s"
 
-# === API check ===
-echo ""
-echo "[api]"
-api_status=$(curl -s -o /dev/null -w '%{http_code}' --max-time 10 "$BASE_URL/api/scan?domain=invalid")
-if [ "$api_status" = "400" ]; then
-    pass "API rejects invalid domain → 400"
-else
-    fail "API invalid domain" "expected 400, got $api_status"
-fi
-
 # === OpenAPI hidden ===
 echo ""
 echo "[security]"

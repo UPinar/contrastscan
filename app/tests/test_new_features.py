@@ -1,7 +1,5 @@
 """
 test_new_features.py — tests for features:
-  - Bulk scan (page + API)
-  - OpenAPI / ai-plugin.json
   - Sitemap entries
 
 Run: cd app && python -m pytest tests/test_new_features.py -v
@@ -111,48 +109,3 @@ def mock_validate_domain(domain):
     if domain in ("example.com", "google.com", "test1.com", "test2.com"):
         return "93.184.216.34"
     return None
-
-
-# === OpenAPI ===
-
-
-class TestOpenApi:
-    def test_openapi_json_status(self):
-        r = client.get("/openapi.json")
-        assert r.status_code == 200
-
-    def test_openapi_has_scan_domain_operation(self):
-        r = client.get("/openapi.json")
-        data = r.json()
-        # Check that scan_domain operation_id exists somewhere in paths
-        found = False
-        for path_data in data.get("paths", {}).values():
-            for method_data in path_data.values():
-                if isinstance(method_data, dict) and method_data.get("operationId") == "scan_domain":
-                    found = True
-                    break
-        assert found, "operation_id 'scan_domain' not found in openapi.json"
-
-
-# === AI plugin ===
-
-
-class TestAiPlugin:
-    def test_ai_plugin_status(self):
-        r = client.get("/.well-known/ai-plugin.json")
-        assert r.status_code == 200
-
-    def test_ai_plugin_has_schema_version(self):
-        r = client.get("/.well-known/ai-plugin.json")
-        data = r.json()
-        assert data["schema_version"] == "v1"
-
-    def test_ai_plugin_has_name(self):
-        r = client.get("/.well-known/ai-plugin.json")
-        data = r.json()
-        assert "contrastscan" in data["name_for_model"]
-
-    def test_ai_plugin_has_openapi_url(self):
-        r = client.get("/.well-known/ai-plugin.json")
-        data = r.json()
-        assert data["api"]["url"] == "https://contrastcyber.com/openapi.json"
