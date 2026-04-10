@@ -274,15 +274,16 @@ def get_recon_data(scan_id: str):
         raise HTTPException(status_code=404, detail="Invalid scan ID")
     recon = get_recon(scan_id)
     if not recon:
-        return {"status": "pending"}
-    status = recon["status"]
-    data = None
-    if recon.get("result"):
-        try:
-            data = json.loads(recon["result"])
-        except (json.JSONDecodeError, TypeError):
-            logger.warning("Invalid recon JSON for %s", scan_id)
-    return {"status": status, "data": data}
+        payload = {"status": "pending"}
+    else:
+        data = None
+        if recon.get("result"):
+            try:
+                data = json.loads(recon["result"])
+            except (json.JSONDecodeError, TypeError):
+                logger.warning("Invalid recon JSON for %s", scan_id)
+        payload = {"status": recon["status"], "data": data}
+    return JSONResponse(content=payload, headers={"Cache-Control": "private, no-store"})
 
 
 # === Badge ===
