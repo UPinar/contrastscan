@@ -68,7 +68,7 @@
   <p>The Service may change, be interrupted, or be discontinued without notice. We do not guarantee uptime, availability, or any service level agreement (SLA). Features may be added, modified, or removed at any time.</p>
 
   <h2>8. Data Collection</h2>
-  <p>ContrastScan stores domain names and scan results for result lookup. ContrastAPI stores API usage logs (endpoint path, timestamp, hashed API key), hashed IP addresses, and temporary query result caches (domain and IP lookups, automatically expired after 1 hour). No raw IP addresses are stored permanently in the database. See our <a href="/privacy">Privacy Policy</a> for full details.</p>
+  <p>ContrastScan stores domain names and scan results for result lookup. ContrastAPI stores only: (a) a salted HMAC hash of your IP address, (b) the endpoint category called (path parameters — domains, IPs, CVE IDs, etc. — are stripped before logging), (c) the call timestamp, and (d) for Pro users, a hashed API key. Domain and IP lookup results are temporarily cached for up to 1 hour. No raw IP addresses, query parameters, or response contents are stored in the database. You can verify this at any time by calling <code>GET /v1/privacy/my-data</code>, which returns every row our database has about you. See our <a href="/privacy">Privacy Policy</a> for full details.</p>
 
   <h2>9. Third-Party Data</h2>
   <p>Some API endpoints query or analyze data about third-party domains, email addresses, phone numbers, or usernames. You are responsible for ensuring your use of these lookups complies with applicable laws in your jurisdiction. We do not verify whether you have authorization to query specific targets.</p>

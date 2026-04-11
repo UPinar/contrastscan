@@ -61,6 +61,11 @@
     <li>We do not store the content of API query results</li>
   </ul>
 
+  <h3>2.5 Verify It Yourself</h3>
+  <p>Don't take our word for it. ContrastAPI exposes a transparency endpoint that returns <strong>every single row</strong> our database has about you — right now, in real time:</p>
+  <pre style="background:#0a0a0a;border:1px solid #27272a;border-radius:6px;padding:1rem;overflow-x:auto;"><code>curl https://api.contrastcyber.com/v1/privacy/my-data</code></pre>
+  <p>The response shows your hashed IP, your last 24 hours of endpoint activity (aggregated by endpoint category — no query parameters), your rate limit state, and a <code>not_stored</code> list explaining what is deliberately absent. Pro users additionally see their key record (order ID, creation date, last use). The endpoint points back to the exact source lines in <a href="https://github.com/UPinar/contrastapi/blob/main/app/db.py#L299-L357" target="_blank">db.py (hash_client_ip + normalize_endpoint)</a> that enforce the privacy guarantees — so you can audit the code, not just the policy.</p>
+
   <h2>3. DNT &amp; Global Privacy Control</h2>
   <p>We respect the <strong>Do Not Track</strong> (DNT) and <strong>Global Privacy Control</strong> (Sec-GPC) headers. If your browser sends either signal, we do not store any hashed IP data with your request. The service still works normally — we simply skip the analytics hash.</p>
 
