@@ -21,7 +21,7 @@
   </nav>
 <div class="legal">
   <h1>Privacy Policy</h1>
-  <p class="updated">Last updated: April 6, 2026</p>
+  <p class="updated">Last updated: April 11, 2026</p>
 
   <h2>1. Introduction</h2>
   <p>ContrastCyber ("we", "us") operates ContrastScan at contrastcyber.com and ContrastAPI at api.contrastcyber.com. This Privacy Policy covers both services and explains what data we collect, how we use it, and your rights.</p>
@@ -46,7 +46,17 @@
   <ul>
     <li><strong>Hashed IP addresses</strong> — a one-way cryptographic hash of your IP (with a unique salt) is stored for aggregate analytics. No raw IP address is ever stored in the application database.</li>
     <li><strong>Rate limiting</strong> — raw IP addresses are stored temporarily for rate limiting and purged automatically. Never shared.</li>
-    <li><strong>Server logs</strong> — standard nginx access logs retained for up to 14 days containing: IP address, timestamp, HTTP method, request path, status code, response size, referrer URL, and user-agent string.</li>
+    <li><strong>Server logs</strong> — standard nginx access logs retained for up to <strong>24 hours</strong>. Path parameters and query strings are stripped to <code>REDACTED</code> at the nginx layer <em>before</em> the log line ever touches disk:
+    <pre style="background:#0a0a0a;border:1px solid #27272a;border-radius:6px;padding:0.75rem;margin:0.5rem 0;overflow-x:auto;font-size:0.85em;"><code>Before:  GET /v1/ip/8.8.8.8 HTTP/1.1
+After:   GET /v1/ip/REDACTED HTTP/1.1
+
+Before:  GET /v1/whois/example.com HTTP/1.1
+After:   GET /v1/whois/REDACTED HTTP/1.1
+
+Before:  GET /v1/cves?q=log4j HTTP/1.1
+After:   GET /v1/cves HTTP/1.1</code></pre>
+    The log line itself contains: IP address, timestamp, HTTP method, sanitized path (as above), status code, response size, referrer URL, and user-agent string. A separate daily aggregate snapshot (per-day counts and ISO country codes only — no IPs, no paths, no query data) is retained indefinitely for product analytics.</li>
+    <li><strong>Application logs (systemd journal)</strong> — application warning/error events record only the exception <em>type</em> (e.g. <code>TimeoutException</code>, <code>HTTPStatusError</code>) and the sanitized endpoint path. Query parameters, full exception messages, and stack traces are deliberately stripped before the line is emitted, so domain names, IPs, CVE IDs, hashes, and other inputs never reach the journal. Retained for <strong>24 hours</strong> (<code>MaxRetentionSec=1day</code> in <code>journald.conf</code>).</li>
     <li><strong>Geographic analysis</strong> — a local GeoIP database (MaxMind GeoLite2) maps IP addresses to <strong>country-level location only</strong>. No city, region, or precise location data is derived. No individual user is identified or profiled.</li>
   </ul>
 
@@ -79,11 +89,12 @@
   <h2>5. Data Retention</h2>
   <ul>
     <li><strong>Hashed IPs:</strong> Automatically anonymized after 90 days.</li>
-    <li><strong>Scan results:</strong> Stored indefinitely for historical comparison, anonymized after 90 days.</li>
+    <li><strong>Scan results:</strong> The scan record (domain, grade, findings) is stored indefinitely for historical comparison and result lookup. The user link (hashed client IP) is removed after 90 days via <code>purge_old_client_hashes()</code>, leaving an orphan record that cannot be tied to any visitor.</li>
     <li><strong>API usage logs:</strong> Retained for 90 days, then anonymized.</li>
     <li><strong>API query caches:</strong> Domain and IP lookup results are cached for up to 1 hour to improve response times, then automatically expired and purged.</li>
     <li><strong>Rate limit data:</strong> Purged automatically (sliding window).</li>
-    <li><strong>Server logs:</strong> Rotated and deleted after 14 days.</li>
+    <li><strong>Server logs:</strong> Rotated and deleted after <strong>24 hours</strong> (forced midnight UTC rotation, <code>rotate 1</code>).</li>
+    <li><strong>Application logs:</strong> systemd journal capped at <strong>24 hours</strong> (<code>MaxRetentionSec=1day</code>).</li>
     <li><strong>Pro API keys:</strong> Hashed keys retained while subscription is active. Deleted upon request after cancellation.</li>
   </ul>
 
