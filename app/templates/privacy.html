@@ -94,7 +94,7 @@ After:   GET /v1/cves HTTP/1.1</code></pre>
     <li><strong>API query caches:</strong> Domain and IP lookup results are cached for up to 1 hour to improve response times, then automatically expired and purged.</li>
     <li><strong>Rate limit data:</strong> Purged automatically (sliding window).</li>
     <li><strong>Server logs:</strong> Rotated and deleted after <strong>24 hours</strong> (forced midnight UTC rotation, <code>rotate 1</code>).</li>
-    <li><strong>Application logs:</strong> systemd journal capped at <strong>24 hours</strong> (<code>MaxRetentionSec=1day</code>).</li>
+    <li><strong>Application logs:</strong> systemd journal capped at <strong>1 hour</strong> (<code>MaxRetentionSec=1h</code>).</li>
     <li><strong>Pro API keys:</strong> Hashed keys retained while subscription is active. Deleted upon request after cancellation.</li>
   </ul>
 
