@@ -14,10 +14,13 @@
  *   ./test_scoring
  */
 
+#define _GNU_SOURCE  /* strcasestr */
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <assert.h>
+
+#include "../include/csp_util.h"  /* csp_has_keyword, count_script_data_blocks */
 
 /* ======================================
  *  Functions under test are copied here
@@ -1077,6 +1080,134 @@ void test_csp_deep_scoring(void)
   ASSERT_INT_EQ(calc_csp_deep_score(0, 1, 1, 1, 1), 0); PASS();
 }
 
+/* csp_has_keyword and count_script_data_blocks are shared from csp_util.h */
+
+void test_csp_keyword_match(void)
+{
+  /* Real unsafe-eval should match */
+  TEST("csp_kw: 'unsafe-eval' matches");
+  ASSERT_INT_EQ(csp_has_keyword("script-src 'self' 'unsafe-eval'", "unsafe-eval"), 1); PASS();
+
+  TEST("csp_kw: bare unsafe-eval matches");
+  ASSERT_INT_EQ(csp_has_keyword("script-src self unsafe-eval;", "unsafe-eval"), 1); PASS();
+
+  /* The bug we are fixing: wasm-unsafe-eval must NOT match unsafe-eval */
+  TEST("csp_kw: 'wasm-unsafe-eval' does NOT match 'unsafe-eval'");
+  ASSERT_INT_EQ(csp_has_keyword("script-src 'self' 'wasm-unsafe-eval'", "unsafe-eval"), 0); PASS();
+
+  TEST("csp_kw: bare wasm-unsafe-eval does NOT match unsafe-eval");
+  ASSERT_INT_EQ(csp_has_keyword("script-src 'self' wasm-unsafe-eval https://x", "unsafe-eval"), 0); PASS();
+
+  /* Mixed: wasm-unsafe-eval AND unsafe-eval present → matches */
+  TEST("csp_kw: both wasm-unsafe-eval and unsafe-eval → matches");
+  ASSERT_INT_EQ(csp_has_keyword("script-src 'wasm-unsafe-eval' 'unsafe-eval'", "unsafe-eval"), 1); PASS();
+
+  /* unsafe-inline */
+  TEST("csp_kw: 'unsafe-inline' matches");
+  ASSERT_INT_EQ(csp_has_keyword("style-src 'self' 'unsafe-inline'", "unsafe-inline"), 1); PASS();
+
+  TEST("csp_kw: empty CSP → no match");
+  ASSERT_INT_EQ(csp_has_keyword("", "unsafe-eval"), 0); PASS();
+
+  /* Case-insensitive */
+  TEST("csp_kw: case-insensitive match");
+  ASSERT_INT_EQ(csp_has_keyword("script-src 'UNSAFE-EVAL'", "unsafe-eval"), 1); PASS();
+
+  /* Adjacent identifier should not match */
+  TEST("csp_kw: 'unsafe-evalsomething' does NOT match");
+  ASSERT_INT_EQ(csp_has_keyword("script-src 'unsafe-evalsomething'", "unsafe-eval"), 0); PASS();
+
+  /* NULL inputs */
+  TEST("csp_kw: NULL csp → 0");
+  ASSERT_INT_EQ(csp_has_keyword(NULL, "unsafe-eval"), 0); PASS();
+
+  TEST("csp_kw: NULL keyword → 0");
+  ASSERT_INT_EQ(csp_has_keyword("script-src 'unsafe-eval'", NULL), 0); PASS();
+
+  /* Empty keyword should not crash or match */
+  TEST("csp_kw: empty keyword → 0");
+  ASSERT_INT_EQ(csp_has_keyword("script-src 'unsafe-eval'", ""), 0); PASS();
+
+  /* Keyword at the very end of the string (walk-off guard) */
+  TEST("csp_kw: keyword at end of string matches");
+  ASSERT_INT_EQ(csp_has_keyword("'unsafe-eval'", "unsafe-eval"), 1); PASS();
+
+  TEST("csp_kw: keyword is entire string");
+  ASSERT_INT_EQ(csp_has_keyword("unsafe-eval", "unsafe-eval"), 1); PASS();
+}
+
+/* --- count_script_data_blocks (attribute-order agnostic <script> data tag counter) --- */
+
+void test_count_script_data_blocks(void)
+{
+  /* Basic: typical JSON-LD */
+  TEST("data_blocks: JSON-LD double-quoted");
+  ASSERT_INT_EQ(count_script_data_blocks(
+    "<script type=\"application/ld+json\">{}</script>"), 1); PASS();
+
+  TEST("data_blocks: JSON-LD single-quoted");
+  ASSERT_INT_EQ(count_script_data_blocks(
+    "<script type='application/ld+json'>{}</script>"), 1); PASS();
+
+  /* application/json */
+  TEST("data_blocks: application/json counts");
+  ASSERT_INT_EQ(count_script_data_blocks(
+    "<script type=\"application/json\">{}</script>"), 1); PASS();
+
+  /* text/template */
+  TEST("data_blocks: text/template counts");
+  ASSERT_INT_EQ(count_script_data_blocks(
+    "<script type=\"text/template\">...</script>"), 1); PASS();
+
+  /* The bug we are fixing: attribute order must not matter */
+  TEST("data_blocks: defer before type counts");
+  ASSERT_INT_EQ(count_script_data_blocks(
+    "<script defer type=\"application/ld+json\">{}</script>"), 1); PASS();
+
+  TEST("data_blocks: data-foo='x' before type counts");
+  ASSERT_INT_EQ(count_script_data_blocks(
+    "<script data-foo='x' type=\"application/json\">{}</script>"), 1); PASS();
+
+  /* Executable scripts must NOT be counted */
+  TEST("data_blocks: plain <script> is not a data block");
+  ASSERT_INT_EQ(count_script_data_blocks(
+    "<script>alert(1)</script>"), 0); PASS();
+
+  TEST("data_blocks: <script src=...> is not a data block");
+  ASSERT_INT_EQ(count_script_data_blocks(
+    "<script src=\"/a.js\"></script>"), 0); PASS();
+
+  /* <scripting> / <scripts> must not be counted as <script> tag */
+  TEST("data_blocks: <scripting> not a script tag");
+  ASSERT_INT_EQ(count_script_data_blocks(
+    "<scripting type=\"application/ld+json\"></scripting>"), 0); PASS();
+
+  /* Multiple occurrences */
+  TEST("data_blocks: counts multiple tags");
+  ASSERT_INT_EQ(count_script_data_blocks(
+    "<script type=\"application/ld+json\">{}</script>"
+    "<script type=\"text/template\">x</script>"
+    "<script>exec()</script>"), 2); PASS();
+
+  /* NULL-safe */
+  TEST("data_blocks: NULL → 0");
+  ASSERT_INT_EQ(count_script_data_blocks(NULL), 0); PASS();
+
+  /* Empty string */
+  TEST("data_blocks: empty string → 0");
+  ASSERT_INT_EQ(count_script_data_blocks(""), 0); PASS();
+
+  /* Unterminated tag (no '>') must not crash */
+  TEST("data_blocks: unterminated <script tag → 0");
+  ASSERT_INT_EQ(count_script_data_blocks(
+    "<script type=\"application/ld+json\""), 0); PASS();
+
+  /* Case-insensitive type */
+  TEST("data_blocks: case-insensitive type match");
+  ASSERT_INT_EQ(count_script_data_blocks(
+    "<SCRIPT TYPE=\"Application/LD+JSON\">{}</SCRIPT>"), 1); PASS();
+}
+
 /* ======================================
  *  TESTS: full grade with 11 modules
  * ====================================== */
@@ -1261,6 +1392,12 @@ int main(void)
 
   printf("\n[csp_deep_scoring]\n");
   test_csp_deep_scoring();
+
+  printf("\n[csp_keyword_match]\n");
+  test_csp_keyword_match();
+
+  printf("\n[count_script_data_blocks]\n");
+  test_count_script_data_blocks();
 
   printf("\n[full_grade_11_modules]\n");
   test_full_grade_11_modules();

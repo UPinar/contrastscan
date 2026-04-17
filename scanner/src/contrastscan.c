@@ -42,6 +42,8 @@
 #include <cjson/cJSON.h>  // cJSON_*
 #include <time.h>         // time, difftime
 
+#include "../include/csp_util.h"  // csp_has_keyword, count_script_data_blocks
+
 /* ============================
  *  SCORE CONSTANTS
  * ============================ */
@@ -1624,10 +1626,14 @@ static cJSON *scan_html(const char *domain)
     mixed_passive += count_substr_ci(html_body, "<link href=\"http://");
     mixed_passive += count_substr_ci(html_body, "<link href='http://");
 
-    /* inline scripts: <script> without src= (inline code) */
+    /* inline scripts: <script> without src= (inline code).
+     * Excludes data blocks (JSON-LD / application+json / text/template) — per
+     * HTML spec these are non-executable and CSP does not require 'unsafe-inline'.
+     */
     int total_script_tags = count_substr_ci(html_body, "<script");
     int script_with_src = count_substr_ci(html_body, "<script src");
-    inline_scripts = total_script_tags - script_with_src;
+    int data_block_scripts = count_script_data_blocks(html_body);
+    inline_scripts = total_script_tags - script_with_src - data_block_scripts;
     if (inline_scripts < 0) inline_scripts = 0;
 
     /* inline event handlers */
@@ -1710,8 +1716,8 @@ static cJSON *scan_csp_deep(void)
 
   if (csp_value[0])
   {
-    has_unsafe_inline = (strcasestr(csp_value, "unsafe-inline") != NULL);
-    has_unsafe_eval = (strcasestr(csp_value, "unsafe-eval") != NULL);
+    has_unsafe_inline = csp_has_keyword(csp_value, "unsafe-inline");
+    has_unsafe_eval = csp_has_keyword(csp_value, "unsafe-eval");
     has_wildcard = (strstr(csp_value, " * ") != NULL || strstr(csp_value, " *;") != NULL || strstr(csp_value, " *'") != NULL);
     has_data_uri = (strcasestr(csp_value, "data:") != NULL);
     has_blob = (strcasestr(csp_value, "blob:") != NULL);
