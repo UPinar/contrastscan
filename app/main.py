@@ -13,6 +13,7 @@ Routes only — business logic split into modules:
 
 import json
 import logging
+import secrets
 from contextlib import asynccontextmanager
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
@@ -97,6 +98,32 @@ app = FastAPI(
 )
 app.mount("/static", StaticFiles(directory=BASE_DIR / "static"), name="static")
 templates = Jinja2Templates(directory=BASE_DIR / "templates")
+
+
+@app.middleware("http")
+async def csp_nonce_middleware(request: Request, call_next):
+    nonce = secrets.token_urlsafe(16)
+    request.state.csp_nonce = nonce
+    response = await call_next(request)
+    content_type = response.headers.get("content-type", "")
+    if content_type.startswith("text/html"):
+        response.headers["Content-Security-Policy"] = (
+            "default-src 'self'; "
+            "base-uri 'self'; "
+            "form-action 'self'; "
+            "object-src 'none'; "
+            "frame-src 'none'; "
+            "child-src 'none'; "
+            "worker-src 'self'; "
+            "manifest-src 'self'; "
+            "media-src 'none'; "
+            f"style-src 'self' 'nonce-{nonce}'; "
+            "font-src 'self'; "
+            f"script-src 'self' 'wasm-unsafe-eval' 'nonce-{nonce}' https://static.cloudflareinsights.com; "
+            "connect-src 'self' https://cloudflareinsights.com; "
+            "img-src 'self'"
+        )
+    return response
 
 
 @app.exception_handler(HTTPException)

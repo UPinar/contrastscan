@@ -17,8 +17,18 @@
   <meta name="twitter:description" content="Security scan grade distribution from ContrastScan.">
   <link rel="canonical" href="https://contrastcyber.com/stats">
   <link rel="icon" type="image/svg+xml" href="/static/favicon.svg">
-  <link rel="stylesheet" href="/static/css/base.css?v=13">
-  <link rel="stylesheet" href="/static/css/stats.css?v=3">
+  <link rel="stylesheet" href="/static/css/base.css?v=14">
+  <link rel="stylesheet" href="/static/css/stats.css?v=4">
+  {% if grades %}
+  {% set avg_color = '#22c55e' if avg_score >= 75 else '#eab308' if avg_score >= 50 else '#ef4444' %}
+  <style nonce="{{ request.state.csp_nonce }}">
+    :root { --avg-color: {{ avg_color }}; }
+    {% for g in grades %}
+    .grade-row-{{ g.letter }} .grade-letter { color: {{ g.color }}; }
+    .grade-row-{{ g.letter }} .bar-fill { inline-size: {{ g.pct }}%; background: {{ g.color }}; }
+    {% endfor %}
+  </style>
+  {% endif %}
 </head>
 <body>
   <nav>
@@ -37,16 +47,16 @@
 
     {% if grades %}
     <div class="avg-score">
-      <div class="avg-value" style="color: {{ '#22c55e' if avg_score >= 75 else '#eab308' if avg_score >= 50 else '#ef4444' }}">{{ avg_score }}</div>
+      <div class="avg-value">{{ avg_score }}</div>
       <div class="avg-label">Average Score / 100</div>
     </div>
 
     <div class="grade-bars">
     {% for g in grades %}
-    <div class="grade-bar">
-      <span class="grade-letter" style="color: {{ g.color }}">{{ g.letter }}</span>
+    <div class="grade-bar grade-row-{{ g.letter }}">
+      <span class="grade-letter">{{ g.letter }}</span>
       <div class="bar-bg">
-        <div class="bar-fill" style="width: {{ g.pct }}%; background: {{ g.color }};"></div>
+        <div class="bar-fill"></div>
       </div>
       <span class="bar-pct">{{ g.pct }}%</span>
     </div>
@@ -60,12 +70,12 @@
     {% endif %}
   </div>
 
-  <script src="/static/js/nav.js"></script>
+  <script src="/static/js/nav.js?v=2"></script>
     <footer>
     <div class="footer-links">
       <a href="/terms">Terms</a>
       <a href="/privacy">Privacy</a>
-      <a href="mailto:contact@contrastcyber.com">Contact</a>
+      <a href="#" class="contact-copy">Contact</a>
       <a href="https://github.com/UPinar/contrastscan">GitHub</a>
       <a href="https://api.contrastcyber.com">API Platform</a>
     </div>

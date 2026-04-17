@@ -323,6 +323,34 @@
 
 footer { max-inline-size: 50rem; }
 
+/* Dynamic grade color + bar widths (set via nonce <style> block) */
+.grade-letter { color: var(--grade-color); }
+.bar-health .bar-fill { width: var(--health-pct); background: var(--grade-color); }
+.bar-ssl    .bar-fill { width: var(--ssl-pct);    background: var(--grade-color); }
+.bar-dns    .bar-fill { width: var(--dns-pct);    background: var(--grade-color); }
+.bar-redir  .bar-fill { width: var(--recon-pct);  background: var(--grade-color); }
+.bar-disc   .bar-fill { width: var(--disc-pct);   background: var(--grade-color); }
+.bar-ck     .bar-fill { width: var(--ck-pct);     background: var(--grade-color); }
+.bar-dsec   .bar-fill { width: var(--dsec-pct);   background: var(--grade-color); }
+.bar-mth    .bar-fill { width: var(--mth-pct);    background: var(--grade-color); }
+.bar-cr     .bar-fill { width: var(--cr-pct);     background: var(--grade-color); }
+.bar-ht     .bar-fill { width: var(--ht-pct);     background: var(--grade-color); }
+.bar-csp    .bar-fill { width: var(--csp-pct);    background: var(--grade-color); }
+
+/* Static inline style replacements */
+.icon-inline    { vertical-align: middle; margin-right: 0.35rem; }
+.btn-outline    { cursor: pointer; border: 1px solid #27272a; background: transparent; }
+.hint-text      { font-size: 0.7rem; color: #71717a; margin-top: 0.3rem; min-height: 1rem; }
+.meta-muted     { color: #a1a1aa; font-size: 0.75rem; }
+.meta-faint     { color: #71717a; font-size: 0.7rem; }
+.section-spaced    { margin-top: 0.75rem; }
+.section-spaced-lg { margin-top: 1.5rem; }
+.icon-findings  { background: rgba(239,68,68,0.1); box-shadow: 0 0 1.5rem rgba(239,68,68,0.06); }
+.icon-recon     { background: rgba(139,92,246,0.1); box-shadow: 0 0 1.5rem rgba(139,92,246,0.06); }
+.finding-label  { font-size: 0.75rem; color: #fafafa; font-weight: 500; }
+.recon-data     { padding: 0.75rem; }
+#findings-list  { display: none; }
+
 /* Desktop (640px+) */
 @media screen and (min-width: 640px) {
   .content { padding-block: 0.5rem 2rem; padding-inline: 2rem; }

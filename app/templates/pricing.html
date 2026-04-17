@@ -18,7 +18,8 @@
   <meta name="twitter:card" content="summary">
   <meta name="twitter:title" content="Pricing | ContrastScan">
   <meta name="twitter:description" content="Free website security scanning for individuals. Pro plan with API access and higher limits.">
-  <link rel="stylesheet" href="/static/css/base.css?v=13">
+  <link rel="stylesheet" href="/static/css/base.css?v=14">
+  <link rel="stylesheet" href="/static/css/content.css?v=1">
 </head>
 <body>
   <nav>
@@ -41,7 +42,7 @@
       <div class="price">$0 <span>/forever</span></div>
       <p class="desc">For developers, researchers, and anyone who wants to check their security.</p>
       <ul>
-        <li>100 requests/hour (scans + <a href="https://api.contrastcyber.com" style="color:var(--focus);">ContrastAPI</a> combined)</li>
+        <li>100 requests/hour (scans + <a href="https://api.contrastcyber.com" class="link-focus">ContrastAPI</a> combined)</li>
         <li>Full 11-module security scan</li>
         <li>A-F grade + 100-point score</li>
         <li>30+ API endpoints (CVE, domain, threat intel)</li>
@@ -57,7 +58,7 @@
       <div class="price">$19 <span>/month</span></div>
       <p class="desc">For teams and power users who need higher limits.</p>
       <ul>
-        <li>1,000 requests/hour (scans + <a href="https://api.contrastcyber.com" style="color:var(--focus);">ContrastAPI</a> combined)</li>
+        <li>1,000 requests/hour (scans + <a href="https://api.contrastcyber.com" class="link-focus">ContrastAPI</a> combined)</li>
         <li>Everything in Free</li>
         <li>Bulk scan up to 50 domains</li>
         <li>API key authentication</li>
@@ -70,7 +71,7 @@
     <h2>FAQ</h2>
     <dl>
       <dt>Is the free tier really free?</dt>
-      <dd>Yes. No credit card, no signup, no trial period. 100 requests/hour forever — covers both scans and <a href="https://api.contrastcyber.com" style="color:var(--focus);">ContrastAPI</a> calls. The scanner is open source — you can even self-host it.</dd>
+      <dd>Yes. No credit card, no signup, no trial period. 100 requests/hour forever — covers both scans and <a href="https://api.contrastcyber.com" class="link-focus">ContrastAPI</a> calls. The scanner is open source — you can even self-host it.</dd>
 
       <dt>What does a scan check?</dt>
       <dd>11 modules: SSL/TLS, HTTP security headers, DNS (SPF/DKIM/DMARC), HTTPS redirect, information disclosure, cookie security, DNSSEC, HTTP methods, CORS, HTML analysis, and CSP deep analysis. Total: 100 points.</dd>
@@ -79,7 +80,7 @@
       <dd>Under 1 second for the core scan. Passive recon (WHOIS, subdomains, CT logs) runs in the background and completes in 5-30 seconds.</dd>
 
       <dt>Can I use the API commercially?</dt>
-      <dd>Yes. Both the scanner and API are free for commercial use. Pro provides higher rate limits (1,000/hr) and bulk scan up to 50 domains. API details at <a href="https://api.contrastcyber.com" style="color:var(--focus);">api.contrastcyber.com</a>.</dd>
+      <dd>Yes. Both the scanner and API are free for commercial use. Pro provides higher rate limits (1,000/hr) and bulk scan up to 50 domains. API details at <a href="https://api.contrastcyber.com" class="link-focus">api.contrastcyber.com</a>.</dd>
 
       <dt>How do I get my API key after purchase?</dt>
       <dd>After checkout, you'll be redirected to a welcome page showing your key. Save it immediately — it's shown only once for security.</dd>
@@ -88,12 +89,12 @@
       <dd>Yes. Cancel through the Lemon Squeezy customer portal. Your key stays active until the billing period ends.</dd>
     </dl>
   </div>
-  <script src="/static/js/nav.js"></script>
+  <script src="/static/js/nav.js?v=2"></script>
   <footer>
     <div class="footer-links">
       <a href="/terms">Terms</a>
       <a href="/privacy">Privacy</a>
-      <a href="mailto:contact@contrastcyber.com">Contact</a>
+      <a href="#" class="contact-copy">Contact</a>
       <a href="https://github.com/UPinar/contrastscan">GitHub</a>
       <a href="https://api.contrastcyber.com">API Platform</a>
     </div>

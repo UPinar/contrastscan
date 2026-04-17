@@ -83,9 +83,10 @@ document.addEventListener('DOMContentLoaded', function() {
     findingsHeader.addEventListener('click', function() {
       var el = document.getElementById('findings-list');
       var arrow = document.getElementById('findings-arrow');
-      el.style.display = el.style.display === 'none' ? 'block' : 'none';
+      var showing = getComputedStyle(el).display !== 'none';
+      el.style.display = showing ? 'none' : 'block';
       arrow.classList.toggle('open');
-      this.setAttribute('aria-expanded', el.style.display !== 'none');
+      this.setAttribute('aria-expanded', !showing);
     });
     findingsHeader.addEventListener('keydown', function(event) {
       if (event.key === 'Enter' || event.key === ' ') {

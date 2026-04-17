@@ -15,6 +15,7 @@ h1 {
   font-weight: 800;
   letter-spacing: -0.02em;
   margin-block-end: 0.25rem;
+  color: var(--avg-color);
 }
 
 .avg-label {

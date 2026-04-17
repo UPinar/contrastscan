@@ -20,7 +20,7 @@
   <meta name="theme-color" content="#09090b">
   <link rel="canonical" href="https://contrastcyber.com/result/{{ scan_id }}">
   <link rel="icon" type="image/svg+xml" href="/static/favicon.svg">
-  <link rel="stylesheet" href="/static/css/base.css?v=13">
+  <link rel="stylesheet" href="/static/css/base.css?v=14">
   <link rel="stylesheet" href="/static/css/result.css?v=3">
 </head>
 <body>
@@ -49,22 +49,22 @@
                   stroke="{{ grade_color }}"
                   stroke-dashoffset="{{ dash }}"/>
         </svg>
-        <span class="grade-letter" style="color: {{ grade_color }}">{{ result.grade }}</span>
+        <span class="grade-letter">{{ result.grade }}</span>
       </div>
       <div class="score-text"><strong>{{ result.total_score }}</strong> / {{ result.max_score|default(100) }} points</div>
       <button id="shareBtn" class="share-btn">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle; margin-right:0.35rem;">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon-inline">
           <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
         </svg>
         Copy Link
       </button>
-      <button id="reportBtn" class="share-btn" style="cursor:pointer; border:1px solid #27272a; background:transparent;">
-        <svg id="reportIcon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle; margin-right:0.35rem;">
+      <button id="reportBtn" class="share-btn btn-outline">
+        <svg id="reportIcon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon-inline">
           <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
         </svg>
         <span id="reportLabel">Download Report</span>
       </button>
-      <div id="reportHint" style="font-size:0.7rem;color:#71717a;margin-top:0.3rem;min-height:1rem;"></div>
+      <div id="reportHint" class="hint-text"></div>
       <div id="result-data" data-scan-id="{{ scan_id }}" data-domain="{{ result.domain }}" hidden></div>
     </div>
 
@@ -92,8 +92,8 @@
             <span class="section-name">Security Headers</span>
           </div>
           <div class="section-right">
-            <div class="section-bar bar-bg">
-              <div class="bar-fill" style="width:{{ hpct }}%; background:{{ grade_color }};"></div>
+            <div class="section-bar bar-bg bar-health">
+              <div class="bar-fill"></div>
             </div>
             <span class="section-score">{{ hs.score }}/{{ hs.max }}</span>
           </div>
@@ -126,8 +126,8 @@
             <span class="section-name">SSL / TLS</span>
           </div>
           <div class="section-right">
-            <div class="section-bar bar-bg">
-              <div class="bar-fill" style="width:{{ spct }}%; background:{{ grade_color }};"></div>
+            <div class="section-bar bar-bg bar-ssl">
+              <div class="bar-fill"></div>
             </div>
             <span class="section-score">{{ ss.score }}/{{ ss.max }}</span>
           </div>
@@ -148,7 +148,7 @@
           <div class="detail-row">
             <span class="detail-label">Cipher Suite</span>
             <span class="detail-value">
-              <span style="color:#a1a1aa; font-size:0.75rem;">{{ ss.details.cipher }}</span>
+              <span class="meta-muted">{{ ss.details.cipher }}</span>
             </span>
           </div>
           <div class="detail-row">
@@ -157,7 +157,7 @@
               {% if ss.details.cert_valid %}
                 <span class="dot green"></span>
                 <span class="tag pass">Valid</span>
-                <span style="color:#71717a; font-size:0.7rem;">{{ ss.details.days_remaining }}d left</span>
+                <span class="meta-faint">{{ ss.details.days_remaining }}d left</span>
               {% else %}
                 <span class="dot red"></span>
                 <span class="tag fail">Expired</span>
@@ -178,8 +178,8 @@
             <span class="section-name">DNS Security</span>
           </div>
           <div class="section-right">
-            <div class="section-bar bar-bg">
-              <div class="bar-fill" style="width:{{ dpct }}%; background:{{ grade_color }};"></div>
+            <div class="section-bar bar-bg bar-dns">
+              <div class="bar-fill"></div>
             </div>
             <span class="section-score">{{ ds.score }}/{{ ds.max }}</span>
           </div>
@@ -235,8 +235,8 @@
             <span class="section-name">HTTP → HTTPS Redirect</span>
           </div>
           <div class="section-right">
-            <div class="section-bar bar-bg">
-              <div class="bar-fill" style="width:{{ rpct }}%; background:{{ grade_color }};"></div>
+            <div class="section-bar bar-bg bar-redir">
+              <div class="bar-fill"></div>
             </div>
             <span class="section-score">{{ rd.score }}/{{ rd.max }}</span>
           </div>
@@ -269,8 +269,8 @@
             <span class="section-name">Information Disclosure</span>
           </div>
           <div class="section-right">
-            <div class="section-bar bar-bg">
-              <div class="bar-fill" style="width:{{ discpct }}%; background:{{ grade_color }};"></div>
+            <div class="section-bar bar-bg bar-disc">
+              <div class="bar-fill"></div>
             </div>
             <span class="section-score">{{ disc.score }}/{{ disc.max }}</span>
           </div>
@@ -282,7 +282,7 @@
               {% if disc.details.server_exposed %}
                 <span class="dot red"></span>
                 <span class="tag fail">Exposed</span>
-                <span style="color:#71717a; font-size:0.7rem;">{{ disc.details.server_value }}</span>
+                <span class="meta-faint">{{ disc.details.server_value }}</span>
               {% else %}
                 <span class="dot green"></span>
                 <span class="tag pass">Hidden</span>
@@ -295,7 +295,7 @@
               {% if disc.details.powered_by_exposed %}
                 <span class="dot red"></span>
                 <span class="tag fail">Exposed</span>
-                <span style="color:#71717a; font-size:0.7rem;">{{ disc.details.powered_by_value }}</span>
+                <span class="meta-faint">{{ disc.details.powered_by_value }}</span>
               {% else %}
                 <span class="dot green"></span>
                 <span class="tag pass">Hidden</span>
@@ -317,8 +317,8 @@
             <span class="section-name">Cookie Security</span>
           </div>
           <div class="section-right">
-            <div class="section-bar bar-bg">
-              <div class="bar-fill" style="width:{{ ckpct }}%; background:{{ grade_color }};"></div>
+            <div class="section-bar bar-bg bar-ck">
+              <div class="bar-fill"></div>
             </div>
             <span class="section-score">{{ ck.score }}/{{ ck.max }}</span>
           </div>
@@ -383,8 +383,8 @@
             <span class="section-name">DNSSEC</span>
           </div>
           <div class="section-right">
-            <div class="section-bar bar-bg">
-              <div class="bar-fill" style="width:{{ dsecpct }}%; background:{{ grade_color }};"></div>
+            <div class="section-bar bar-bg bar-dsec">
+              <div class="bar-fill"></div>
             </div>
             <span class="section-score">{{ dsec.score }}/{{ dsec.max }}</span>
           </div>
@@ -417,8 +417,8 @@
             <span class="section-name">HTTP Methods</span>
           </div>
           <div class="section-right">
-            <div class="section-bar bar-bg">
-              <div class="bar-fill" style="width:{{ mthpct }}%; background:{{ grade_color }};"></div>
+            <div class="section-bar bar-bg bar-mth">
+              <div class="bar-fill"></div>
             </div>
             <span class="section-score">{{ mth.score }}/{{ mth.max }}</span>
           </div>
@@ -475,8 +475,8 @@
             <span class="section-name">CORS</span>
           </div>
           <div class="section-right">
-            <div class="section-bar bar-bg">
-              <div class="bar-fill" style="width:{{ crpct }}%; background:{{ grade_color }};"></div>
+            <div class="section-bar bar-bg bar-cr">
+              <div class="bar-fill"></div>
             </div>
             <span class="section-score">{{ cr.score }}/{{ cr.max }}</span>
           </div>
@@ -533,8 +533,8 @@
             <span class="section-name">HTML Analysis</span>
           </div>
           <div class="section-right">
-            <div class="section-bar bar-bg">
-              <div class="bar-fill" style="width:{{ htpct }}%; background:{{ grade_color }};"></div>
+            <div class="section-bar bar-bg bar-ht">
+              <div class="bar-fill"></div>
             </div>
             <span class="section-score">{{ ht.score }}/{{ ht.max }}</span>
           </div>
@@ -609,8 +609,8 @@
             <span class="section-name">CSP Analysis</span>
           </div>
           <div class="section-right">
-            <div class="section-bar bar-bg">
-              <div class="bar-fill" style="width:{{ csppct }}%; background:{{ grade_color }};"></div>
+            <div class="section-bar bar-bg bar-csp">
+              <div class="bar-fill"></div>
             </div>
             <span class="section-score">{{ csp.score }}/{{ csp.max }}</span>
           </div>
@@ -680,12 +680,29 @@
 
     </div>
 
+    <style nonce="{{ request.state.csp_nonce }}">
+      :root {
+        --grade-color: {{ grade_color }};
+        --health-pct: {{ hpct }}%;
+        --ssl-pct: {{ spct }}%;
+        --dns-pct: {{ dpct }}%;
+        --recon-pct: {{ rpct | default(0) }}%;
+        --disc-pct: {{ discpct | default(0) }}%;
+        --ck-pct: {{ ckpct | default(0) }}%;
+        --dsec-pct: {{ dsecpct | default(0) }}%;
+        --mth-pct: {{ mthpct | default(0) }}%;
+        --cr-pct: {{ crpct | default(0) }}%;
+        --ht-pct: {{ htpct | default(0) }}%;
+        --csp-pct: {{ csppct | default(0) }}%;
+      }
+    </style>
+
     {% if result.findings and result.findings|length > 0 %}
     <!-- Vulnerability Findings -->
-    <div class="section" style="margin-top:0.75rem;">
+    <div class="section section-spaced">
       <div class="findings-header" tabindex="0" role="button" aria-expanded="false">
         <div class="section-left">
-          <div class="section-icon" style="background:rgba(239,68,68,0.1); box-shadow:0 0 1.5rem rgba(239,68,68,0.06);">⚡</div>
+          <div class="section-icon icon-findings">⚡</div>
           <span class="section-name">Findings</span>
         </div>
         <div class="findings-summary">
@@ -696,12 +713,12 @@
           <span class="findings-toggle" id="findings-arrow">▶</span>
         </div>
       </div>
-      <div id="findings-list" style="display:none;">
+      <div id="findings-list">
         {% for f in result.findings %}
         <div class="finding-item">
           <div class="finding-top">
             <span class="tag {{ f.severity }}">{{ f.severity }}</span>
-            <span style="font-size:0.75rem; color:#fafafa; font-weight:500;">{{ f.attack_vector }}</span>
+            <span class="finding-label">{{ f.attack_vector }}</span>
           </div>
           <div class="finding-desc">{{ f.description }}</div>
           <div class="finding-fix"><strong>Fix:</strong> {{ f.remediation }}</div>
@@ -778,28 +795,28 @@
     {% endif %}
 
     <!-- Passive Recon -->
-    <div class="section" style="margin-top:1.5rem;" id="recon-section">
+    <div class="section section-spaced-lg" id="recon-section">
       <div class="findings-header">
         <div class="section-left">
-          <div class="section-icon" style="background:rgba(139,92,246,0.1); box-shadow:0 0 1.5rem rgba(139,92,246,0.06);">🔎</div>
+          <div class="section-icon icon-recon">🔎</div>
           <span class="section-name">Passive Recon</span>
         </div>
         <div class="findings-summary">
           <span class="tag info" id="recon-status"><span class="spinner"></span>Loading...</span>
         </div>
       </div>
-      <div id="recon-data" style="padding:0.75rem;"></div>
+      <div id="recon-data" class="recon-data"></div>
     </div>
 
   </div>
 
-  <script src="/static/js/nav.js"></script>
+  <script src="/static/js/nav.js?v=2"></script>
   <script src="/static/js/result.js?v=2"></script>
     <footer>
     <div class="footer-links">
       <a href="/terms">Terms</a>
       <a href="/privacy">Privacy</a>
-      <a href="mailto:contact@contrastcyber.com">Contact</a>
+      <a href="#" class="contact-copy">Contact</a>
       <a href="https://github.com/UPinar/contrastscan">GitHub</a>
       <a href="https://api.contrastcyber.com">API Platform</a>
     </div>

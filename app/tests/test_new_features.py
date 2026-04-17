@@ -1,6 +1,7 @@
 """
 test_new_features.py — tests for features:
   - Sitemap entries
+  - CSP nonce middleware
 
 Run: cd app && python -m pytest tests/test_new_features.py -v
 """
@@ -109,3 +110,43 @@ def mock_validate_domain(domain):
     if domain in ("example.com", "google.com", "test1.com", "test2.com"):
         return "93.184.216.34"
     return None
+
+
+class TestCspNonceMiddleware:
+    def test_csp_header_present_on_html(self):
+        r = client.get("/")
+        assert r.status_code == 200
+        assert "content-security-policy" in r.headers
+
+    def test_csp_contains_nonce(self):
+        r = client.get("/")
+        csp = r.headers.get("content-security-policy", "")
+        assert "'nonce-" in csp
+
+    def test_nonce_unique_per_request(self):
+        def _extract_nonce(csp: str) -> str:
+            for part in csp.split(";"):
+                part = part.strip()
+                if part.startswith("script-src"):
+                    for token in part.split():
+                        if token.startswith("'nonce-"):
+                            return token
+            return ""
+
+        r1 = client.get("/")
+        r2 = client.get("/")
+        n1 = _extract_nonce(r1.headers.get("content-security-policy", ""))
+        n2 = _extract_nonce(r2.headers.get("content-security-policy", ""))
+        assert n1 and n2
+        assert n1 != n2
+
+    def test_nonce_in_both_style_and_script_src(self):
+        r = client.get("/")
+        csp = r.headers.get("content-security-policy", "")
+        directives = {d.split()[0]: d for d in csp.split(";") if d.strip()}
+        assert "'nonce-" in directives.get("style-src", "")
+        assert "'nonce-" in directives.get("script-src", "")
+
+    def test_no_csp_on_json_endpoint(self):
+        r = client.get("/recon/abc123")
+        assert "content-security-policy" not in r.headers

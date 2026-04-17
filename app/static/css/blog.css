@@ -1,0 +1,44 @@
+.blog { max-inline-size: 720px; margin: 60px auto; padding: 0 24px; }
+.blog h1 { font-size: 1.8rem; margin-block-end: 0.5rem; line-height: 1.3; }
+.blog .meta { color: var(--text-dim); font-size: 0.85rem; margin-block-end: 32px; display: flex; gap: 16px; flex-wrap: wrap; }
+.blog .meta .tag { background: var(--bg-card-solid); padding: 2px 10px; border-radius: 4px; font-size: 0.8rem; color: var(--text-muted); }
+.blog h2 { font-size: 1.3rem; margin-block-start: 36px; margin-block-end: 14px; color: var(--text); }
+.blog h3 { font-size: 1.1rem; margin-block-start: 28px; margin-block-end: 10px; color: var(--text); }
+.blog p { color: var(--text-muted); line-height: 1.8; margin-block-end: 16px; }
+.blog a { color: var(--primary); text-decoration: none; }
+.blog a:hover { text-decoration: underline; }
+.blog p strong { color: var(--text); }
+.blog code { background: var(--bg-card-solid); padding: 2px 8px; border-radius: 4px; font-family: var(--font-mono); font-size: 0.9em; color: var(--primary); }
+.blog pre { background: var(--bg); border: 1px solid var(--border); border-radius: 8px; padding: 16px; overflow-x: auto; margin: 16px 0; }
+.blog pre code { background: none; padding: 0; font-size: 0.85rem; color: var(--text); display: block; white-space: pre; }
+.blog .code-label { color: var(--text-dim); font-size: 0.75rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; margin-block-end: 4px; margin-block-start: 16px; }
+.blog .intro { font-size: 1.05rem; color: var(--text-muted); line-height: 1.8; border-inline-start: 3px solid var(--primary); padding-inline-start: 16px; margin-block-end: 24px; }
+.blog .tip { background: rgba(59,130,246,0.08); border: 1px solid rgba(59,130,246,0.2); border-radius: 8px; padding: 12px 16px; margin: 16px 0; color: var(--text-muted); font-size: 0.9rem; line-height: 1.6; }
+.blog .tip::before { content: "Tip: "; color: var(--primary); font-weight: 600; }
+.blog ul, .blog ol { color: var(--text-muted); line-height: 1.8; padding-inline-start: 20px; margin-block-end: 16px; }
+.blog li { margin-block-end: 8px; }
+.blog li code { background: var(--bg-card-solid); padding: 2px 8px; border-radius: 4px; font-family: var(--font-mono); font-size: 0.9em; color: var(--primary); }
+.blog-cta { background: var(--bg-card-solid); border: 1px solid var(--border); border-radius: 12px; padding: 32px; text-align: center; margin: 32px 0; }
+.blog-cta a { display: inline-block; background: var(--primary); color: var(--bg); padding: 12px 32px; border-radius: 8px; font-weight: 600; text-decoration: none; transition: background var(--speed) var(--ease); }
+.blog-cta a:hover { background: var(--primary-hover); }
+.blog table { width: 100%; border-collapse: collapse; margin: 16px 0; font-size: 0.85rem; }
+.blog th { text-align: start; padding: 10px 12px; background: var(--bg-card-solid); color: var(--text); border: 1px solid var(--border); font-weight: 600; }
+.blog td { padding: 10px 12px; border: 1px solid var(--border-dim); color: var(--text-muted); }
+.blog tr:hover td { background: var(--bg-hover); }
+.breadcrumb { color: var(--text-dim); font-size: 0.85rem; margin-block-end: 16px; }
+.breadcrumb a { color: var(--text-muted); text-decoration: none; }
+.breadcrumb a:hover { color: var(--primary); }
+.blog-nav { margin-block-start: 40px; padding-block-start: 24px; border-block-start: 1px solid var(--border-dim); }
+.blog-nav a { color: var(--primary); text-decoration: none; font-size: 0.95rem; }
+.blog-nav a:hover { text-decoration: underline; }
+.table-wrap { overflow-x: auto; }
+.blog-list { max-inline-size: 720px; margin: 60px auto; padding: 0 24px; }
+.blog-list h1 { font-size: 1.8rem; margin-block-end: 8px; }
+.blog-list .subtitle { color: var(--text-muted); margin-block-end: 32px; }
+.post-card { display: block; background: var(--bg-card); border: 1px solid var(--border-dim); border-radius: 8px; padding: 24px; margin-block-end: 16px; text-decoration: none; transition: border-color var(--speed) var(--ease); }
+.post-card:hover { border-color: var(--primary); }
+.post-card h2 { color: var(--text); font-size: 1.1rem; margin: 0 0 8px; line-height: 1.4; }
+.post-card p { color: var(--text-muted); font-size: 0.9rem; line-height: 1.6; margin: 0 0 12px; }
+.post-card .meta { font-size: 0.8rem; color: var(--text-dim); display: flex; gap: 12px; flex-wrap: wrap; }
+.post-card .meta .cat { color: var(--primary); }
+.post-card .meta .tag { background: var(--bg-card-solid); padding: 2px 8px; border-radius: 4px; }

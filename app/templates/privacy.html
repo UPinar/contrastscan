@@ -6,7 +6,8 @@
   <title>Privacy Policy | ContrastScan</title>
   <meta name="theme-color" content="#09090b">
   <link rel="icon" type="image/svg+xml" href="/static/favicon.svg">
-  <link rel="stylesheet" href="/static/css/base.css?v=13">
+  <link rel="stylesheet" href="/static/css/base.css?v=14">
+  <link rel="stylesheet" href="/static/css/content.css?v=1">
 </head>
 <body>
   <nav>
@@ -47,7 +48,7 @@
     <li><strong>Hashed IP addresses</strong> — a one-way cryptographic hash of your IP (with a unique salt) is stored for aggregate analytics. No raw IP address is ever stored in the application database.</li>
     <li><strong>Rate limiting</strong> — raw IP addresses are stored temporarily for rate limiting and purged automatically. Never shared.</li>
     <li><strong>Server logs</strong> — standard nginx access logs retained for up to <strong>24 hours</strong>. Path parameters and query strings are stripped to <code>REDACTED</code> at the nginx layer <em>before</em> the log line ever touches disk:
-    <pre style="background:#0a0a0a;border:1px solid #27272a;border-radius:6px;padding:0.75rem;margin:0.5rem 0;overflow-x:auto;font-size:0.85em;"><code>Before:  GET /v1/ip/8.8.8.8 HTTP/1.1
+    <pre class="code-block code-block-sm"><code>Before:  GET /v1/ip/8.8.8.8 HTTP/1.1
 After:   GET /v1/ip/REDACTED HTTP/1.1
 
 Before:  GET /v1/whois/example.com HTTP/1.1
@@ -73,7 +74,7 @@ After:   GET /v1/cves HTTP/1.1</code></pre>
 
   <h3>2.5 Verify It Yourself</h3>
   <p>Don't take our word for it. ContrastAPI exposes a transparency endpoint that returns <strong>every single row</strong> our database has about you — right now, in real time:</p>
-  <pre style="background:#0a0a0a;border:1px solid #27272a;border-radius:6px;padding:1rem;overflow-x:auto;"><code>curl https://api.contrastcyber.com/v1/privacy/my-data</code></pre>
+  <pre class="code-block"><code>curl https://api.contrastcyber.com/v1/privacy/my-data</code></pre>
   <p>The response shows your hashed IP, your last 24 hours of endpoint activity (aggregated by endpoint category — no query parameters), your rate limit state, and a <code>not_stored</code> list explaining what is deliberately absent. Pro users additionally see their key record (order ID, creation date, last use). The endpoint points back to the exact source lines in <a href="https://github.com/UPinar/contrastapi/blob/main/app/db.py#L299-L357" target="_blank">db.py (hash_client_ip + normalize_endpoint)</a> that enforce the privacy guarantees — so you can audit the code, not just the policy.</p>
 
   <h2>3. DNT &amp; Global Privacy Control</h2>
@@ -134,15 +135,15 @@ After:   GET /v1/cves HTTP/1.1</code></pre>
   <p>We may update this Privacy Policy. Changes will be posted on this page with an updated date. Material changes will be communicated via the website.</p>
 
   <h2>14. Contact</h2>
-  <p>For privacy questions or to exercise your rights: <a href="mailto:contact@contrastcyber.com">contact@contrastcyber.com</a></p>
+  <p>For privacy questions or to exercise your rights: <a href="#" class="contact-copy">contact@contrastcyber.com</a></p>
 </div>
 
-  <script src="/static/js/nav.js"></script>
+  <script src="/static/js/nav.js?v=2"></script>
   <footer>
     <div class="footer-links">
       <a href="/terms">Terms</a>
       <a href="/privacy">Privacy</a>
-      <a href="mailto:contact@contrastcyber.com">Contact</a>
+      <a href="#" class="contact-copy">Contact</a>
       <a href="https://github.com/UPinar/contrastscan">GitHub</a>
       <a href="https://api.contrastcyber.com">API Platform</a>
     </div>
