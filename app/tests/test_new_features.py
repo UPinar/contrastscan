@@ -147,6 +147,7 @@ class TestCspNonceMiddleware:
         assert "'nonce-" in directives.get("style-src", "")
         assert "'nonce-" in directives.get("script-src", "")
 
-    def test_no_csp_on_json_endpoint(self):
+    def test_csp_on_json_endpoint(self):
         r = client.get("/recon/abc123")
-        assert "content-security-policy" not in r.headers
+        csp = r.headers.get("content-security-policy", "")
+        assert "'nonce-" in csp
