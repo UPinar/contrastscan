@@ -34,7 +34,7 @@ CRTSH_TIMEOUT = 30  # crt.sh can be slow for large domains (runs in parallel)
 MAX_DOMAIN_LENGTH = 253
 
 # Badge SVG dimensions
-BADGE_LABEL_WIDTH = 90
+BADGE_LABEL_WIDTH = 120
 BADGE_GRADE_WIDTH = 40
 BADGE_CACHE_MAX_AGE = 3600
 

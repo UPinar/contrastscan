@@ -344,7 +344,7 @@ def badge_svg(domain: str):
     <rect width="{total_w}" height="20" fill="url(#b)"/>
   </g>
   <g fill="#fff" text-anchor="middle" font-family="monospace" font-size="11">
-    <text x="{label_w // 2}" y="14">security</text>
+    <text x="{label_w // 2}" y="14">contrastscan</text>
     <text x="{label_w + grade_w // 2}" y="14" font-weight="bold">{grade}</text>
   </g>
 </svg>'''
