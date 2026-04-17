@@ -24,6 +24,9 @@ monitor_history/
 reports/
 traffic_monitor.py
 
+# Deploy configs (managed on server, not in repo)
+deploy/
+
 # OS
 .DS_Store
 blog_*.md
