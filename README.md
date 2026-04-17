@@ -58,35 +58,22 @@ source venv/bin/activate && cd app && uvicorn main:app --host 0.0.0.0 --port 800
 
 Open `http://localhost:8000` in your browser.
 
-## API
+## Grade Badge
 
-Free, no key needed — 100 requests/hour per IP.
+Embed your domain's current grade in a README:
 
-```bash
-# JSON scan
-curl "https://contrastcyber.com/api/scan?domain=example.com"
-
-# Plain-text report
-curl "https://contrastcyber.com/api/report?domain=example.com" -o report.txt
-
-# Bulk scan
-curl -X POST "https://contrastcyber.com/api/bulk" \
-  -H "Content-Type: application/json" \
-  -d '{"domains": ["example.com", "google.com"]}'
-
-# Grade badge (for your README)
-# ![Security](https://contrastcyber.com/badge/yourdomain.com.svg)
+```markdown
+![Security](https://contrastcyber.com/badge/yourdomain.com.svg)
 ```
 
-| Endpoint | Description |
-|----------|-------------|
-| `GET /api/scan?domain=X` | JSON scan result with findings |
-| `GET /api/report?domain=X` | Downloadable text report |
-| `POST /api/bulk` | Bulk scan (JSON or CSV upload) |
-| `GET /api/recon/{scan_id}` | Passive recon results |
-| `GET /badge/{domain}.svg` | Dynamic SVG grade badge |
+## Programmatic Access
 
-### Rate Limits
+ContrastScan itself is a web app (scan via the form at [contrastcyber.com](https://contrastcyber.com)) — there is no public JSON API on this service. For programmatic scanning, use the sibling project:
+
+- **[api.contrastcyber.com](https://api.contrastcyber.com)** — 40+ REST + MCP endpoints, free tier 100 req/h
+- Or self-host and call the C binary directly: `./contrastscan example.com`
+
+### Rate Limits (web UI)
 
 | Limit | Value |
 |-------|-------|
@@ -99,11 +86,11 @@ curl -X POST "https://contrastcyber.com/api/bulk" \
 |--------|-----|----------------|
 | Security Headers | 25 | CSP, HSTS, X-Content-Type-Options, X-Frame-Options, Referrer-Policy, Permissions-Policy |
 | SSL/TLS | 20 | TLS version, cipher strength, certificate validity & chain verification |
-| DNS Security | 15 | SPF, DKIM (MX-based provider detection + date probe), DMARC |
+| DNS Security | 15 | SPF, DKIM (MX-based provider detection + date probe), DMARC (RFC 7489 organizational domain fallback for subdomains) |
 | HTTP Redirect | 8 | HTTP to HTTPS enforcement |
 | Info Disclosure | 5 | Server / X-Powered-By header exposure |
 | Cookie Security | 5 | Secure, HttpOnly, SameSite flags |
-| DNSSEC | 5 | DNSKEY record presence |
+| DNSSEC | 5 | DNSKEY record presence (zone apex walk-up for subdomains) |
 | HTTP Methods | 5 | TRACE, PUT, DELETE detection |
 | CORS | 5 | Wildcard origin, credential leakage |
 | HTML Analysis | 5 | Mixed content, inline scripts, SRI |
@@ -142,28 +129,27 @@ curl -X POST "https://contrastcyber.com/api/bulk" \
 ## Tests
 
 ```bash
-bash run_tests.sh          # 1071 tests (no network)
+bash run_tests.sh          # 1075 tests (no network)
 bash run_tests.sh --all    # + live integration + smoke + load
 ```
 
 | Suite | Tests | What |
 |-------|-------|------|
-| C Unit | 194 | Scoring, parsing, CDN detection |
-| Backend | 337 | Validation, CSRF, rate limiting, findings |
-| E2E | 133 | HTTP routes, templates, scan flow |
-| Auth | 14 | Rate limiting, usage tracking |
+| C Unit | 231 | Scoring, parsing, CDN detection, CSP helpers |
+| Backend | 335 | Validation, CSRF, rate limiting, findings |
+| E2E | 108 | HTTP routes, templates, scan flow |
 | Race | 15 | Concurrent rate limits, DB writes |
 | Fuzz | 148 | Injection, SSRF bypass, crash resistance |
 | Integration | 64 | Module communication, config consistency |
-| Recon | 163 | WHOIS, DNS, tech stack, subdomains, takeover detection |
-| New Features | 6 | Bulk scan, OpenAPI, badges |
+| Recon | 169 | WHOIS, DNS, tech stack, subdomains, takeover detection |
+| New Features | 5 | Bulk scan, OpenAPI, badges |
 
 ## Architecture
 
 ```
 contrastscan/
 ├── scanner/                    # C scanner engine
-│   ├── src/contrastscan.c      # Main scanner (2,287 LOC)
+│   ├── src/contrastscan.c      # Main scanner (1,927 LOC)
 │   ├── Makefile                # C build system
 │   └── tests/                  # C unit + integration tests
 ├── app/                        # Python FastAPI backend
@@ -178,7 +164,7 @@ contrastscan/
 │   ├── recon.py                # Passive recon (WHOIS, tech stack, WAF, subdomains)
 │   ├── templates/              # Jinja2 HTML (7 pages)
 │   ├── static/                 # CSS, images
-│   └── tests/                  # All tests (877 Python + shell)
+│   └── tests/                  # All tests (844 Python + shell)
 ├── wasm/                       # Game of Life (C → WASM via Emscripten)
 │   ├── gol.c                   # Conway's Game of Life engine
 │   ├── hashtable.c             # Spatial hash table
