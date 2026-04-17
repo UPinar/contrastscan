@@ -1173,13 +1173,29 @@ static cJSON *scan_dns(const char *domain)
   if (has_spf)
     snprintf(spf_record, sizeof(spf_record), "%s", buf);
 
-  /* DMARC */
+  /* DMARC — walk up labels per RFC 7489 §6.6.3 (organizational domain fallback).
+   * E.g. api.contrastcyber.com → _dmarc.api.contrastcyber.com (miss) →
+   * _dmarc.contrastcyber.com (hit). Stop before single-label TLD. */
   char dmarc_domain[512];
-  snprintf(dmarc_domain, sizeof(dmarc_domain), "_dmarc.%s", domain);
-  int has_dmarc = query_txt(dmarc_domain, "v=DMARC1", buf, sizeof(buf));
+  int has_dmarc = 0;
+  int dmarc_inherited = 0;
   char dmarc_record[2048] = "";
-  if (has_dmarc)
-    snprintf(dmarc_record, sizeof(dmarc_record), "%s", buf);
+  const char *dmarc_name = domain;
+  while (dmarc_name && *dmarc_name)
+  {
+    if (!strchr(dmarc_name, '.')) break;  /* single-label TLD guard */
+    snprintf(dmarc_domain, sizeof(dmarc_domain), "_dmarc.%s", dmarc_name);
+    if (query_txt(dmarc_domain, "v=DMARC1", buf, sizeof(buf)))
+    {
+      has_dmarc = 1;
+      dmarc_inherited = (dmarc_name != domain);
+      snprintf(dmarc_record, sizeof(dmarc_record), "%s", buf);
+      break;
+    }
+    const char *dot = strchr(dmarc_name, '.');
+    if (!dot) break;
+    dmarc_name = dot + 1;
+  }
 
   /* DKIM — MX-based provider detection, then generic fallback */
   int has_dkim = 0;
@@ -1280,7 +1296,10 @@ dkim_done:
   cJSON_AddBoolToObject(details, "dmarc", has_dmarc);
   cJSON_AddNumberToObject(details, "dmarc_score", dmarc_score);
   if (has_dmarc)
+  {
     cJSON_AddStringToObject(details, "dmarc_record", dmarc_record);
+    cJSON_AddBoolToObject(details, "dmarc_inherited", dmarc_inherited);
+  }
 
   cJSON_AddBoolToObject(details, "dkim", has_dkim);
   cJSON_AddNumberToObject(details, "dkim_score", dkim_score);
