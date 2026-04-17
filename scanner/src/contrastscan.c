@@ -1302,23 +1302,37 @@ dkim_done:
  * @in  domain — target domain
  * @return     — cJSON object: {score: 0-5, max: 5, details: {dnssec_enabled}}
  *
- * Checks for DNSKEY record at the domain — if present, DNSSEC is configured
+ * DNSKEY records live at the zone apex (e.g. contrastcyber.com), not at
+ * subdomains (e.g. api.contrastcyber.com). So we walk up labels until we
+ * find DNSKEY, stopping before we reach a single-label name (TLD) — com.,
+ * org., etc. are all signed and would give a false positive.
  */
 static cJSON *scan_dnssec(const char *domain)
 {
   unsigned char answer[4096];
   int has_dnssec = 0;
 
-  /* query DNSKEY record */
-  int len = res_query(domain, ns_c_in, ns_t_dnskey, answer, sizeof(answer));
-  if (len > 0)
+  const char *name = domain;
+  while (name && *name)
   {
-    ns_msg handle;
-    if (ns_initparse(answer, len, &handle) == 0)
+    /* stop before querying a single-label TLD */
+    if (!strchr(name, '.')) break;
+
+    int len = res_query(name, ns_c_in, ns_t_dnskey, answer, sizeof(answer));
+    if (len > 0)
     {
-      if (ns_msg_count(handle, ns_s_an) > 0)
+      ns_msg handle;
+      if (ns_initparse(answer, len, &handle) == 0 &&
+          ns_msg_count(handle, ns_s_an) > 0)
+      {
         has_dnssec = 1;
+        break;
+      }
     }
+    /* strip leftmost label: "api.foo.com" → "foo.com" */
+    const char *dot = strchr(name, '.');
+    if (!dot) break;
+    name = dot + 1;
   }
 
   int score = has_dnssec ? DNSSEC_MAX : 0;
