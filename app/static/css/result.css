@@ -351,6 +351,23 @@ footer { max-inline-size: 50rem; }
 .recon-data     { padding: 0.75rem; }
 #findings-list  { display: none; }
 
+/* Recon cards (injected by result.js) */
+.recon-card       { margin-bottom: 1rem; }
+.recon-card-title {
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: #fafafa;
+  margin-bottom: 0.4rem;
+  border-bottom: 1px solid #27272a;
+  padding-bottom: 0.3rem;
+}
+.recon-card-body  { display: flex; flex-direction: column; gap: 0.15rem; }
+.recon-row        { padding: 0.2rem 0; font-size: 0.85rem; color: #d4d4d8; }
+.recon-row-label  { color: #a1a1aa; font-weight: 500; }
+.recon-row-value  { color: #d4d4d8; }
+.recon-empty      { color: #71717a; font-size: 0.8rem; }
+.btn-check-icon   { vertical-align: middle; margin-right: 0.35rem; }
+
 /* Desktop (640px+) */
 @media screen and (min-width: 640px) {
   .content { padding-block: 0.5rem 2rem; padding-inline: 2rem; }

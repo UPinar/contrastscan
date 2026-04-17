@@ -8,11 +8,11 @@ document.addEventListener('DOMContentLoaded', function() {
   if (shareBtn) {
     shareBtn.addEventListener('click', function() {
       navigator.clipboard.writeText(window.location.href);
-      shareBtn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle; margin-right:0.35rem;"><polyline points="20 6 9 17 4 12"/></svg>Copied!';
+      shareBtn.innerHTML = '<svg class="btn-check-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>Copied!';
       shareBtn.style.borderColor = '#22c55e';
       shareBtn.style.color = '#22c55e';
       setTimeout(function() {
-        shareBtn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle; margin-right:0.35rem;"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>Copy Link';
+        shareBtn.innerHTML = '<svg class="btn-check-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>Copy Link';
         shareBtn.style.borderColor = '#27272a';
         shareBtn.style.color = '#a1a1aa';
       }, 2000);
@@ -105,19 +105,19 @@ document.addEventListener('DOMContentLoaded', function() {
   }
 
   function reconCard(title, rows) {
-    return '<div style="margin-bottom:1rem;">' +
-      '<div style="font-size:0.9rem;font-weight:700;color:#fafafa;margin-bottom:0.4rem;border-bottom:1px solid #27272a;padding-bottom:0.3rem;">' + esc(title) + '</div>' +
-      '<div style="display:flex;flex-direction:column;gap:0.15rem;">' + rows.filter(Boolean).join('') + '</div>' +
+    return '<div class="recon-card">' +
+      '<div class="recon-card-title">' + esc(title) + '</div>' +
+      '<div class="recon-card-body">' + rows.filter(Boolean).join('') + '</div>' +
       '</div>';
   }
 
   function row(label, value) {
     if (!value && value !== 0) {
-      return '<div style="padding:0.2rem 0;font-size:0.85rem;color:#d4d4d8;">' + esc(label) + '</div>';
+      return '<div class="recon-row">' + esc(label) + '</div>';
     }
-    return '<div style="padding:0.2rem 0;font-size:0.85rem;">' +
-      '<span style="color:#a1a1aa;font-weight:500;">' + esc(label) + '</span> ' +
-      '<span style="color:#d4d4d8;">' + esc(value) + '</span>' +
+    return '<div class="recon-row">' +
+      '<span class="recon-row-label">' + esc(label) + '</span> ' +
+      '<span class="recon-row-value">' + esc(value) + '</span>' +
       '</div>';
   }
 
@@ -303,7 +303,7 @@ document.addEventListener('DOMContentLoaded', function() {
       html += reconCard('11. CAA Records', caaRows);
     }
 
-    document.getElementById('recon-data').innerHTML = html || '<p style="color:#71717a;font-size:0.8rem;">No recon data available.</p>';
+    document.getElementById('recon-data').innerHTML = html || '<p class="recon-empty">No recon data available.</p>';
   }
 
   pollRecon();
