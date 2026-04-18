@@ -11,13 +11,6 @@
 
 ![Security Grade](https://contrastcyber.com/badge/contrastcyber.com.svg)
 
-## Why ContrastScan?
-
-- **One grade, not a wall of text** — scan any domain, get a single A-F score in under 3 seconds
-- **Written in C** — raw TLS handshakes, direct DNS queries, no runtime overhead
-- **Self-hostable** — `git clone && bash setup.sh`, done
-- **Free forever** — no signup, no API key, 100 requests/hour
-
 ## Quick Start
 
 ### CLI
