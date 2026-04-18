@@ -869,7 +869,7 @@ static const struct mx_dkim_map mx_dkim_table[] = {
  * + 1st and 15th of each month for last 2 years
  * Infomaniak, Google Workspace use date-based selectors
  */
-#define MAX_DATE_SELECTORS 30
+#define MAX_DATE_SELECTORS 90
 #define DKIM_MAX_QUERIES 40
 static char date_sel_buf[MAX_DATE_SELECTORS][32];
 static const char *date_selectors[MAX_DATE_SELECTORS + 1];
@@ -894,7 +894,7 @@ static void generate_date_selectors(void)
   time_t now = time(NULL);
   int count = 0;
 
-  /* last 30 days — covers recent date-based providers (Infomaniak, Google, etc.) */
+  /* last 90 days — covers monthly rotators (Infomaniak), quarterly (Google Workspace) */
   for (int d = 0; d < MAX_DATE_SELECTORS; d++)
   {
     time_t t = now - (d * 86400);
@@ -1223,7 +1223,7 @@ static cJSON *scan_dns(const char *domain)
     }
   }
 
-  /* Step 3: date-based selectors — last 30 days (daily) */
+  /* Step 3: date-based selectors — last 90 days (daily) */
   for (int i = 0; date_selectors[i] != NULL && !has_dkim; i++)
   {
     char dkim_domain[DNS_DOMAIN_SIZE];

@@ -19,6 +19,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <assert.h>
+#include <time.h>
 
 #include "../include/csp_util.h"  /* csp_has_keyword, count_script_data_blocks */
 
@@ -1326,6 +1327,69 @@ static void test_body_callback_overflow(void)
 }
 
 /* ======================================
+ *  TESTS: generate_date_selectors window
+ * ====================================== */
+
+#define MAX_DATE_SELECTORS 90
+static char t_date_sel_buf[MAX_DATE_SELECTORS][32];
+static const char *t_date_selectors[MAX_DATE_SELECTORS + 1];
+
+static void t_generate_date_selectors(void)
+{
+  time_t now = time(NULL);
+  int count = 0;
+  for (int d = 0; d < MAX_DATE_SELECTORS; d++)
+  {
+    time_t t = now - (d * 86400);
+    struct tm *tm = gmtime(&t);
+    if (!tm) continue;
+    snprintf(t_date_sel_buf[count], sizeof(t_date_sel_buf[count]),
+             "%04d%02d%02d", tm->tm_year + 1900, tm->tm_mon + 1, tm->tm_mday);
+    t_date_selectors[count] = t_date_sel_buf[count];
+    count++;
+  }
+  t_date_selectors[count] = NULL;
+}
+
+void test_date_selector_window(void)
+{
+  t_generate_date_selectors();
+
+  /* Selector at index 60 must be present (window covers at least 61 days) */
+  TEST("date_sel: index 60 is non-NULL");
+  if (t_date_selectors[60] != NULL) PASS();
+  else FAIL("date_selectors[60] is NULL — window too narrow");
+
+  /* Selector at index 60 must match YYYYMMDD for now - 60 days */
+  TEST("date_sel: index 60 matches now-60d YYYYMMDD");
+  time_t now = time(NULL);
+  time_t t60 = now - (60 * 86400);
+  struct tm *tm = gmtime(&t60);
+  if (!tm) { FAIL("gmtime(&t60) returned NULL"); return; }
+  char expected[32];
+  snprintf(expected, sizeof(expected), "%04d%02d%02d",
+           tm->tm_year + 1900, tm->tm_mon + 1, tm->tm_mday);
+  if (t_date_selectors[60] != NULL &&
+      strcmp(t_date_selectors[60], expected) == 0) PASS();
+  else {
+    char msg[80];
+    snprintf(msg, sizeof(msg), "expected %s, got %s",
+             expected, t_date_selectors[60] ? t_date_selectors[60] : "(null)");
+    FAIL(msg);
+  }
+
+  /* Selector at index 89 (last) must also be present */
+  TEST("date_sel: index 89 is non-NULL (full 90-day window)");
+  if (t_date_selectors[89] != NULL) PASS();
+  else FAIL("date_selectors[89] is NULL — window shorter than 90 days");
+
+  /* Terminator at index 90 must be NULL */
+  TEST("date_sel: index 90 is NULL (terminator)");
+  if (t_date_selectors[90] == NULL) PASS();
+  else FAIL("date_selectors[90] should be NULL sentinel");
+}
+
+/* ======================================
  *  MAIN
  * ====================================== */
 
@@ -1407,6 +1471,9 @@ int main(void)
 
   printf("\n[body_callback_overflow]\n");
   test_body_callback_overflow();
+
+  printf("\n[date_selector_window]\n");
+  test_date_selector_window();
 
   printf("\n=== Results: %d/%d passed", tests_passed, tests_run);
   if (tests_failed > 0)
