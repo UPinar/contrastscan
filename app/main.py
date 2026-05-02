@@ -118,7 +118,7 @@ async def csp_nonce_middleware(request: Request, call_next):
         f"style-src 'self' 'nonce-{nonce}'; "
         "font-src 'self'; "
         f"script-src 'self' 'wasm-unsafe-eval' 'nonce-{nonce}' https://static.cloudflareinsights.com; "
-        "connect-src 'self' https://cloudflareinsights.com; "
+        "connect-src 'self' https://cloudflareinsights.com https://api.contrastcyber.com; "
         "img-src 'self'"
     )
     return response

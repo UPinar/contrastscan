@@ -64,13 +64,14 @@
         <li>API key authentication</li>
       </ul>
       <a href="https://contrastcyber.lemonsqueezy.com/checkout/buy/da64b10b-457d-4162-ae96-8e0e6e83f368" class="cta cta-pro">💳 Pay with Card</a>
-      <button type="button" class="cta cta-pro-alt" onclick="cryptoCheckout(this)">₿ Pay with Crypto (USDT)</button>
+      <button type="button" id="crypto-checkout-btn" class="cta cta-pro-alt">₿ Pay with Crypto (USDT)</button>
       <p class="cta-note">Card via Lemon Squeezy &middot; Crypto via NOWPayments (USDT on TRON)</p>
     </div>
   </div>
 
-  <script>
-    async function cryptoCheckout(btn) {
+  <script nonce="{{ request.state.csp_nonce }}">
+    document.getElementById("crypto-checkout-btn").addEventListener("click", async function () {
+      const btn = this;
       const original = btn.textContent;
       btn.disabled = true;
       btn.textContent = "Creating invoice…";
@@ -88,7 +89,7 @@
         btn.textContent = original;
         alert("Crypto checkout temporarily unavailable. Please use the card option or contact support.");
       }
-    }
+    });
   </script>
 
   <div class="faq">
