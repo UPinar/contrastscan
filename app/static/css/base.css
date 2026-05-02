@@ -538,6 +538,23 @@ code {
 .plan .cta-free:hover { background-color: var(--border-hover); }
 .plan .cta-pro { background-color: var(--primary); color: var(--text); }
 .plan .cta-pro:hover { background-color: var(--primary-hover); }
+.plan .cta-pro-alt {
+  background-color: var(--primary);
+  color: var(--text);
+  border: none;
+  cursor: pointer;
+  font-family: inherit;
+  width: 100%;
+  margin-block-start: 0.5rem;
+}
+.plan .cta-pro-alt:hover { background-color: var(--primary-hover); }
+.plan .cta-note {
+  margin-block-start: 0.6rem;
+  font-size: 0.7rem;
+  color: var(--text-dim);
+  text-align: center;
+  line-height: 1.4;
+}
 
 .badge {
   display: inline-block;
