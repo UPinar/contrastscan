@@ -16,65 +16,51 @@
       <a href="/blog">Blog</a>
       <a href="/stats">Stats</a>
       <a href="https://api.contrastcyber.com" target="_blank" rel="noopener">API</a>
-      <a href="/pricing">Pricing</a>
     </div>
   </nav>
 <div class="legal">
   <h1>Terms of Service</h1>
-  <p class="updated">Last updated: April 6, 2026</p>
+  <p class="updated">Last updated: May 4, 2026</p>
 
   <h2>1. Service Description</h2>
-  <p>ContrastCyber ("we", "us") operates two services:</p>
-  <ul>
-    <li><strong>ContrastScan</strong> (contrastcyber.com) — a free website security scanning tool that analyzes publicly accessible security configurations including SSL/TLS, HTTP headers, DNS records, CORS, cookies, and other security indicators.</li>
-    <li><strong>ContrastAPI</strong> (api.contrastcyber.com) — a security intelligence API providing CVE lookup, domain reconnaissance, threat intelligence, code security analysis, and OSINT capabilities.</li>
-  </ul>
-  <p>Both services are provided as-is with no warranty.</p>
+  <p>ContrastCyber ("we", "us") operates <strong>ContrastScan</strong> at contrastcyber.com — a free website security scanning tool that analyzes publicly accessible security configurations including SSL/TLS, HTTP security headers, DNS records (SPF/DKIM/DMARC), CORS, cookies, HTTPS redirect, DNSSEC, HTTP methods, information disclosure, HTML, and CSP. Scans return a 100-point score and A–F grade across 11 modules, plus background passive recon (WHOIS, DNS records, subdomains, certificate transparency logs, robots.txt, sitemap).</p>
+  <p>Our security intelligence API is a separate property at <a href="https://api.contrastcyber.com">api.contrastcyber.com</a> with its own <a href="https://api.contrastcyber.com/terms">Terms</a> and <a href="https://api.contrastcyber.com/privacy">Privacy Policy</a>.</p>
+  <p>The Service is provided as-is with no warranty.</p>
 
   <h2>2. Informational Only</h2>
-  <p>All results from ContrastScan and ContrastAPI are provided for informational purposes only and are <strong>not a substitute for a professional security audit</strong>. A high score does not guarantee a website is secure, and a low score does not necessarily indicate a vulnerability is exploitable. Do not rely solely on our results for security decisions.</p>
+  <p>All results from ContrastScan are provided for informational purposes only and are <strong>not a substitute for a professional security audit</strong>. A high score does not guarantee a website is secure, and a low score does not necessarily indicate a vulnerability is exploitable. Do not rely solely on our results for production security decisions.</p>
 
   <h2>3. Acceptable Use</h2>
-  <p>Our services analyze only publicly available information (HTTP headers, DNS records, SSL certificates, WHOIS data, CVE databases). No exploit attempts or intrusive testing is performed. You agree not to:</p>
+  <p>The Service analyzes only publicly available information (HTTP headers, DNS records, SSL certificates, WHOIS data). No exploit attempts or intrusive testing is performed. You agree not to:</p>
   <ul>
     <li>Use the Service for any illegal purpose</li>
     <li>Attempt to overwhelm or disrupt the Service (DDoS, excessive automated requests)</li>
     <li>Circumvent rate limits or authentication mechanisms</li>
     <li>Resell results as a competing service without written permission</li>
     <li>Use results to facilitate attacks against third parties</li>
-    <li>Share, transfer, or publish your Pro API key</li>
-    <li>Use the Service to harass, stalk, or collect personal data on individuals</li>
+    <li>Use the Service to scan domains you do not own or have authorization to scan</li>
   </ul>
 
-  <h2>4. Free &amp; Pro Plans</h2>
-  <h3>4.1 Free Tier</h3>
-  <p>No API key required. Rate limited to 100 requests per hour per IP address. Available for personal and commercial use.</p>
-  <h3>4.2 Pro Plan</h3>
-  <p>Pro API keys provide 1,000 requests per hour. Subscriptions are billed monthly at the current rate via our payment processor (Lemon Squeezy). By subscribing you agree to:</p>
-  <ul>
-    <li>Recurring monthly billing until cancelled</li>
-    <li>Keep your API key confidential — you are responsible for all usage under your key</li>
-    <li>Not share your key with third parties or embed it in client-side code</li>
-  </ul>
-  <p>We may revoke API keys that violate these terms without refund. Pricing and rate limits may be adjusted with 30 days notice to existing subscribers.</p>
+  <h2>4. Free Service</h2>
+  <p>No signup, no API key required. Rate limited to <strong>100 requests per hour per IP address</strong>. Available for personal and commercial use.</p>
 
   <h2>5. Rate Limits</h2>
-  <p>Free: 100 requests/hour per IP. Pro: 1,000 requests/hour per key. Pro subscribers will receive 30 days notice before rate limit changes.</p>
+  <p>100 requests per hour per IP address. We may adjust rate limits at any time without notice.</p>
 
   <h2>6. Abusive Usage</h2>
-  <p>We reserve the right to block, throttle, or ban any IP address, API key, or user engaging in abusive usage, including but not limited to: automated scraping beyond rate limits, credential stuffing, or any activity that degrades the Service for other users.</p>
+  <p>We reserve the right to block, throttle, or ban any IP address, ASN, or user engaging in abusive usage, including but not limited to: automated scraping beyond rate limits, distributed scanning to bypass the per-IP limit, scanning third-party domains without authorization, or any activity that degrades the Service for other users. Bans are enforced at the nginx layer.</p>
 
   <h2>7. Service Availability</h2>
   <p>The Service may change, be interrupted, or be discontinued without notice. We do not guarantee uptime, availability, or any service level agreement (SLA). Features may be added, modified, or removed at any time.</p>
 
   <h2>8. Data Collection</h2>
-  <p>ContrastScan stores domain names and scan results for result lookup. ContrastAPI stores only: (a) a salted HMAC hash of your IP address, (b) the endpoint category called (path parameters — domains, IPs, CVE IDs, etc. — are stripped before logging), (c) the call timestamp, and (d) for Pro users, a hashed API key. Domain and IP lookup results are temporarily cached for up to 1 hour. No raw IP addresses, query parameters, or response contents are stored in the database. You can verify this at any time by calling <code>GET /v1/privacy/my-data</code>, which returns every row our database has about you. See our <a href="/privacy">Privacy Policy</a> for full details.</p>
+  <p>ContrastScan stores submitted domain names and scan results (security score, grade, findings) for result lookup and historical comparison. We also record a salted hash of your IP address linked to your scans for rate limiting and abuse detection; the raw IP is never stored in the application database. See our <a href="/privacy">Privacy Policy</a> for full details, including retention windows.</p>
 
-  <h2>9. Third-Party Data</h2>
-  <p>Some API endpoints query or analyze data about third-party domains, email addresses, phone numbers, or usernames. You are responsible for ensuring your use of these lookups complies with applicable laws in your jurisdiction. We do not verify whether you have authorization to query specific targets.</p>
+  <h2>9. Third-Party Targets</h2>
+  <p>You may submit any publicly reachable domain to be scanned. You are responsible for ensuring your use of the Service complies with applicable laws in your jurisdiction. We do not verify whether you have authorization to scan specific targets and are not liable for unauthorized scanning performed under your IP.</p>
 
   <h2>10. Intellectual Property</h2>
-  <p>ContrastScan and ContrastAPI are open source software licensed under the MIT License. Source code is available at <a href="https://github.com/UPinar/contrastscan" target="_blank">github.com/UPinar/contrastscan</a> and <a href="https://github.com/UPinar/contrastapi" target="_blank">github.com/UPinar/contrastapi</a>.</p>
+  <p>ContrastScan is open source software licensed under the MIT License. Source code is available at <a href="https://github.com/UPinar/contrastscan" target="_blank">github.com/UPinar/contrastscan</a>.</p>
 
   <h2>11. Disclaimer of Warranties</h2>
   <p>THE SERVICE IS PROVIDED "AS IS" WITHOUT WARRANTIES OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, AND NON-INFRINGEMENT. WE DO NOT WARRANT THAT THE SERVICE WILL BE UNINTERRUPTED, ERROR-FREE, OR FREE OF HARMFUL COMPONENTS. WE MAKE NO GUARANTEES ABOUT THE ACCURACY, COMPLETENESS, OR RELIABILITY OF ANY RESULTS.</p>
@@ -102,7 +88,6 @@
       <a href="/privacy">Privacy</a>
       <a href="#" class="contact-copy">Contact</a>
       <a href="https://github.com/UPinar/contrastscan">GitHub</a>
-      <a href="https://api.contrastcyber.com">API Platform</a>
     </div>
     <p>&copy; 2026 ContrastScan</p>
   </footer>

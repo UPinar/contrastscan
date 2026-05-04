@@ -233,40 +233,6 @@ button:not(.hamburger) {
   font-weight: 600;
 }
 
-.bulk-row {
-  max-inline-size: 30rem;
-  box-sizing: content-box;
-  margin-inline: auto;
-  margin-block-start: 0.5rem;
-  padding-inline: calc(0.5rem + 1px);
-}
-
-@media screen and (min-width: 640px) {
-  .bulk-row {
-    padding-inline: calc(0.3rem + 1px);
-  }
-}
-
-.btn-bulk {
-  display: block;
-  inline-size: 100%;
-  background-color: var(--primary);
-  color: var(--text);
-  border: none;
-  font-family: inherit;
-  font-size: 0.75rem;
-  font-weight: 600;
-  padding: 0.85rem 1.25rem;
-  border-radius: 0.5rem;
-  cursor: pointer;
-  transition: background-color 0.2s;
-  -webkit-appearance: none;
-  appearance: none;
-}
-
-.btn-bulk:hover { background-color: var(--primary-hover); }
-
-
 /* Result preview card */
 .result-preview {
   max-inline-size: 30rem;
@@ -475,7 +441,7 @@ button:not(.hamburger) {
     padding: 0.3rem;
   }
 
-  button:not(.hamburger):not(.btn-bulk) { inline-size: auto; min-inline-size: 7.5rem; }
+  button:not(.hamburger) { inline-size: auto; min-inline-size: 7.5rem; }
 
   .features {
     grid-template-columns: repeat(3, 1fr);

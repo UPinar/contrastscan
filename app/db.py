@@ -389,7 +389,7 @@ def check_pro_rate_limit(key_id: int, count: int = 1) -> tuple[bool, int]:
     """Check Pro API key hourly rate limit and reserve quota atomically.
     Uses BEGIN IMMEDIATE to acquire write lock before SELECT, preventing
     TOCTOU race where two threads read the same usage count.
-    count: number of scans to reserve (e.g. len(unique_domains) for bulk).
+    count: number of scans to reserve.
     Returns (allowed, current_usage). If allowed, `count` usage rows are inserted."""
     now = datetime.now(UTC)
     window_start = now.replace(minute=0, second=0, microsecond=0).isoformat()

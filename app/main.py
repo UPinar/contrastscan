@@ -366,11 +366,6 @@ def privacy_page(request: Request):
     return templates.TemplateResponse(request, "privacy.html")
 
 
-@app.get("/pricing", response_class=HTMLResponse, include_in_schema=False)
-def pricing_page(request: Request):
-    return templates.TemplateResponse(request, "pricing.html")
-
-
 # === Learn (Programmatic SEO) ===
 
 

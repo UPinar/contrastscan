@@ -17,51 +17,35 @@
       <a href="/blog">Blog</a>
       <a href="/stats">Stats</a>
       <a href="https://api.contrastcyber.com" target="_blank" rel="noopener">API</a>
-      <a href="/pricing">Pricing</a>
     </div>
   </nav>
 <div class="legal">
   <h1>Privacy Policy</h1>
-  <p class="updated">Last updated: April 11, 2026</p>
+  <p class="updated">Last updated: May 4, 2026</p>
 
   <h2>1. Introduction</h2>
-  <p>ContrastCyber ("we", "us") operates ContrastScan at contrastcyber.com and ContrastAPI at api.contrastcyber.com. This Privacy Policy covers both services and explains what data we collect, how we use it, and your rights.</p>
+  <p>ContrastCyber ("we", "us") operates <strong>ContrastScan</strong> at contrastcyber.com — a free website security scanning tool. This Privacy Policy explains what data we collect, how we use it, and your rights when using the scanner.</p>
+  <p>Our security intelligence API is a separate property at <a href="https://api.contrastcyber.com">api.contrastcyber.com</a> with its own <a href="https://api.contrastcyber.com/privacy">Privacy Policy</a>.</p>
 
   <h2>2. Data We Collect</h2>
 
-  <h3>2.1 Scan Data (ContrastScan)</h3>
+  <h3>2.1 Scan Data</h3>
   <ul>
     <li><strong>Domain names</strong> submitted for scanning</li>
-    <li><strong>Scan results</strong> (security scores, grades, findings)</li>
-    <li><strong>Passive recon data</strong> (DNS records, WHOIS, certificate transparency logs) — all from public sources</li>
+    <li><strong>Scan results</strong> (security scores, grades, per-module findings)</li>
+    <li><strong>Passive recon data</strong> (DNS records, WHOIS, certificate transparency logs, robots.txt, sitemap entries) — all from public sources</li>
   </ul>
 
-  <h3>2.2 API Usage Data (ContrastAPI)</h3>
+  <h3>2.2 Technical Data</h3>
   <ul>
-    <li><strong>API request logs</strong> — endpoint called, timestamp, and hashed API key (for Pro users). Used for usage analytics and rate limit enforcement.</li>
-    <li><strong>Query parameters</strong> — domain names, IP addresses, CVE IDs, email addresses, phone numbers, or usernames submitted to API endpoints. Domain and IP lookup results are temporarily cached (up to 1 hour) to improve performance. Other query types are processed in real-time and not stored. The API usage log records only the endpoint path, not the full query parameters.</li>
-    <li><strong>Hashed API keys</strong> — Pro API keys are stored as irreversible cryptographic hashes. We never store your raw API key after initial generation.</li>
-  </ul>
-
-  <h3>2.3 Technical Data (Both Services)</h3>
-  <ul>
-    <li><strong>Hashed IP addresses</strong> — a one-way cryptographic hash of your IP (with a unique salt) is stored for aggregate analytics. No raw IP address is ever stored in the application database.</li>
-    <li><strong>Rate limiting</strong> — raw IP addresses are stored temporarily for rate limiting and purged automatically. Never shared.</li>
-    <li><strong>Server logs</strong> — standard nginx access logs retained for up to <strong>24 hours</strong>. Path parameters and query strings are stripped to <code>REDACTED</code> at the nginx layer <em>before</em> the log line ever touches disk:
-    <pre class="code-block code-block-sm"><code>Before:  GET /v1/ip/8.8.8.8 HTTP/1.1
-After:   GET /v1/ip/REDACTED HTTP/1.1
-
-Before:  GET /v1/whois/example.com HTTP/1.1
-After:   GET /v1/whois/REDACTED HTTP/1.1
-
-Before:  GET /v1/cves?q=log4j HTTP/1.1
-After:   GET /v1/cves HTTP/1.1</code></pre>
-    The log line itself contains: IP address, timestamp, HTTP method, sanitized path (as above), status code, response size, referrer URL, and user-agent string. A separate daily aggregate snapshot (per-day counts and ISO country codes only — no IPs, no paths, no query data) is retained indefinitely for product analytics.</li>
-    <li><strong>Application logs (systemd journal)</strong> — application warning/error events record only the exception <em>type</em> (e.g. <code>TimeoutException</code>, <code>HTTPStatusError</code>) and the sanitized endpoint path. Query parameters, full exception messages, and stack traces are deliberately stripped before the line is emitted, so domain names, IPs, CVE IDs, hashes, and other inputs never reach the journal. Retained for <strong>24 hours</strong> (<code>MaxRetentionSec=1day</code> in <code>journald.conf</code>).</li>
+    <li><strong>Hashed IP addresses</strong> — a one-way keyed HMAC-SHA256 hash of your IP (with a server-side secret as the HMAC key) is stored to associate scans with a stable visitor identifier for rate limiting and abuse detection. The hash is irreversible. No raw IP address is ever stored in the application database.</li>
+    <li><strong>Rate limiting</strong> — raw IP addresses are kept transiently in-memory for sliding-window rate limit enforcement and purged automatically.</li>
+    <li><strong>Server logs</strong> — standard nginx access logs retained for up to <strong>24 hours</strong> (forced daily rotation, <code>rotate 1</code>). The log line contains: IP address, timestamp, HTTP method, request path, status code, response size, referrer URL, and user-agent string.</li>
+    <li><strong>Application logs (systemd journal)</strong> — application warning/error events. Retained for <strong>24 hours</strong> (<code>MaxRetentionSec=1day</code> in <code>journald.conf</code>).</li>
     <li><strong>Geographic analysis</strong> — a local GeoIP database (MaxMind GeoLite2) maps IP addresses to <strong>country-level location only</strong>. No city, region, or precise location data is derived. No individual user is identified or profiled.</li>
   </ul>
 
-  <h3>2.4 What We Do NOT Collect</h3>
+  <h3>2.3 What We Do NOT Collect</h3>
   <ul>
     <li>No personal information (name, email, phone) — no signup required, no user accounts</li>
     <li>No tracking cookies or session cookies</li>
@@ -69,67 +53,57 @@ After:   GET /v1/cves HTTP/1.1</code></pre>
     <li>No advertising data</li>
     <li>We do not sell, rent, or share any data with third parties</li>
     <li>We do not track users across sites</li>
-    <li>We do not store the content of API query results</li>
   </ul>
 
-  <h3>2.5 Verify It Yourself</h3>
-  <p>Don't take our word for it. ContrastAPI exposes a transparency endpoint that returns <strong>every single row</strong> our database has about you — right now, in real time:</p>
-  <pre class="code-block"><code>curl https://api.contrastcyber.com/v1/privacy/my-data</code></pre>
-  <p>The response shows your hashed IP, your last 24 hours of endpoint activity (aggregated by endpoint category — no query parameters), your rate limit state, and a <code>not_stored</code> list explaining what is deliberately absent. Pro users additionally see their key record (order ID, creation date, last use). The endpoint points back to the exact source lines in <a href="https://github.com/UPinar/contrastapi/blob/main/app/db.py#L299-L357" target="_blank">db.py (hash_client_ip + normalize_endpoint)</a> that enforce the privacy guarantees — so you can audit the code, not just the policy.</p>
-
   <h2>3. DNT &amp; Global Privacy Control</h2>
-  <p>We respect the <strong>Do Not Track</strong> (DNT) and <strong>Global Privacy Control</strong> (Sec-GPC) headers. If your browser sends either signal, we do not store any hashed IP data with your request. The service still works normally — we simply skip the analytics hash.</p>
+  <p>We respect the <strong>Do Not Track</strong> (DNT) and <strong>Global Privacy Control</strong> (Sec-GPC) headers. If your browser sends either signal, we do not store any hashed IP data with your scan. The scanner still works normally — we simply skip the analytics hash.</p>
 
   <h2>4. How We Use Data</h2>
   <ul>
-    <li><strong>Rate limiting:</strong> IP addresses enforce fair usage limits (100/hour free, 1,000/hour Pro). Rate limit data is purged automatically.</li>
-    <li><strong>Analytics:</strong> Hashed IPs are salted with a random value, irreversible, and cannot be traced back to individual users.</li>
-    <li><strong>Geographic analytics:</strong> Country-level data is used for aggregate traffic analysis. Never linked to individual users or shared externally.</li>
+    <li><strong>Rate limiting:</strong> hashed IP addresses enforce a fair-use limit of 100 requests per hour per IP. Rate limit state is sliding-window and purged automatically.</li>
+    <li><strong>Result lookup:</strong> scan records are stored so that you (or any visitor) can re-fetch a result by domain.</li>
+    <li><strong>Analytics:</strong> hashed IPs are keyed with a server-side HMAC secret, irreversible, and cannot be traced back to individual users. Used for aggregate counters (total scans/day) only.</li>
+    <li><strong>Geographic analytics:</strong> country-level data is used for aggregate traffic analysis. Never linked to individual users or shared externally.</li>
   </ul>
 
   <h2>5. Data Retention</h2>
   <ul>
-    <li><strong>Hashed IPs:</strong> Automatically anonymized after 90 days.</li>
-    <li><strong>Scan results:</strong> The scan record (domain, grade, findings) is stored indefinitely for historical comparison and result lookup. The user link (hashed client IP) is removed after 90 days via <code>purge_old_client_hashes()</code>, leaving an orphan record that cannot be tied to any visitor.</li>
-    <li><strong>API usage logs:</strong> Retained for 90 days, then anonymized.</li>
-    <li><strong>API query caches:</strong> Domain and IP lookup results are cached for up to 1 hour to improve response times, then automatically expired and purged.</li>
-    <li><strong>Rate limit data:</strong> Purged automatically (sliding window).</li>
-    <li><strong>Server logs:</strong> Rotated and deleted after <strong>24 hours</strong> (forced midnight UTC rotation, <code>rotate 1</code>).</li>
-    <li><strong>Application logs:</strong> systemd journal capped at <strong>1 hour</strong> (<code>MaxRetentionSec=1h</code>).</li>
-    <li><strong>Pro API keys:</strong> Hashed keys retained while subscription is active. Deleted upon request after cancellation.</li>
+    <li><strong>Scan results:</strong> the scan record (domain, grade, findings) is stored indefinitely for historical comparison and result lookup. The user link (hashed client IP column on the <code>scans</code> row) is cleared to an empty string after 90 days via <code>purge_old_client_hashes()</code>, leaving an orphan record that cannot be tied back to any visitor.</li>
+    <li><strong>Rate-limit counters (hashed-IP keyed):</strong> sliding 1-hour window — rows older than the current hour are hard-<code>DELETE</code>d by <code>cleanup_ip_limits()</code> / <code>cleanup_api_usage()</code>. No long-term retention.</li>
+    <li><strong>Server logs:</strong> rotated and deleted after <strong>24 hours</strong> (forced midnight UTC rotation, <code>rotate 1</code>).</li>
+    <li><strong>Application logs:</strong> systemd journal capped at <strong>24 hours</strong> (<code>MaxRetentionSec=1day</code>).</li>
   </ul>
 
-  <h2>6. Data Sharing</h2>
-  <p>We do not sell, rent, or share any data with third parties. The only third-party service involved is <strong>Lemon Squeezy</strong> for Pro subscription payment processing. Lemon Squeezy receives only the payment information you provide directly to them; we do not share any usage data, IP addresses, or scan results with them. See <a href="https://www.lemonsqueezy.com/privacy" target="_blank">Lemon Squeezy's Privacy Policy</a>.</p>
+  <h2>6. Third-Party Services</h2>
+  <p>We do not sell, rent, or share any data with third parties. The scanner does not integrate with any payment processor, advertising network, or analytics provider. Higher rate limits are sold via our separate API service at <a href="https://api.contrastcyber.com/pricing">api.contrastcyber.com/pricing</a>; payment processing for that service (Lemon Squeezy / NOWPayments) is handled entirely on the API side and never touches the scanner.</p>
 
   <h2>7. International Data Transfers</h2>
-  <p>Our server is located in Germany (EU). If you access the service from outside the EU, your requests are processed on this EU-based server. We do not transfer data to servers outside the EU.</p>
+  <p>Our server is located in Germany (EU). If you access the scanner from outside the EU, your requests are processed on this EU-based server. We do not transfer data to servers outside the EU.</p>
 
   <h2>8. GDPR (EU/EEA Users)</h2>
   <p>If you are located in the European Union or European Economic Area:</p>
   <ul>
-    <li><strong>Legal basis:</strong> We process data based on legitimate interest (Article 6(1)(f) GDPR) — specifically, operating and securing a public API service, preventing abuse, and understanding aggregate usage patterns.</li>
-    <li><strong>Data minimization:</strong> We collect only what is necessary. IP addresses are hashed with a random salt immediately and never stored in raw form in our database.</li>
-    <li><strong>Your rights:</strong> You have the right to access, rectification, erasure, restriction of processing, data portability, and objection. Since we do not maintain user accounts and cannot link hashed data back to individuals, most of these rights are satisfied by design.</li>
-    <li><strong>Right to erasure:</strong> To request deletion of any data associated with your IP or API key, contact us at the address below. We will process requests within 30 days.</li>
-    <li><strong>Data Protection Officer:</strong> Given our small scale and minimal data processing, we have not appointed a DPO. Contact us directly for any privacy concerns.</li>
+    <li><strong>Legal basis:</strong> we process data based on legitimate interest (Article 6(1)(f) GDPR) — specifically, operating and securing a public security scanner, preventing abuse, and understanding aggregate usage patterns.</li>
+    <li><strong>Data minimization:</strong> we collect only what is necessary. IP addresses are hashed with an HMAC server-side secret immediately and never stored in raw form in our database.</li>
+    <li><strong>Your rights:</strong> you have the right to access, rectification, erasure, restriction of processing, data portability, and objection. Since we do not maintain user accounts and cannot link hashed data back to individuals, most of these rights are satisfied by design.</li>
+    <li><strong>Right to erasure:</strong> contact us at the address below to request removal of any scan record associated with you. We process requests within 30 days.</li>
+    <li><strong>Data Protection Officer:</strong> given our small scale and minimal data processing, we have not appointed a DPO. Contact us directly for any privacy concerns.</li>
   </ul>
 
   <h2>9. KVKK (Turkish Users)</h2>
   <p>If you are located in Turkey, your rights under the Personal Data Protection Law (KVKK, Law No. 6698) are respected. You have the right to learn whether your personal data is processed, request information about processing, learn the purpose and whether data is used accordingly, know third parties to whom data is transferred, request correction or deletion, and object to automated processing. Contact us at the address below to exercise these rights.</p>
 
   <h2>10. Security</h2>
-  <p>All data is transmitted over HTTPS. We employ industry-standard server hardening, intrusion detection, file integrity monitoring, and audit logging. Both applications are open source and available for public audit.</p>
+  <p>All data is transmitted over HTTPS. The origin uses Cloudflare Authenticated Origin Pulls (mTLS) so direct-origin bypass is rejected. We employ industry-standard server hardening, intrusion detection, file integrity monitoring, fail2ban with custom nginx-blocklist actions, and audit logging. The application is open source and available for public audit.</p>
 
   <h2>11. Open Source</h2>
-  <p>Both services are fully open source under the MIT License. You can review exactly what data is collected by reading the source code:</p>
+  <p>ContrastScan is fully open source under the MIT License. You can review exactly what data is collected by reading the source code:</p>
   <ul>
-    <li><a href="https://github.com/UPinar/contrastscan" target="_blank">ContrastScan</a></li>
-    <li><a href="https://github.com/UPinar/contrastapi" target="_blank">ContrastAPI</a></li>
+    <li><a href="https://github.com/UPinar/contrastscan" target="_blank">github.com/UPinar/contrastscan</a></li>
   </ul>
 
   <h2>12. Children's Privacy</h2>
-  <p>Our services are not directed at children under 16. We do not knowingly collect data from children. If you believe a child has used our service, contact us and we will delete any associated data.</p>
+  <p>Our scanner is not directed at children under 16. We do not knowingly collect data from children. If you believe a child has used our service, contact us and we will delete any associated data.</p>
 
   <h2>13. Changes</h2>
   <p>We may update this Privacy Policy. Changes will be posted on this page with an updated date. Material changes will be communicated via the website.</p>
@@ -145,7 +119,6 @@ After:   GET /v1/cves HTTP/1.1</code></pre>
       <a href="/privacy">Privacy</a>
       <a href="#" class="contact-copy">Contact</a>
       <a href="https://github.com/UPinar/contrastscan">GitHub</a>
-      <a href="https://api.contrastcyber.com">API Platform</a>
     </div>
     <p>&copy; 2026 ContrastScan</p>
   </footer>
