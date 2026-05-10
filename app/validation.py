@@ -1,5 +1,6 @@
 """Domain validation, IP checks, CSRF for ContrastScan"""
 
+import concurrent.futures
 import ipaddress
 import logging
 import re
@@ -10,6 +11,12 @@ from config import ALLOWED_ORIGINS, MAX_DOMAIN_LENGTH
 from fastapi import HTTPException, Request
 
 logger = logging.getLogger(__name__)
+
+# Bounded executor for system-resolver DNS calls. Replaces the previous
+# threading.Thread(daemon=True) + t.join(timeout=3) pattern which leaked
+# orphan daemon threads on every join-timeout. A slow getaddrinfo can now
+# stall at most max_workers slots — never unbounded.
+_DNS_EXECUTOR = concurrent.futures.ThreadPoolExecutor(max_workers=8, thread_name_prefix="scan-dns")
 
 SCAN_ID_PATTERN = re.compile(r"^[0-9a-f]{32}$")
 
@@ -66,24 +73,11 @@ def _dns_fallback(domain: str) -> str | None:
 
 def resolve_and_check(domain: str) -> str | None:
     """Resolve DNS, check if IP is private. Return first valid IP or None."""
-    # Try system resolver first with strict timeout
-    import threading
-
-    result_box = [None]
-    exc_box = [None]
-
-    def _resolve():
-        try:
-            result_box[0] = socket.getaddrinfo(domain, 443, type=socket.SOCK_STREAM)
-        except Exception as e:
-            exc_box[0] = e
-
-    t = threading.Thread(target=_resolve, daemon=True)
-    t.start()
-    t.join(timeout=3)
-    if t.is_alive() or exc_box[0] is not None:
+    try:
+        future = _DNS_EXECUTOR.submit(socket.getaddrinfo, domain, 443, type=socket.SOCK_STREAM)
+        results = future.result(timeout=3)
+    except (concurrent.futures.TimeoutError, socket.gaierror, OSError):
         return _dns_fallback(domain)
-    results = result_box[0]
     if not results:
         return _dns_fallback(domain)
     for _family, _stype, _proto, _canonname, sockaddr in results:

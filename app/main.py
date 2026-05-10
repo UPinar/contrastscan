@@ -85,6 +85,10 @@ async def lifespan(app):
         await task
     except asyncio.CancelledError:
         pass
+    # Shut down the bounded DNS executor used by validation.resolve_and_check.
+    from validation import _DNS_EXECUTOR
+
+    _DNS_EXECUTOR.shutdown(wait=False)
 
 
 app = FastAPI(
